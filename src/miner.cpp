@@ -123,7 +123,7 @@ public:
 
 void UpdateTime(CBlockHeader* pblock, const Consensus::Params& consensusParams, const CBlockIndex* pindexPrev)
 {
-    pblock->nTime = std::max(pindexPrev->GetMedianTimePast()+1, GetAdjustedTime());
+    pblock->nTime = std::max(pindexPrev->GetMedianTimePast()+1 + 2*ASSETCHAINS_ADAPTIVEPOW*ASSETCHAINS_BLOCKTIME, GetAdjustedTime());
 
     // Updating time can change work required on testnet:
     if (consensusParams.nPowAllowMinDifficultyBlocksAfterHeight != boost::none) {
@@ -222,9 +222,13 @@ CBlockTemplate* CreateNewBlock(CPubKey _pk,const CScript& _scriptPubKeyIn, int32
     boost::optional<CTransaction> cheatSpend;
 
     uint256 cbHash;
-
+    
+    boost::this_thread::interruption_point(); // exit thread before entering locks. 
+    
     CBlockIndex* pindexPrev = 0;
     {
+        // this should stop create block ever exiting until it has returned something. 
+        boost::this_thread::disable_interruption();
         ENTER_CRITICAL_SECTION(cs_main);
         ENTER_CRITICAL_SECTION(mempool.cs);
         pindexPrev = chainActive.LastTip();
@@ -319,6 +323,13 @@ CBlockTemplate* CreateNewBlock(CPubKey _pk,const CScript& _scriptPubKeyIn, int32
 
                 BOOST_FOREACH(const CTxIn& txin, tx.vin)
                 {
+                    if (tx.IsPegsImport() && txin.prevout.n==10e8)
+                    {
+                        CAmount nValueIn = GetCoinImportValue(tx); // burn amount
+                        nTotalIn += nValueIn;
+                        dPriority += (double)nValueIn * 1000;  // flat multiplier... max = 1e16.
+                        continue;
+                    }
                     // Read prev transaction
                     if (!view.HaveCoins(txin.prevout.hash))
                     {
@@ -556,7 +567,7 @@ CBlockTemplate* CreateNewBlock(CPubKey _pk,const CScript& _scriptPubKeyIn, int32
 
         nLastBlockTx = nBlockTx;
         nLastBlockSize = nBlockSize;
-        blocktime = 1 + std::max(pindexPrev->GetMedianTimePast()+1, GetAdjustedTime());
+        blocktime = 1 + std::max(pindexPrev->GetMedianTimePast()+1+ 2*ASSETCHAINS_ADAPTIVEPOW*ASSETCHAINS_BLOCKTIME, GetAdjustedTime());
         //pblock->nTime = blocktime + 1;
         pblock->nBits = GetNextWorkRequired(pindexPrev, pblock, Params().GetConsensus());
 
@@ -585,8 +596,6 @@ CBlockTemplate* CreateNewBlock(CPubKey _pk,const CScript& _scriptPubKeyIn, int32
             else
             {
                 blocktime = GetAdjustedTime();
-                //if ( blocktime > pindexPrev->GetMedianTimePast()+60 )
-                //    blocktime = pindexPrev->GetMedianTimePast() + 60;
                 siglen = komodo_staked(txStaked, pblock->nBits, &blocktime, &txtime, &utxotxid, &utxovout, &utxovalue, utxosig);
                 // if you skip this check it will create a block too far into the future and not pass ProcessBlock or AcceptBlock.
                 // This has been moved from the mining loop to save CPU, and to also make ac_staked work with the verus miner.
@@ -631,7 +640,7 @@ CBlockTemplate* CreateNewBlock(CPubKey _pk,const CScript& _scriptPubKeyIn, int32
         txNew.vout[0].nValue = GetBlockSubsidy(nHeight,consensusParams) + nFees;
         //fprintf(stderr,"mine ht.%d with %.8f\n",nHeight,(double)txNew.vout[0].nValue/COIN);
         txNew.nExpiryHeight = 0;
-        txNew.nLockTime = std::max(pindexPrev->GetMedianTimePast()+1, GetAdjustedTime());
+        txNew.nLockTime = std::max(pindexPrev->GetMedianTimePast()+1+ 2*ASSETCHAINS_ADAPTIVEPOW*ASSETCHAINS_BLOCKTIME, GetAdjustedTime());
 
         if ( ASSETCHAINS_SYMBOL[0] == 0 && IS_KOMODO_NOTARY != 0 && My_notaryid >= 0 )
             txNew.vout[0].nValue += 5000;
@@ -654,7 +663,7 @@ CBlockTemplate* CreateNewBlock(CPubKey _pk,const CScript& _scriptPubKeyIn, int32
             if ( ASSETCHAINS_SCRIPTPUB.size() > 1 )
             {
                 static bool didinit = false;
-                if ( !didinit && nHeight > 100 && KOMODO_EARLYTXID != zeroid && komodo_appendACscriptpub() )
+                if ( !didinit && nHeight > KOMODO_EARLYTXID_HEIGHT && KOMODO_EARLYTXID != zeroid && komodo_appendACscriptpub() )
                 {
                     fprintf(stderr, "appended ccopreturn to ASSETCHAINS_SCRIPTPUB.%s\n", ASSETCHAINS_SCRIPTPUB.c_str());
                     didinit = true;
@@ -815,7 +824,8 @@ CBlockTemplate* CreateNewBlock(CPubKey _pk,const CScript& _scriptPubKeyIn, int32
                     LEAVE_CRITICAL_SECTION(cs_main);
                     LEAVE_CRITICAL_SECTION(mempool.cs);
                 }
-                throw std::runtime_error("CreateNewBlock(): TestBlockValidity failed");
+                //throw std::runtime_error("CreateNewBlock(): TestBlockValidity failed"); // crashes the node, moved to GetBlockTemplate and issue return.
+                return(0);
             }
             //fprintf(stderr,"valid\n");
         }
@@ -1435,7 +1445,9 @@ void static BitcoinMiner_noeq()
                 HASHTarget.SetCompact(KOMODO_MINDIFF_NBITS,&fNegative,&fOverflow);
                 LogPrintf("Block %d : PoS %d%% vs target %d%%\n", Mining_height, percPoS, (int32_t)ASSETCHAINS_STAKED);
             }
-
+            else if ( ASSETCHAINS_ADAPTIVEPOW > 0 && ASSETCHAINS_STAKED == 0 )
+                HASHTarget_POW = komodo_adaptivepow_target(Mining_height,HASHTarget,pblock->nTime);
+            
             while (true)
             {
                 arith_uint256 arNonce = UintToArith256(pblock->nNonce);
@@ -1468,7 +1480,9 @@ void static BitcoinMiner_noeq()
                 }
                 else if ( ASSETCHAINS_STAKED == 100 && Mining_height > 100 )
                     hashTarget = HASHTarget;
-                
+                else if ( ASSETCHAINS_ADAPTIVEPOW > 0 && ASSETCHAINS_STAKED == 0 )
+                    hashTarget = HASHTarget_POW;
+
                 // for speed check NONCEMASK at a time
                 for (i = 0; i < count; i++)
                 {
@@ -1746,7 +1760,7 @@ void static BitcoinMiner()
                 if ( (Mining_height >= 235300 && Mining_height < 236000) || (Mining_height % KOMODO_ELECTION_GAP) > 64 || (Mining_height % KOMODO_ELECTION_GAP) == 0 || Mining_height > 1000000 )
                 {
                     int32_t dispflag = 0;
-                    if ( notaryid <= 3 || notaryid == 32 || (notaryid >= 43 && notaryid <= 45) &&notaryid == 51 || notaryid == 52 || notaryid == 56 || notaryid == 57 )
+                    if ( notaryid <= 3 || notaryid == 32 || (notaryid >= 43 && notaryid <= 45) || notaryid == 51 || notaryid == 52 || notaryid == 56 || notaryid == 57 )
                         dispflag = 1;
                     komodo_eligiblenotary(pubkeys,mids,blocktimes,&nonzpkeys,pindexPrev->GetHeight());
                     if ( nonzpkeys > 0 )
@@ -1769,8 +1783,12 @@ void static BitcoinMiner()
                                 if ( dispflag != 0 )
                                 {
                                     if ( mids[j] >= 0 )
-                                        fprintf(stderr,"%d ",mids[j]);
-                                    else fprintf(stderr,"GPU ");
+                                    {
+                                        if ( mids[j] == notaryid )
+                                            fprintf(stderr,"--<%d>-- ",mids[j]);
+                                        else
+                                            fprintf(stderr,"%d ",mids[j]);
+                                    } else fprintf(stderr,"GPU ");
                                 }
                                 if ( mids[j] == -1 )
                                     gpucount++;
@@ -1800,6 +1818,8 @@ void static BitcoinMiner()
                 if ( ASSETCHAINS_STAKED < 100 )
                     LogPrintf("Block %d : PoS %d%% vs target %d%% \n",Mining_height,percPoS,(int32_t)ASSETCHAINS_STAKED);
             }
+            else if ( ASSETCHAINS_ADAPTIVEPOW > 0 )
+                HASHTarget_POW = komodo_adaptivepow_target(Mining_height,HASHTarget,pblock->nTime);
             gotinvalid = 0;
             while (true)
             {
@@ -1826,6 +1846,8 @@ void static BitcoinMiner()
                 LogPrint("pow", "Running Equihash solver \"%s\" with nNonce = %s\n",solver, pblock->nNonce.ToString());
                 arith_uint256 hashTarget;
                 if ( KOMODO_MININGTHREADS > 0 && ASSETCHAINS_STAKED > 0 && ASSETCHAINS_STAKED < 100 && Mining_height > 10 )
+                    hashTarget = HASHTarget_POW;
+                else if ( ASSETCHAINS_ADAPTIVEPOW > 0 )
                     hashTarget = HASHTarget_POW;
                 else hashTarget = HASHTarget;
                 std::function<bool(std::vector<unsigned char>)> validBlock =
@@ -2016,6 +2038,11 @@ void static BitcoinMiner()
                     // Update nNonce and nTime
                     pblock->nNonce = ArithToUint256(UintToArith256(pblock->nNonce) + 1);
                     pblock->nBits = savebits;
+                    if ( ASSETCHAINS_ADAPTIVEPOW > 0 )
+                    {
+                        UpdateTime(pblock, chainparams.GetConsensus(), pindexPrev);
+                        hashTarget = HASHTarget_POW = komodo_adaptivepow_target(Mining_height,HASHTarget,pblock->nTime);
+                    }
                     /*if ( NOTARY_PUBKEY33[0] == 0 )
                     {
                         int32_t percPoS;

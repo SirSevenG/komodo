@@ -745,7 +745,8 @@ UniValue getblocktemplate(const UniValue& params, bool fHelp)
 #endif
         ENTER_CRITICAL_SECTION(cs_main);
         if (!pblocktemplate)
-            throw JSONRPCError(RPC_OUT_OF_MEMORY, "Out of memory or no available utxo for staking");
+            throw std::runtime_error("CreateNewBlock(): create block failed");
+            //throw JSONRPCError(RPC_OUT_OF_MEMORY, "Out of memory or no available utxo for staking");
 
         // Need to update only after we know CreateNewBlockWithKey succeeded
         pindexPrev = pindexPrevNew;
@@ -836,7 +837,10 @@ UniValue getblocktemplate(const UniValue& params, bool fHelp)
         result.push_back(Pair("PoSperc", (int64_t)PoSperc));
         result.push_back(Pair("ac_staked", (int64_t)ASSETCHAINS_STAKED));
         result.push_back(Pair("origtarget", hashTarget.GetHex()));
-    } else result.push_back(Pair("target", hashTarget.GetHex()));
+    }
+    else if ( ASSETCHAINS_ADAPTIVEPOW != 0 )
+        result.push_back(Pair("target",komodo_adaptivepow_target((int32_t)(pindexPrev->GetHeight()+1),hashTarget,pblock->nTime).GetHex()));
+    else result.push_back(Pair("target", hashTarget.GetHex()));
     result.push_back(Pair("mintime", (int64_t)pindexPrev->GetMedianTimePast()+1));
     result.push_back(Pair("mutable", aMutable));
     result.push_back(Pair("noncerange", "00000000ffffffff"));
