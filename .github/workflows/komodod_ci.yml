@@ -29,7 +29,7 @@ jobs:
                        git \
                        ncurses-dev \
                        python \
-                       python-zmq9 \
+                       python-zmq \
                        zlib1g-dev \
                        libcurl4-gnutls-dev \
                        curl \
@@ -149,7 +149,7 @@ jobs:
                        git \
                        ncurses-dev \
                        python \
-                       python-zmq9 \
+                       python-zmq \
                        zlib1g-dev \
                        libcurl4-gnutls-dev \
                        curl \
