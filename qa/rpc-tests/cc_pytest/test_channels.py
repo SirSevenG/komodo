@@ -6,7 +6,11 @@
 import pytest
 import json
 
-from util import assert_success, assert_error, check_if_mined, send_and_mine, rpc_connect, wait_some_blocks, generate_random_string
+from util import assert_success, assert_error, check_if_mined, send_and_mine,\
+    rpc_connect, wait_some_blocks, generate_random_string, komodo_teardown
+
+
+proxy = []
 
 
 def test_channels():
@@ -18,13 +22,17 @@ def test_channels():
     node1_params = params_dict["node1"]
     node2_params = params_dict["node2"]
 
-    rpc = rpc_connect(node1_params["rpc_user"], node1_params["rpc_password"], node1_params["rpc_ip"], node1_params["rpc_port"])
-    rpc1 = rpc_connect(node2_params["rpc_user"], node2_params["rpc_password"], node2_params["rpc_ip"], node2_params["rpc_port"])
+    rpc = rpc_connect(node1_params["rpc_user"], node1_params["rpc_password"],
+                      node1_params["rpc_ip"], node1_params["rpc_port"])
+    rpc1 = rpc_connect(node2_params["rpc_user"], node2_params["rpc_password"],
+                       node2_params["rpc_ip"], node2_params["rpc_port"])
     pubkey = node1_params["pubkey"]
     pubkey1 = node2_params["pubkey"]
 
     is_fresh_chain = params_dict["is_fresh_chain"]
 
+    global proxy
+    proxy = [rpc, rpc1]
     """!!! for testing needed test daemon which built with custom flag
     export CONFIGURE_FLAGS='CPPFLAGS=-DTESTMODE'
     since in usual mode 101 confirmations are needed for payment/refund
@@ -227,3 +235,7 @@ def test_channels():
     assert_success(dc_payment_hex)
     result = rpc1.sendrawtransaction(dc_payment_hex["hex"])
     assert result, "got channelspayment transaction id"
+
+
+def teardown_function():
+    komodo_teardown(proxy)

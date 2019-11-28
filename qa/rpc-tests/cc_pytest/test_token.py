@@ -6,10 +6,14 @@
 import pytest
 import json
 
-from util import assert_success, assert_error, check_if_mined, send_and_mine, rpc_connect, wait_some_blocks
+from util import assert_success, assert_error, check_if_mined,\
+    send_and_mine, rpc_connect, wait_some_blocks, komodo_teardown
 
 
-def test_faucet():
+proxy = []
+
+
+def test_token():
 
     # test params inits
     with open('test_config.json', 'r') as f:
@@ -18,12 +22,17 @@ def test_faucet():
     node1_params = params_dict["node1"]
     node2_params = params_dict["node2"]
 
-    rpc = rpc_connect(node1_params["rpc_user"], node1_params["rpc_password"], node1_params["rpc_ip"], node1_params["rpc_port"])
-    rpc1 = rpc_connect(node2_params["rpc_user"], node2_params["rpc_password"], node2_params["rpc_ip"], node2_params["rpc_port"])
+    rpc = rpc_connect(node1_params["rpc_user"], node1_params["rpc_password"],
+                      node1_params["rpc_ip"], node1_params["rpc_port"])
+    rpc1 = rpc_connect(node2_params["rpc_user"], node2_params["rpc_password"],
+                       node2_params["rpc_ip"], node2_params["rpc_port"])
     pubkey = node1_params["pubkey"]
     pubkey1 = node2_params["pubkey"]
 
     is_fresh_chain = params_dict["is_fresh_chain"]
+
+    global proxy
+    proxy = [rpc, rpc1]
 
     result = rpc.tokenaddress()
     assert_success(result)
@@ -254,3 +263,7 @@ def test_faucet():
     send_and_mine(sendtokens["hex"], rpc)
     result = rpc.tokenbalance(tokenid, randompubkey)
     assert result["balance"] == 1
+
+
+def teardown_function():
+    komodo_teardown(proxy)
