@@ -15,7 +15,6 @@ jobs:
       - name: Install deps (Linux)
         run: |
           sudo apt-get update
-          sudo apt-get upgrade -y
           sudo apt-get install build-essential pkg-config libc6-dev m4 g++-multilib autoconf libtool libncurses-dev unzip git python zlib1g-dev wget bsdmainutils automake libboost-all-dev libssl-dev libprotobuf-dev protobuf-compiler libqrencode-dev libdb++-dev ntp ntpdate nano software-properties-common curl libevent-dev libcurl4-gnutls-dev cmake clang libsodium-dev -y
           ./zcutil/fetch-params.sh
       
@@ -46,6 +45,8 @@ jobs:
 #           pip3 install setuptools wheel slick-bitcoinrpc pytest wget
 #           ./zcutil/fetch-params.sh
         
+komodo/.github/workflows/
+
 #       - name: Build (macOS)
 #         if: runner.os == 'macOS'
 #         run: |
@@ -72,8 +73,7 @@ jobs:
       - name: Install deps (faucet test)
         run: |
           sudo apt-get update
-          sudo apt-get upgrade -y
-          sudo apt-get install python3.6 python3-pip python3-setuptools libgnutls28-dev
+          sudo apt-get install python3.6 python3-pip python3-setuptools libgnutls28-dev -y
           pip3 install setuptools wheel
           pip3 install slick-bitcoinrpc pytest wget
 
