@@ -7,7 +7,7 @@ jobs:
   build-linux:
 
     name: Build (Linux)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
 
     steps:
       - uses: actions/checkout@v1
@@ -15,7 +15,8 @@ jobs:
       - name: Install deps (Linux)
         run: |
           sudo apt-get remove php5.6-fpm php7.0-fpm php7.1-fpm php7.2-fpm php7.3-fpm
-          sudo apt-get update && sudo apt-get upgrade -y
+          sudo apt-get update
+          sudo apt-get upgrade -y
           sudo apt-get install -q \
                        build-essential \
                        pkg-config \
@@ -27,12 +28,8 @@ jobs:
                        libncurses-dev \
                        unzip \
                        git \
-                       ncurses-dev \
                        python \
-                       python-zmq \
                        zlib1g-dev \
-                       libcurl4-gnutls-dev \
-                       curl \
                        wget \
                        bsdmainutils \
                        automake \
@@ -45,11 +42,14 @@ jobs:
                        ntp \
                        ntpdate \
                        nano \
-                       cmake \
-                       mingw-w64 \
+                       software-properties-common \
+                       curl \
                        libevent-dev \
-                       libsodium-dev \
-                       software-properties-common -y
+                       libcurl4-gnutls-dev \
+                       cmake \
+                       clang \
+                       libgnutls28-dev \
+                       libsodium-dev -y
       
       - name: Build (Linux)
 #         CONFIGURE_FLAGS='CPPFLAGS=-DTESTMODE' is a flag for some CC tests transactions - so DO NOT USE THIS CI ARTIFACTS IN PRODUCTION!!!
@@ -95,7 +95,7 @@ jobs:
   test-linux-faucet:
 
     name: Test (Linux/FaucetCC)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     needs: build-linux
 
     steps:
@@ -124,7 +124,7 @@ jobs:
   build-windows:
 
     name: Build (Windows)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
 
     steps:
     - uses: actions/checkout@v1
