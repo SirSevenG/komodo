@@ -1,4 +1,4 @@
-name: CI test
+name: Komodo CI
 
 on: [push, pull_request]
 
@@ -72,7 +72,6 @@ jobs:
       - name: Install deps (faucet test)
         run: |
           sudo apt-get update
-          sudo apt-get upgrade -y
           sudo apt-get install python3.6 python3-pip python3-setuptools libgnutls28-dev
           pip3 install setuptools wheel
           pip3 install slick-bitcoinrpc pytest wget
@@ -89,6 +88,174 @@ jobs:
           tar xzvf nspv-linux.tar.gz
           cd qa/rpc-tests/cc_pytest/
           ./ci_setup.sh test_faucet.py
+
+  linux-test-oracles:
+    name: Test (Linux/OraclesCC)
+    runs-on: ubuntu-latest
+    needs: linux-build
+
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Install deps (OraclesCC)
+        run: |
+          sudo apt-get update
+          sudo apt-get install python3.6 python3-pip python3-setuptools libgnutls28-dev
+          pip3 install setuptools wheel
+          pip3 install slick-bitcoinrpc pytest wget
+
+      - name: Download komodo-linux.tar.gz
+        uses: actions/download-artifact@v1
+        with:
+          name: komodo-linux
+
+      - name: Oracles Test (Linux)
+        run: |
+          mv komodo-linux/komodo-linux.tar.gz .
+          mkdir -p src
+          tar xzvf nspv-linux.tar.gz
+          cd qa/rpc-tests/cc_pytest/
+          ./ci_setup.sh test_oracles.py
+
+  linux-test-token:
+    name: Test (Linux/Tokens)
+    runs-on: ubuntu-latest
+    needs: linux-build
+
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Install deps (Tokens)
+        run: |
+          sudo apt-get update
+          sudo apt-get install python3.6 python3-pip python3-setuptools libgnutls28-dev
+          pip3 install setuptools wheel
+          pip3 install slick-bitcoinrpc pytest wget
+
+      - name: Download komodo-linux.tar.gz
+        uses: actions/download-artifact@v1
+        with:
+          name: komodo-linux
+
+      - name: Token Test (Linux)
+        run: |
+          mv komodo-linux/komodo-linux.tar.gz .
+          mkdir -p src
+          tar xzvf nspv-linux.tar.gz
+          cd qa/rpc-tests/cc_pytest/
+          ./ci_setup.sh test_token.py
+
+  linux-test-channels:
+    name: Test (Linux/ChannelsCC)
+    runs-on: ubuntu-latest
+    needs: linux-build
+
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Install deps (ChannelsCC)
+        run: |
+          sudo apt-get update
+          sudo apt-get install python3.6 python3-pip python3-setuptools libgnutls28-dev
+          pip3 install setuptools wheel
+          pip3 install slick-bitcoinrpc pytest wget
+
+      - name: Download komodo-linux.tar.gz
+        uses: actions/download-artifact@v1
+        with:
+          name: komodo-linux
+
+      - name: Channels Test (Linux)
+        run: |
+          mv komodo-linux/komodo-linux.tar.gz .
+          mkdir -p src
+          tar xzvf nspv-linux.tar.gz
+          cd qa/rpc-tests/cc_pytest/
+          ./ci_setup.sh test_channels.py
+
+  linux-test-dice:
+    name: Test (Linux/DiceCC)
+    runs-on: ubuntu-latest
+    needs: linux-build
+
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Install deps (DiceCC)
+        run: |
+          sudo apt-get update
+          sudo apt-get install python3.6 python3-pip python3-setuptools libgnutls28-dev
+          pip3 install setuptools wheel
+          pip3 install slick-bitcoinrpc pytest wget
+
+      - name: Download komodo-linux.tar.gz
+        uses: actions/download-artifact@v1
+        with:
+          name: komodo-linux
+
+      - name: Dice Test (Linux)
+        run: |
+          mv komodo-linux/komodo-linux.tar.gz .
+          mkdir -p src
+          tar xzvf nspv-linux.tar.gz
+          cd qa/rpc-tests/cc_pytest/
+          ./ci_setup.sh test_dice.py
+
+  linux-test-heir:
+    name: Test (Linux/HeirCC)
+    runs-on: ubuntu-latest
+    needs: linux-build
+
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Install deps (HeirCC)
+        run: |
+          sudo apt-get update
+          sudo apt-get install python3.6 python3-pip python3-setuptools libgnutls28-dev
+          pip3 install setuptools wheel
+          pip3 install slick-bitcoinrpc pytest wget
+
+      - name: Download komodo-linux.tar.gz
+        uses: actions/download-artifact@v1
+        with:
+          name: komodo-linux
+
+      - name: Heir Test (Linux)
+        run: |
+          mv komodo-linux/komodo-linux.tar.gz .
+          mkdir -p src
+          tar xzvf nspv-linux.tar.gz
+          cd qa/rpc-tests/cc_pytest/
+          ./ci_setup.sh test_heir.py
+
+  linux-test-rewards:
+    name: Test (Linux/RewardsCC)
+    runs-on: ubuntu-latest
+    needs: linux-build
+
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Install deps (RewardsCC)
+        run: |
+          sudo apt-get update
+          sudo apt-get install python3.6 python3-pip python3-setuptools libgnutls28-dev
+          pip3 install setuptools wheel
+          pip3 install slick-bitcoinrpc pytest wget
+
+      - name: Download komodo-linux.tar.gz
+        uses: actions/download-artifact@v1
+        with:
+          name: komodo-linux
+
+      - name: Rewards Test (Linux)
+        run: |
+          mv komodo-linux/komodo-linux.tar.gz .
+          mkdir -p src
+          tar xzvf nspv-linux.tar.gz
+          cd qa/rpc-tests/cc_pytest/
+          ./ci_setup.sh test_rewards.py
 
   windows-build:
 
