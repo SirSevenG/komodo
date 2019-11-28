@@ -64,7 +64,7 @@ jobs:
   linux-test-faucet:
     name: Test (Linux/FaucetCC)
     runs-on: ubuntu-latest
-    needs: build-linux
+    needs: linux-build
 
     steps:
       - uses: actions/checkout@v1
