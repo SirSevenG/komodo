@@ -34,7 +34,8 @@ jobs:
                        bsdmainutils \
                        automake \
                        curl \
-                       libsodium-dev -y
+                       libsodium-dev \
+                       libsodium23 -y
       
       - name: Build (Linux)
 #         CONFIGURE_FLAGS='CPPFLAGS=-DTESTMODE' is a flag for some CC tests transactions - so DO NOT USE THIS CI ARTIFACTS IN PRODUCTION!!!
@@ -145,7 +146,9 @@ jobs:
                        ntp \
                        ntpdate \
                        nano \
-                       software-properties-common \sudo apt-get install -q \
+                       software-properties-common -y
+                       
+        sudo apt-get install -q \
                        ncurses-dev \
                        unzip \
                        git \
@@ -158,13 +161,13 @@ jobs:
                        automake \
                        curl \
                        cmake \                       
-                       mingw-w64 -y
                        curl \
                        libevent-dev \
                        libcurl4-gnutls-dev \
                        cmake \
                        clang \
                        libsodium-dev -y
+
         sudo apt-get install -q \
                        ncurses-dev \
                        unzip \
