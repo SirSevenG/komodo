@@ -1193,6 +1193,11 @@ bool ContextualCheckTransaction(int32_t slowflag,const CBlock *block, CBlockInde
         if (tx.fOverwintered && tx.nVersionGroupId != SAPLING_VERSION_GROUP_ID)
         {
             //return state.DoS(dosLevel, error("CheckTransaction(): invalid Sapling tx version"),REJECT_INVALID, "bad-sapling-tx-version-group-id");
+            if ( 0 )
+            {
+                string strHex = EncodeHexTx(tx);
+                fprintf(stderr,"invalid Sapling rawtx.%s\n",strHex.c_str());
+            }
             return state.DoS(isInitBlockDownload() ? 0 : dosLevel,
                              error("CheckTransaction(): invalid Sapling tx version"),
                              REJECT_INVALID, "bad-sapling-tx-version-group-id");
@@ -1808,7 +1813,7 @@ bool AcceptToMemoryPool(CTxMemPool& pool, CValidationState &state, const CTransa
     }
     // DoS level set to 10 to be more forgiving.
     // Check transaction contextually against the set of consensus rules which apply in the next block to be mined.
-    if (!fSkipExpiry && !ContextualCheckTransaction(0,0,0,tx, state, nextBlockHeight, (dosLevel == -1) ? 10 : dosLevel,0))
+    if (!fSkipExpiry && !ContextualCheckTransaction(0,0,0,tx, state, nextBlockHeight, (dosLevel == -1) ? 10 : dosLevel))
     {
         return error("AcceptToMemoryPool: ContextualCheckTransaction failed");
     }
@@ -2080,8 +2085,6 @@ bool AcceptToMemoryPool(CTxMemPool& pool, CValidationState &state, const CTransa
         }
     }
 
-    SyncWithWallets(tx, NULL);
-
     return true;
 }
 
@@ -2227,7 +2230,7 @@ bool myAddtomempool(CTransaction &tx, CValidationState *pstate, bool fSkipExpiry
 bool myGetTransaction(const uint256 &hash, CTransaction &txOut, uint256 &hashBlock)
 {
     memset(&hashBlock,0,sizeof(hashBlock));
-    if ( KOMODO_NSPV > 0 )
+    if ( KOMODO_NSPV_SUPERLITE )
     {
         int64_t rewardsum = 0; int32_t i,retval,txheight,currentheight,height=0,vout = 0;
         for (i=0; i<NSPV_U.U.numutxos; i++)
@@ -2281,7 +2284,7 @@ bool myGetTransaction(const uint256 &hash, CTransaction &txOut, uint256 &hashBlo
 bool NSPV_myGetTransaction(const uint256 &hash, CTransaction &txOut, uint256 &hashBlock, int32_t &txheight, int32_t &currentheight)
 {
     memset(&hashBlock,0,sizeof(hashBlock));
-    if ( KOMODO_NSPV > 0 )
+    if ( KOMODO_NSPV_SUPERLITE )
     {
         int64_t rewardsum = 0; int32_t i,retval,height=0,vout = 0;
         for (i=0; i<NSPV_U.U.numutxos; i++)
@@ -3427,7 +3430,7 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
 {
     CDiskBlockPos blockPos;
     const CChainParams& chainparams = Params();
-    if ( KOMODO_NSPV > 0 )
+    if ( KOMODO_NSPV_SUPERLITE )
         return(true);
     if ( KOMODO_STOPAT != 0 && pindex->GetHeight() > KOMODO_STOPAT )
         return(false);
@@ -4011,7 +4014,7 @@ bool static FlushStateToDisk(CValidationState &state, FlushStateMode mode) {
 
 void FlushStateToDisk() {
     CValidationState state;
-    if ( KOMODO_NSPV <= 0 )
+    if ( KOMODO_NSPV_FULLNODE )
         FlushStateToDisk(state, FLUSH_STATE_ALWAYS);
 }
 
@@ -4162,7 +4165,7 @@ bool static DisconnectTip(CValidationState &state, bool fBare = false) {
         if ((i == (block.vtx.size() - 1)) && (ASSETCHAINS_STAKED != 0 && (komodo_isPoS((CBlock *)&block,pindexDelete->GetHeight(),true) != 0)))
         {
 #ifdef ENABLE_WALLET
-            if ( !GetBoolArg("-disablewallet", false) && KOMODO_NSPV <= 0 )
+            if ( !GetBoolArg("-disablewallet", false) && KOMODO_NSPV_FULLNODE )
                 pwalletMain->EraseFromWallet(tx.GetHash());
 #endif
         }
@@ -4267,7 +4270,7 @@ bool static ConnectTip(CValidationState &state, CBlockIndex *pindexNew, CBlock *
     // Get the current commitment tree
     SproutMerkleTree oldSproutTree;
     SaplingMerkleTree oldSaplingTree;
-    if ( KOMODO_NSPV <= 0 )
+    if ( KOMODO_NSPV_FULLNODE )
     {
         assert(pcoinsTip->GetSproutAnchorAt(pcoinsTip->GetBestAnchor(SPROUT), oldSproutTree));
         assert(pcoinsTip->GetSaplingAnchorAt(pcoinsTip->GetBestAnchor(SAPLING), oldSaplingTree));
@@ -4296,13 +4299,13 @@ bool static ConnectTip(CValidationState &state, CBlockIndex *pindexNew, CBlock *
         mapBlockSource.erase(pindexNew->GetBlockHash());
         nTime3 = GetTimeMicros(); nTimeConnectTotal += nTime3 - nTime2;
         LogPrint("bench", "  - Connect total: %.2fms [%.2fs]\n", (nTime3 - nTime2) * 0.001, nTimeConnectTotal * 0.000001);
-        if ( KOMODO_NSPV <= 0 )
+        if ( KOMODO_NSPV_FULLNODE )
             assert(view.Flush());
     }
     int64_t nTime4 = GetTimeMicros(); nTimeFlush += nTime4 - nTime3;
     LogPrint("bench", "  - Flush: %.2fms [%.2fs]\n", (nTime4 - nTime3) * 0.001, nTimeFlush * 0.000001);
     // Write the chain state to disk, if necessary.
-    if ( KOMODO_NSPV <= 0 )
+    if ( KOMODO_NSPV_FULLNODE )
     {
         if (!FlushStateToDisk(state, FLUSH_STATE_IF_NEEDED))
             return false;
@@ -4318,7 +4321,7 @@ bool static ConnectTip(CValidationState &state, CBlockIndex *pindexNew, CBlock *
 
     // Update chainActive & related variables.
     UpdateTip(pindexNew);
-    if ( KOMODO_NSPV <= 0 )
+    if ( KOMODO_NSPV_FULLNODE )
     {
         // Tell wallet about transactions that went from mempool
         // to conflicted:
@@ -4346,7 +4349,7 @@ bool static ConnectTip(CValidationState &state, CBlockIndex *pindexNew, CBlock *
         komodo_broadcast(pblock,8);
     else if ( ASSETCHAINS_SYMBOL[0] != 0 )
         komodo_broadcast(pblock,4);*/
-    if ( KOMODO_NSPV <= 0 )
+    if ( KOMODO_NSPV_FULLNODE )
     {
         if ( ASSETCHAINS_CBOPRET != 0 )
             komodo_pricesupdate(pindexNew->GetHeight(),pblock);
@@ -4452,8 +4455,8 @@ static bool ActivateBestChainStep(bool fSkipdpow, CValidationState &state, CBloc
     notarizedht = komodo_notarized_height(&prevMoMheight,&notarizedhash,&txid);
     if ( !fSkipdpow && pindexFork != 0 && pindexOldTip->GetHeight() > notarizedht && pindexFork->GetHeight() < notarizedht )
     {
-        fprintf(stderr,"pindexOldTip->GetHeight().%d > notarizedht %d && pindexFork->GetHeight().%d is < notarizedht %d, so ignore it\n",(int32_t)pindexFork->GetHeight(),notarizedht,(int32_t)pindexOldTip->GetHeight(),notarizedht);
-        return state.DoS(100, error("ActivateBestChainStep(): pindexOldTip->GetHeight().%d > notarizedht %d && pindexFork->GetHeight().%d is < notarizedht %d, so ignore it",(int32_t)pindexFork->GetHeight(),notarizedht,(int32_t)pindexOldTip->GetHeight(),notarizedht),
+        fprintf(stderr,"pindexOldTip->GetHeight().%d > notarizedht %d && pindexFork->GetHeight().%d is < notarizedht %d, so ignore it\n",(int32_t)pindexOldTip->GetHeight(),notarizedht,(int32_t)pindexFork->GetHeight(),notarizedht);
+        return state.DoS(100, error("ActivateBestChainStep(): pindexOldTip->GetHeight().%d > notarizedht %d && pindexFork->GetHeight().%d is < notarizedht %d, so ignore it",(int32_t)pindexOldTip->GetHeight(),notarizedht,(int32_t)pindexFork->GetHeight(),notarizedht),
                     REJECT_INVALID, "past-notarized-height");
     }
     // - On ChainDB initialization, pindexOldTip will be null, so there are no removable blocks.
@@ -5043,7 +5046,15 @@ bool CheckBlockHeader(int32_t *futureblockp,int32_t height,CBlockIndex *pindex, 
         }
     }
     *futureblockp = 0;
-    if (blockhdr.GetBlockTime() > GetAdjustedTime() + 60)
+    if ( ASSETCHAINS_ADAPTIVEPOW > 0 )
+    {
+        if (blockhdr.GetBlockTime() > GetAdjustedTime() + 4)
+        {
+            //LogPrintf("CheckBlockHeader block from future %d error",blockhdr.GetBlockTime() - GetAdjustedTime());
+            return false;
+        }
+    }
+    else if (blockhdr.GetBlockTime() > GetAdjustedTime() + 60)
     {
         /*CBlockIndex *tipindex;
         //fprintf(stderr,"ht.%d future block %u vs time.%u + 60\n",height,(uint32_t)blockhdr.GetBlockTime(),(uint32_t)GetAdjustedTime());
@@ -5288,10 +5299,23 @@ bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationState& sta
     }
 
     // Check timestamp against prev
-    if (block.GetBlockTime() <= pindexPrev->GetMedianTimePast())
+    if ( ASSETCHAINS_ADAPTIVEPOW <= 0 || nHeight < 30 )
     {
-        return state.Invalid(error("%s: block's timestamp is too early", __func__),
-                        REJECT_INVALID, "time-too-old");
+        if (block.GetBlockTime() <= pindexPrev->GetMedianTimePast() )
+        {
+            fprintf(stderr,"ht.%d too early %u vs %u\n",(int32_t)nHeight,(uint32_t)block.GetBlockTime(),(uint32_t)pindexPrev->GetMedianTimePast());
+            return state.Invalid(error("%s: block's timestamp is too early", __func__),
+                                 REJECT_INVALID, "time-too-old");
+        }
+    }
+    else
+    {
+        if ( block.GetBlockTime() <= pindexPrev->nTime )
+        {
+            fprintf(stderr,"ht.%d too early2 %u vs %u\n",(int32_t)nHeight,(uint32_t)block.GetBlockTime(),(uint32_t)pindexPrev->nTime);
+            return state.Invalid(error("%s: block's timestamp is too early2", __func__),
+                                 REJECT_INVALID, "time-too-old");
+        }
     }
 
     // Check that timestamp is not too far in the future
@@ -6547,7 +6571,7 @@ bool InitBlockIndex() {
             if (!ActivateBestChain(true, state, &block))
                 return error("LoadBlockIndex(): genesis block cannot be activated");
             // Force a chainstate write so that when we VerifyDB in a moment, it doesn't check stale data
-            if ( KOMODO_NSPV <= 0 )
+            if ( KOMODO_NSPV_FULLNODE )
                 return FlushStateToDisk(state, FLUSH_STATE_ALWAYS);
             else return(true);
         } catch (const std::runtime_error& e) {
@@ -7107,7 +7131,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
 {
     const CChainParams& chainparams = Params();
     LogPrint("net", "received: %s (%u bytes) peer=%d\n", SanitizeString(strCommand), vRecv.size(), pfrom->id);
-    //if ( KOMODO_NSPV > 0 )
+    //if ( KOMODO_NSPV_SUPERLITE )
     //if ( strCommand != "version" && strCommand != "verack" )
     //    fprintf(stderr, "recv: %s (%u bytes) peer=%d\n", SanitizeString(strCommand).c_str(), (int32_t)vRecv.size(), (int32_t)pfrom->GetId());
     if (mapArgs.count("-dropmessagestest") && GetRand(atoi(mapArgs["-dropmessagestest"])) == 0)
@@ -7282,7 +7306,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
     {
         pfrom->SetRecvVersion(min(pfrom->nVersion, PROTOCOL_VERSION));
 
-        if ( KOMODO_NSPV > 0 )
+        if ( KOMODO_NSPV_SUPERLITE )
         {
             if ( (pfrom->nServices & NODE_NSPV) == 0 )
             {
@@ -7482,7 +7506,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
     }
     else if (strCommand == "getnSPV")
     {
-        if ( KOMODO_NSPV == 0 )
+        if ( KOMODO_NSPV == 0 )//&& KOMODO_INSYNC != 0 )
         {
             std::vector<uint8_t> payload;
             vRecv >> payload;
@@ -7492,7 +7516,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
     }
     else if (strCommand == "nSPV")
     {
-        if ( KOMODO_NSPV > 0 )
+        if ( KOMODO_NSPV_SUPERLITE )
         {
             std::vector<uint8_t> payload;
             vRecv >> payload;
@@ -7500,7 +7524,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
         }
         return(true);
     }
-    else if ( KOMODO_NSPV > 0 )
+    else if ( KOMODO_NSPV_SUPERLITE )
         return(true);
     else if (strCommand == "inv")
     {
@@ -8290,7 +8314,7 @@ bool SendMessages(CNode* pto, bool fSendTrickle)
             }
             state.fShouldBan = false;
         }
-        if ( KOMODO_NSPV > 0 )
+        if ( KOMODO_NSPV_SUPERLITE )
         {
             komodo_nSPV(pto);
             return(true);
@@ -8501,7 +8525,7 @@ extern "C" const char* getDataDir()
 CMutableTransaction CreateNewContextualCMutableTransaction(const Consensus::Params& consensusParams, int nHeight)
 {
     CMutableTransaction mtx;
-    if ( KOMODO_NSPV > 0 )
+    if ( KOMODO_NSPV_SUPERLITE )
     {
         mtx.fOverwintered = true;
         mtx.nExpiryHeight = 0;

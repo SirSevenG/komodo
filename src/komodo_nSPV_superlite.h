@@ -203,6 +203,12 @@ void komodo_nSPVresp(CNode *pfrom,std::vector<uint8_t> response) // received a r
                 NSPV_rwbroadcastresp(0,&response[1],&NSPV_broadcastresult);
                 fprintf(stderr,"got broadcast response %u size.%d %s retcode.%d\n",timestamp,(int32_t)response.size(),NSPV_broadcastresult.txid.GetHex().c_str(),NSPV_broadcastresult.retcode);
                 break;
+            case NSPV_CCMODULEUTXOSRESP:
+                NSPV_utxosresp_purge(&NSPV_utxosresult);
+                NSPV_rwutxosresp(0, &response[1], &NSPV_utxosresult);
+                fprintf(stderr, "got cc module utxos response %u size.%d\n", timestamp, (int32_t)response.size());
+                break;
+
             default: fprintf(stderr,"unexpected response %02x size.%d at %u\n",response[0],(int32_t)response.size(),timestamp);
                 break;
         }
@@ -214,7 +220,7 @@ void komodo_nSPVresp(CNode *pfrom,std::vector<uint8_t> response) // received a r
 CNode *NSPV_req(CNode *pnode,uint8_t *msg,int32_t len,uint64_t mask,int32_t ind)
 {
     int32_t n,flag = 0; CNode *pnodes[64]; uint32_t timestamp = (uint32_t)time(NULL);
-    if ( KOMODO_NSPV <= 0 )
+    if ( KOMODO_NSPV_FULLNODE )
         return(0);
     if ( pnode == 0 )
     {
@@ -243,7 +249,7 @@ CNode *NSPV_req(CNode *pnode,uint8_t *msg,int32_t len,uint64_t mask,int32_t ind)
         std::vector<uint8_t> request;
         request.resize(len);
         memcpy(&request[0],msg,len);
-        if ( (0) && KOMODO_NSPV > 0 )
+        if ( (0) && KOMODO_NSPV_SUPERLITE )
             fprintf(stderr,"pushmessage [%d] len.%d\n",msg[0],len);
         pnode->PushMessage("getnSPV",request);
         pnode->prevtimes[ind] = timestamp;
@@ -279,7 +285,7 @@ void komodo_nSPV(CNode *pto) // polling loop from SendMessages
         return;
     if ( pto->prevtimes[NSPV_INFO>>1] > timestamp )
         pto->prevtimes[NSPV_INFO>>1] = 0;
-    if ( KOMODO_NSPV > 0 )
+    if ( KOMODO_NSPV_SUPERLITE )
     {
         if ( timestamp > NSPV_lastinfo + ASSETCHAINS_BLOCKTIME/2 && timestamp > pto->prevtimes[NSPV_INFO>>1] + 2*ASSETCHAINS_BLOCKTIME/3 )
         {
@@ -355,7 +361,7 @@ UniValue NSPV_getinfo_json(struct NSPV_inforesp *ptr)
 {
     UniValue result(UniValue::VOBJ); int32_t expiration; uint32_t timestamp = (uint32_t)time(NULL);
     result.push_back(Pair("result","success"));
-    result.push_back(Pair("nSPV",KOMODO_NSPV!=0?"superlite":"fullnode"));
+    result.push_back(Pair("nSPV",KOMODO_NSPV==-1?"disabled":(KOMODO_NSPV_SUPERLITE?"superlite":"fullnode")));
     if ( NSPV_address.size() != 0 )
     {
         result.push_back(Pair("address",NSPV_address));
@@ -537,7 +543,7 @@ UniValue NSPV_login(char *wifstr)
     result.push_back(Pair("address",NSPV_address));
     result.push_back(Pair("pubkey",HexStr(pubkey)));
     strcpy(NSPV_pubkeystr,HexStr(pubkey).c_str());
-    if ( KOMODO_NSPV > 0 )
+    if ( KOMODO_NSPV_SUPERLITE )
         decode_hex(NOTARY_PUBKEY33,33,NSPV_pubkeystr);
     result.push_back(Pair("wifprefix",(int64_t)data[0]));
     result.push_back(Pair("compressed",(int64_t)(data[len-5] == 1)));
@@ -651,6 +657,45 @@ UniValue NSPV_addresstxids(char *coinaddr,int32_t CCflag,int32_t skipcount,int32
             usleep(NSPV_POLLMICROS);
             if ( (NSPV_inforesult.height == 0 || NSPV_txidsresult.nodeheight >= NSPV_inforesult.height) && strcmp(coinaddr,NSPV_txidsresult.coinaddr) == 0 && CCflag == NSPV_txidsresult.CCflag )
                 return(NSPV_txidsresp_json(&NSPV_txidsresult));
+        }
+    } else sleep(1);
+    result.push_back(Pair("result","error"));
+    result.push_back(Pair("error","no txid result"));
+    result.push_back(Pair("lastpeer",NSPV_lastpeer));
+    return(result);
+}
+
+UniValue NSPV_ccaddresstxids(char *coinaddr,int32_t CCflag,int32_t skipcount,uint256 filtertxid,uint8_t evalcode, uint8_t func)
+{
+    UniValue result(UniValue::VOBJ); uint8_t msg[512],funcid=NSPV_CC_TXIDS; char zeroes[64]; int32_t i,iter,slen,len = 0,vout;
+    NSPV_mempoolresp_purge(&NSPV_mempoolresult);
+    memset(zeroes,0,sizeof(zeroes));
+    if ( coinaddr == 0 )
+        coinaddr = zeroes;
+    if ( coinaddr[0] != 0 && bitcoin_base58decode(msg,coinaddr) != 25 )
+    {
+        result.push_back(Pair("result","error"));
+        result.push_back(Pair("error","invalid address"));
+        return(result);
+    }
+    vout=skipcount << 16 | evalcode << 8 | func;
+    msg[len++] = NSPV_MEMPOOL;
+    msg[len++] = (CCflag != 0);
+    len += iguana_rwnum(1,&msg[len],sizeof(funcid),&funcid);
+    len += iguana_rwnum(1,&msg[len],sizeof(vout),&vout);
+    len += iguana_rwbignum(1,&msg[len],sizeof(filtertxid),(uint8_t *)&filtertxid);
+    slen = (int32_t)strlen(coinaddr);
+    msg[len++] = slen;
+    memcpy(&msg[len],coinaddr,slen), len += slen;
+    fprintf(stderr,"(%s) func.%d CC.%d %s skipcount.%d len.%d\n",coinaddr,NSPV_CC_TXIDS,CCflag,filtertxid.GetHex().c_str(),skipcount,len);
+    for (iter=0; iter<3; iter++)
+    if ( NSPV_req(0,msg,len,NODE_NSPV,msg[0]>>1) != 0 )
+    {
+        for (i=0; i<NSPV_POLLITERS; i++)
+        {
+            usleep(NSPV_POLLMICROS);
+            if ( NSPV_mempoolresult.nodeheight >= NSPV_inforesult.height && strcmp(coinaddr,NSPV_mempoolresult.coinaddr) == 0 && CCflag == NSPV_mempoolresult.CCflag && filtertxid == NSPV_mempoolresult.txid && vout == NSPV_mempoolresult.vout && funcid == NSPV_mempoolresult.funcid )
+                return(NSPV_mempoolresp_json(&NSPV_mempoolresult));
         }
     } else sleep(1);
     result.push_back(Pair("result","error"));
@@ -884,6 +929,53 @@ UniValue NSPV_broadcast(char *hex)
     memset(&B,0,sizeof(B));
     B.retcode = -2;
     return(NSPV_broadcast_json(&B,txid));
+}
+
+// gets cc utxos filtered by evalcode, funcid and txid in opret, for the specified amount
+// if amount == 0 returns total and no utxos
+// funcids is string of funcid symbols like "ct". The first symbol is considered as creation tx funcid and filtertxid will be compared to the creation tx id itself. 
+// For second+ funcids the filtertxid will be compared to txid in opret
+UniValue NSPV_ccmoduleutxos(char *coinaddr, int64_t amount, uint8_t evalcode, std::string funcids, uint256 filtertxid)
+{
+    UniValue result(UniValue::VOBJ); uint8_t msg[512]; int32_t i, iter, slen, len = 0;
+    uint8_t CCflag = 1;
+
+    NSPV_utxosresp_purge(&NSPV_utxosresult);
+    if (bitcoin_base58decode(msg, coinaddr) != 25)
+    {
+        result.push_back(Pair("result", "error"));
+        result.push_back(Pair("error", "invalid address"));
+        return(result);
+    }
+    msg[len++] = NSPV_CCMODULEUTXOS;
+
+    slen = (int32_t)strlen(coinaddr);
+    msg[len++] = slen;
+    memcpy(&msg[len], coinaddr, slen), len += slen;
+
+    len += iguana_rwnum(1, &msg[len], sizeof(amount), &amount);
+    len += iguana_rwnum(1, &msg[len], sizeof(evalcode), &evalcode);
+
+    slen = (int32_t)(funcids.size());
+    msg[len++] = slen;
+    memcpy(&msg[len], funcids.data(), slen), len += slen;
+
+    len += iguana_rwbignum(1, &msg[len], sizeof(filtertxid), (uint8_t *)&filtertxid);
+    for (iter = 0; iter<3; iter++)
+        if (NSPV_req(0, msg, len, NODE_ADDRINDEX, msg[0] >> 1) != 0)
+        {
+            for (i = 0; i<NSPV_POLLITERS; i++)
+            {
+                usleep(NSPV_POLLMICROS);
+                if ((NSPV_inforesult.height == 0 || NSPV_utxosresult.nodeheight >= NSPV_inforesult.height) && strcmp(coinaddr, NSPV_utxosresult.coinaddr) == 0 && CCflag == NSPV_utxosresult.CCflag)
+                    return(NSPV_utxosresp_json(&NSPV_utxosresult));
+            }
+        }
+        else sleep(1);
+        result.push_back(Pair("result", "error"));
+        result.push_back(Pair("error", "no utxos result"));
+        result.push_back(Pair("lastpeer", NSPV_lastpeer));
+        return(result);
 }
 
 #endif // KOMODO_NSPVSUPERLITE_H
