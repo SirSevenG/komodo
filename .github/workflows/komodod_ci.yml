@@ -98,7 +98,7 @@ jobs:
         run: |
           mv komodo-linux/komodo-linux.tar.gz .
           mkdir -p src
-          tar xzvf nspv-linux.tar.gz
+          tar xzvf komodo-linux.tar.gz
           cd qa/rpc-tests/cc_pytest/
           ./ci_setup.sh test_faucet.py
 
@@ -133,7 +133,7 @@ jobs:
         run: |
           mv komodo-linux/komodo-linux.tar.gz .
           mkdir -p src
-          tar xzvf nspv-linux.tar.gz
+          tar xzvf komodo-linux.tar.gz
           cd qa/rpc-tests/cc_pytest/
           ./ci_setup.sh test_oracles.py
 
@@ -168,7 +168,7 @@ jobs:
         run: |
           mv komodo-linux/komodo-linux.tar.gz .
           mkdir -p src
-          tar xzvf nspv-linux.tar.gz
+          tar xzvf komodo-linux.tar.gz
           cd qa/rpc-tests/cc_pytest/
           ./ci_setup.sh test_token.py
 
@@ -203,7 +203,7 @@ jobs:
         run: |
           mv komodo-linux/komodo-linux.tar.gz .
           mkdir -p src
-          tar xzvf nspv-linux.tar.gz
+          tar xzvf komodo-linux.tar.gz
           cd qa/rpc-tests/cc_pytest/
           ./ci_setup.sh test_channels.py
 
@@ -238,7 +238,7 @@ jobs:
         run: |
           mv komodo-linux/komodo-linux.tar.gz .
           mkdir -p src
-          tar xzvf nspv-linux.tar.gz
+          tar xzvf komodo-linux.tar.gz
           cd qa/rpc-tests/cc_pytest/
           ./ci_setup.sh test_dice.py
 
@@ -273,7 +273,7 @@ jobs:
         run: |
           mv komodo-linux/komodo-linux.tar.gz .
           mkdir -p src
-          tar xzvf nspv-linux.tar.gz
+          tar xzvf komodo-linux.tar.gz
           cd qa/rpc-tests/cc_pytest/
           ./ci_setup.sh test_heir.py
 
@@ -308,7 +308,7 @@ jobs:
         run: |
           mv komodo-linux/komodo-linux.tar.gz .
           mkdir -p src
-          tar xzvf nspv-linux.tar.gz
+          tar xzvf komodo-linux.tar.gz
           cd qa/rpc-tests/cc_pytest/
           ./ci_setup.sh test_rewards.py
 
