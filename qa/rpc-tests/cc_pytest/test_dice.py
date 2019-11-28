@@ -6,7 +6,11 @@
 import pytest
 import json
 
-from util import assert_success, assert_error, check_if_mined, send_and_mine, rpc_connect, wait_some_blocks, generate_random_string
+from util import assert_success, assert_error, check_if_mined, send_and_mine,\
+    rpc_connect, wait_some_blocks, generate_random_string, komodo_teardown
+
+
+proxy = []
 
 
 def test_dice():
@@ -24,6 +28,9 @@ def test_dice():
     pubkey1 = node2_params["pubkey"]
 
     is_fresh_chain = params_dict["is_fresh_chain"]
+
+    global proxy
+    proxy = [rpc, rpc1]
 
     # second node should have some balance to place bets
     result = rpc1.getbalance()
@@ -192,3 +199,7 @@ def test_dice():
     # fundbalanceguess = funding + losscounter - wincounter * 2
     # fundinfoactual = rpc.diceinfo(diceid)
     # assert_equal(round(fundbalanceguess),round(float(fundinfoactual['funding'])))
+
+
+def teardown_function():
+    komodo_teardown(proxy)

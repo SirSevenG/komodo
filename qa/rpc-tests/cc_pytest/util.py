@@ -65,3 +65,13 @@ def wait_some_blocks(rpc_connection, blocks_to_wait):
 def generate_random_string(length):
     random_string = ''.join(choice(ascii_uppercase) for i in range(length))
     return random_string
+
+
+def komodo_teardown(*proxy_instances):
+    for instance in proxy_instances:
+        try:
+            iter(instance)
+            for iteratable in instance:
+                iteratable.stop()
+        except:
+            instance.stop()
