@@ -99,6 +99,7 @@ jobs:
           mv komodo-linux/komodo-linux.tar.gz .
           mkdir -p src
           tar xzvf komodo-linux.tar.gz
+          ./zcutil/fetch-params.sh
           cd qa/rpc-tests/cc_pytest/
           ./ci_setup.sh test_faucet.py
 
@@ -134,6 +135,7 @@ jobs:
           mv komodo-linux/komodo-linux.tar.gz .
           mkdir -p src
           tar xzvf komodo-linux.tar.gz
+          ./zcutil/fetch-params.sh
           cd qa/rpc-tests/cc_pytest/
           ./ci_setup.sh test_oracles.py
 
@@ -169,6 +171,7 @@ jobs:
           mv komodo-linux/komodo-linux.tar.gz .
           mkdir -p src
           tar xzvf komodo-linux.tar.gz
+          ./zcutil/fetch-params.sh
           cd qa/rpc-tests/cc_pytest/
           ./ci_setup.sh test_token.py
 
@@ -204,6 +207,7 @@ jobs:
           mv komodo-linux/komodo-linux.tar.gz .
           mkdir -p src
           tar xzvf komodo-linux.tar.gz
+          ./zcutil/fetch-params.sh
           cd qa/rpc-tests/cc_pytest/
           ./ci_setup.sh test_channels.py
 
@@ -239,6 +243,7 @@ jobs:
           mv komodo-linux/komodo-linux.tar.gz .
           mkdir -p src
           tar xzvf komodo-linux.tar.gz
+          ./zcutil/fetch-params.sh
           cd qa/rpc-tests/cc_pytest/
           ./ci_setup.sh test_dice.py
 
@@ -274,6 +279,7 @@ jobs:
           mv komodo-linux/komodo-linux.tar.gz .
           mkdir -p src
           tar xzvf komodo-linux.tar.gz
+          ./zcutil/fetch-params.sh
           cd qa/rpc-tests/cc_pytest/
           ./ci_setup.sh test_heir.py
 
@@ -309,6 +315,7 @@ jobs:
           mv komodo-linux/komodo-linux.tar.gz .
           mkdir -p src
           tar xzvf komodo-linux.tar.gz
+          ./zcutil/fetch-params.sh
           cd qa/rpc-tests/cc_pytest/
           ./ci_setup.sh test_rewards.py
 
