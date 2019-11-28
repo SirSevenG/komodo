@@ -44,9 +44,6 @@ jobs:
 #           brew install python3
 #           pip3 install setuptools wheel slick-bitcoinrpc pytest wget
 #           ./zcutil/fetch-params.sh
-        
-komodo/.github/workflows/
-
 #       - name: Build (macOS)
 #         if: runner.os == 'macOS'
 #         run: |
