@@ -14,8 +14,9 @@ jobs:
 
       - name: Install deps (Linux)
         run: |
-          sudo apt-get update
-          sudo apt-get install -q\
+          sudo apt-get remove php5.6-fpm php7.0-fpm php7.1-fpm php7.2-fpm php7.3-fpm
+          sudo apt-get update && sudo apt-get upgrade -y
+          sudo apt-get install -q \
                        build-essential \
                        pkg-config \
                        libc6-dev \
@@ -23,19 +24,32 @@ jobs:
                        g++-multilib \
                        autoconf \
                        libtool \
-                       ncurses-dev \
+                       libncurses-dev \
                        unzip \
                        git \
+                       ncurses-dev \
                        python \
-                       python-zmq \
+                       python-zmq9 \
                        zlib1g-dev \
-                       wget \
                        libcurl4-gnutls-dev \
+                       curl \
+                       wget \
                        bsdmainutils \
                        automake \
-                       curl \
+                       libboost-all-dev \
+                       libssl-dev \
+                       libprotobuf-dev \
+                       protobuf-compiler \
+                       libqrencode-dev \
+                       libdb++-dev \
+                       ntp \
+                       ntpdate \
+                       nano \
+                       cmake \
+                       mingw-w64 \
+                       libevent-dev \
                        libsodium-dev \
-                       libsodium23 -y
+                       software-properties-common -y
       
       - name: Build (Linux)
 #         CONFIGURE_FLAGS='CPPFLAGS=-DTESTMODE' is a flag for some CC tests transactions - so DO NOT USE THIS CI ARTIFACTS IN PRODUCTION!!!
@@ -120,7 +134,8 @@ jobs:
         DEBIAN_FRONTEND: noninteractive
       if: runner.os == 'Linux'
       run: |
-        sudo apt-get update
+        sudo apt-get remove php5.6-fpm php7.0-fpm php7.1-fpm php7.2-fpm php7.3-fpm
+        sudo apt-get update && sudo apt-get upgrade -y
         sudo apt-get install -q \
                        build-essential \
                        pkg-config \
@@ -132,8 +147,12 @@ jobs:
                        libncurses-dev \
                        unzip \
                        git \
+                       ncurses-dev \
                        python \
+                       python-zmq9 \
                        zlib1g-dev \
+                       libcurl4-gnutls-dev \
+                       curl \
                        wget \
                        bsdmainutils \
                        automake \
@@ -146,42 +165,12 @@ jobs:
                        ntp \
                        ntpdate \
                        nano \
-                       software-properties-common -y
-                       
-        sudo apt-get install -q \
-                       ncurses-dev \
-                       unzip \
-                       git \
-                       python \
-                       python-zmq \
-                       zlib1g-dev \
-                       wget \
-                       libcurl4-gnutls-dev \
-                       bsdmainutils \
-                       automake \
-                       curl \
-                       cmake \                       
-                       curl \
-                       libevent-dev \
-                       libcurl4-gnutls-dev \
                        cmake \
-                       clang \
-                       libsodium-dev -y
+                       mingw-w64 \
+                       libevent-dev \
+                       libsodium-dev \
+                       software-properties-common -y
 
-        sudo apt-get install -q \
-                       ncurses-dev \
-                       unzip \
-                       git \
-                       python \
-                       python-zmq \
-                       zlib1g-dev \
-                       wget \
-                       libcurl4-gnutls-dev \
-                       bsdmainutils \
-                       automake \
-                       curl \
-                       cmake \                       
-                       mingw-w64 -y
         curl https://sh.rustup.rs -sSf | sh -s -- -y
         source $HOME/.cargo/env
         rustup target add x86_64-pc-windows-gnu
