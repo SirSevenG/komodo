@@ -27,7 +27,6 @@ jobs:
                  libssl-dev -y
           python3 -m pip install setuptools wheel
           python3 -m pip install slick-bitcoinrpc pytest wget
-# params we will need for tests execution
           ./zcutil/fetch-params.sh
       
       - name: Build (Linux)
