@@ -44,7 +44,7 @@ def send_and_mine(tx_hex, rpc_connection):
 
 def rpc_connect(rpc_user, rpc_password, ip, port):
     try:
-        rpc_connection = Proxy("http://%s:%s@%s:%d"%(rpc_user, rpc_password, ip, port))
+        rpc_connection = Proxy("http://%s:%s@%s:%d" % (rpc_user, rpc_password, ip, port))
     except Exception:
         raise Exception("Connection error! Probably no daemon on selected port.")
     return rpc_connection

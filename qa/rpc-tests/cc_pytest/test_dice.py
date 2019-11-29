@@ -10,10 +10,7 @@ from util import assert_success, assert_error, check_if_mined, send_and_mine,\
     rpc_connect, wait_some_blocks, generate_random_string, komodo_teardown
 
 
-proxy = []
-
-
-def test_dice():
+def test_dice(proxy_connection):
 
     # test params inits
     with open('test_config.json', 'r') as f:
@@ -22,8 +19,8 @@ def test_dice():
     node1_params = params_dict["node1"]
     node2_params = params_dict["node2"]
 
-    rpc = rpc_connect(node1_params["rpc_user"], node1_params["rpc_password"], node1_params["rpc_ip"], node1_params["rpc_port"])
-    rpc1 = rpc_connect(node2_params["rpc_user"], node2_params["rpc_password"], node2_params["rpc_ip"], node2_params["rpc_port"])
+    rpc = proxy_connection(node1_params)
+    rpc1 = proxy_connection(node2_params)
     pubkey = node1_params["pubkey"]
     pubkey1 = node2_params["pubkey"]
 
@@ -199,7 +196,3 @@ def test_dice():
     # fundbalanceguess = funding + losscounter - wincounter * 2
     # fundinfoactual = rpc.diceinfo(diceid)
     # assert_equal(round(fundbalanceguess),round(float(fundinfoactual['funding'])))
-
-
-def teardown_function():
-    komodo_teardown(proxy)

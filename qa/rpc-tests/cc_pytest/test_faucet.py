@@ -6,14 +6,11 @@
 import pytest
 import json
 
-from util import assert_success, assert_error, check_if_mined, send_and_mine, rpc_connect, komodo_teardown
-
-
-proxy = []
+from util import assert_success, assert_error, check_if_mined, send_and_mine, rpc_connect
 
 
 @pytest.mark.first
-def test_faucet():
+def test_faucet(proxy_connection):
 
     # test params inits
     with open('test_config.json', 'r') as f:
@@ -22,17 +19,11 @@ def test_faucet():
     node1_params = params_dict["node1"]
     node2_params = params_dict["node2"]
 
-    rpc = rpc_connect(node1_params["rpc_user"], node1_params["rpc_password"],
-                      node1_params["rpc_ip"], node1_params["rpc_port"])
-    rpc1 = rpc_connect(node2_params["rpc_user"], node2_params["rpc_password"],
-                       node2_params["rpc_ip"], node2_params["rpc_port"])
+    rpc = proxy_connection(node1_params)
+    rpc1 = proxy_connection(node2_params)
     pubkey = node1_params["pubkey"]
     pubkey1 = node2_params["pubkey"]
-
     is_fresh_chain = params_dict["is_fresh_chain"]
-
-    global proxy
-    proxy = [rpc, rpc1]
 
     # faucet got only one entity per chain
 
@@ -117,7 +108,3 @@ def test_faucet():
 
         #balance2 = rpc1.getwalletinfo()['balance']
         #assert balance2 > balance1
-
-
-def teardown_function():
-    komodo_teardown(proxy)

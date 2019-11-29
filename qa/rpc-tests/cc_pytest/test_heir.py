@@ -10,10 +10,8 @@ import json
 from util import assert_success, assert_error, check_if_mined, send_and_mine, \
     rpc_connect, wait_some_blocks, komodo_teardown
 
-proxy = []
 
-
-def test_heir():
+def test_heir(proxy_connection):
     # test params inits
     with open('test_config.json', 'r') as f:
         params_dict = json.load(f)
@@ -21,16 +19,11 @@ def test_heir():
     node1_params = params_dict["node1"]
     node2_params = params_dict["node2"]
 
-    rpc = rpc_connect(node1_params["rpc_user"], node1_params["rpc_password"],
-                      node1_params["rpc_ip"], node1_params["rpc_port"])
-    rpc1 = rpc_connect(node2_params["rpc_user"], node2_params["rpc_password"],
-                       node2_params["rpc_ip"], node2_params["rpc_port"])
+    rpc = proxy_connection(node1_params)
+    rpc1 = proxy_connection(node2_params)
     pubkey = node1_params["pubkey"]
     pubkey1 = node2_params["pubkey"]
     is_fresh_chain = params_dict["is_fresh_chain"]
-
-    global proxy
-    proxy = [rpc, rpc1]
 
     result = rpc.heiraddress('')
     assert_success(result)
@@ -158,7 +151,3 @@ def test_heir():
     result = rpc.heirinfo(token_heir_txid)
     assert result["lifetime"] == "100000000"
     assert result["available"] == "0"
-
-
-def teardown_function():
-    komodo_teardown(proxy)
