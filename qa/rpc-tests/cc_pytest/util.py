@@ -69,9 +69,16 @@ def generate_random_string(length):
 
 def komodo_teardown(*proxy_instances):
     for instance in proxy_instances:
-        try:
-            iter(instance)
+        if type(instance) is list:
             for iteratable in instance:
-                iteratable.stop()
-        except:
-            instance.stop()
+                try:
+                    isinstance(iteratable, Proxy)
+                    iteratable.stop()
+                except Exception as e:
+                    raise TypeError("Not a Proxy object, error: " + str(e))
+        else:
+            try:
+                isinstance(instance, Proxy)
+                instance.stop()
+            except Exception as e:
+                raise TypeError("Not a Proxy object, error: " + str(e))
