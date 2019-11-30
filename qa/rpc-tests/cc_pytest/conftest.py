@@ -3,8 +3,8 @@ import json
 from slickrpc import Proxy
 
 
-@pytest.fixture
-def proxy_connection(scope='session'):
+@pytest.fixture(scope='session')
+def proxy_connection():
     proxy_connections = []
 
     def _proxy_connection(node_params_dictionary):
