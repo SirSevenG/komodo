@@ -113,12 +113,12 @@ assert proxy_1.getinfo()["pubkey"] == test_pubkey2
 # starting blocks creation on second node, mining rewards will get first public node because of pubkey param
 if chain_start_mode == 'REGTEST':
     while True:
-       if int(os.environ['CLIENTS']) > 1:
-           proxy_1.generate(1)
-           time.sleep(5)
-       else:
-           proxy_0.generate(1)
-           time.sleep(5)
+        if int(os.environ['CLIENTS']) > 1:
+            proxy_1.generate(1)
+            time.sleep(5)
+        else:
+            proxy_0.generate(1)
+            time.sleep(5)
 else:
     if int(os.environ['CLIENTS']) > 1:
         print("Starting mining on node 2")

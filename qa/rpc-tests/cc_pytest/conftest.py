@@ -4,7 +4,7 @@ from slickrpc import Proxy
 
 
 @pytest.fixture
-def proxy_connection(scope="session"):
+def proxy_connection(scope='session'):
     proxy_connections = []
 
     def _proxy_connection(node_params_dictionary):
