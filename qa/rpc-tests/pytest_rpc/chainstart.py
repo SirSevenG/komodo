@@ -8,6 +8,7 @@ import tarfile
 from pytest_util import create_proxy, validate_proxy
 
 
+# TODO: change env 'CHAIN' paramater to tag, use actual "coin" param from chainconfig.json instead
 def load_env_config():
     tp = {}  # test env parameters
     if os.environ['CHAIN']:
@@ -49,6 +50,7 @@ def load_ac_params(asset, chain_mode='default'):
     return ac
 
 
+# TODO: add coins file compatibility with create_configs func
 def create_configs(asset, node=0):
     os.mkdir("node_" + str(node))
     open("node_" + str(node) + "/" + asset + ".conf", 'a').close()
