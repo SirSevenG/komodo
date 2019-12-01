@@ -45,6 +45,8 @@ if is_boostrap_needed == "True":
 for i in range(clients_to_start):
     # all nodes should search for first "mother" node
     if i == 0:
+        # TODO: at the moment asset chain params hardcoded there - it matched with current bootstrap we're using. 
+        # we need make AC params arg - imo best way to set it all together in ci_setup.sh
         start_args = ['../../../src/komodod', '-ac_name='+ac_name, '-ac_reward=100000000000', '-conf=' + sys.path[0] + '/node_' + str(i) + "/" + ac_name + ".conf",
                          '-rpcport=' + str(7000 + i), '-port=' + str(6000 + i), '-datadir=' + sys.path[0] + '/node_' + str(i),
                          '-ac_supply=10000000000', '-ac_cc=2', '-pubkey=' + test_pubkey, '-whitelist=127.0.0.1']
@@ -131,6 +133,7 @@ else:
         proxy_0.setgenerate(True, 1)
 
 # TODO: just to prepare a boostrap if needed
+# this code is not needed here (just utility) - please move it as a function to utils
 # while True:
 #     blocks_amount = proxy_0.getinfo()["blocks"]
 #     if blocks_amount == 130:
