@@ -34,7 +34,7 @@ for i in range(clients_to_start):
         conf.write("rpcbind=0.0.0.0\n")
         conf.write("rpcallowip=0.0.0.0/0\n")
 
-
+# chain bootstrap check
 if is_boostrap_needed == "True":
     wget.download(bootstrap_url, "bootstrap.tar.gz")
     tf = tarfile.open("bootstrap.tar.gz")
@@ -81,12 +81,12 @@ time.sleep(2)
 for i in range(clients_to_start):
     while True:
         try:
-           getinfo_output = globals()['proxy_%s' % i].getinfo()
-           print(getinfo_output)
-           break
+            getinfo_output = globals()['proxy_%s' % i].getinfo()
+            print(getinfo_output)
+            break
         except Exception as e:
-           print(e)
-           time.sleep(2)
+            print(e)
+            time.sleep(2)
 
 # in case of bootstrap checking also if blocksamount > 100
 if is_boostrap_needed == "True":
