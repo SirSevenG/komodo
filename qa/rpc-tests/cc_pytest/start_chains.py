@@ -45,7 +45,7 @@ if is_boostrap_needed == "True":
 for i in range(clients_to_start):
     # all nodes should search for first "mother" node
     if i == 0:
-        start_args = ['../../../src//komodod', '-ac_name='+ac_name, '-ac_reward=100000000000', '-conf=' + sys.path[0] + '/node_' + str(i) + "/" + ac_name + ".conf",
+        start_args = ['../../../src/komodod', '-ac_name='+ac_name, '-ac_reward=100000000000', '-conf=' + sys.path[0] + '/node_' + str(i) + "/" + ac_name + ".conf",
                          '-rpcport=' + str(7000 + i), '-port=' + str(6000 + i), '-datadir=' + sys.path[0] + '/node_' + str(i),
                          '-ac_supply=10000000000', '-ac_cc=2', '-pubkey=' + test_pubkey, '-whitelist=127.0.0.1']
         if chain_start_mode == 'REGTEST':
@@ -56,7 +56,7 @@ for i in range(clients_to_start):
         subprocess.call(start_args)
         time.sleep(5)
     else:
-        start_args = ['../../../src//komodod', '-ac_name='+ac_name, '-ac_reward=100000000000', '-conf=' + sys.path[0] + '/node_' + str(i) + "/" + ac_name + ".conf",
+        start_args = ['../../../src/komodod', '-ac_name='+ac_name, '-ac_reward=100000000000', '-conf=' + sys.path[0] + '/node_' + str(i) + "/" + ac_name + ".conf",
                          '-rpcport=' + str(7000 + i), '-port=' + str(6000 + i), '-datadir=' + sys.path[0] + '/node_' + str(i),
                          '-ac_supply=10000000000', '-ac_cc=2', '-addnode=127.0.0.1:6000', '-whitelist=127.0.0.1', '-listen=0', '-pubkey='+test_pubkey]
         if i == 1:
@@ -73,7 +73,7 @@ for i in range(clients_to_start):
 # creating rpc proxies for all nodes
 for i in range(clients_to_start):
     rpcport = 7000 + i
-    globals()['proxy_%s' % i] = Proxy("http://%s:%s@127.0.0.1:%d"%("test", "test", int(rpcport)))
+    globals()['proxy_%s' % i] = Proxy("http://%s:%s@127.0.0.1:%d" % ("test", "test", int(rpcport)))
 time.sleep(2)
 
 
@@ -113,12 +113,12 @@ assert proxy_1.getinfo()["pubkey"] == test_pubkey2
 # starting blocks creation on second node, mining rewards will get first public node because of pubkey param
 if chain_start_mode == 'REGTEST':
     while True:
-       if int(os.environ['CLIENTS']) > 1:
-           proxy_1.generate(1)
-           time.sleep(5)
-       else:
-           proxy_0.generate(1)
-           time.sleep(5)
+        if int(os.environ['CLIENTS']) > 1:
+            proxy_1.generate(1)
+            time.sleep(5)
+        else:
+            proxy_0.generate(1)
+            time.sleep(5)
 else:
     if int(os.environ['CLIENTS']) > 1:
         print("Starting mining on node 2")

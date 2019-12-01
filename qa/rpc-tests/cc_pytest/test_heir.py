@@ -7,11 +7,11 @@ import pytest
 import time
 import json
 
-from util import assert_success, assert_error, check_if_mined, send_and_mine, rpc_connect, wait_some_blocks
+from util import assert_success, assert_error, check_if_mined, send_and_mine, \
+    rpc_connect, wait_some_blocks, komodo_teardown
 
 
-def test_heir():
-
+def test_heir(proxy_connection):
     # test params inits
     with open('test_config.json', 'r') as f:
         params_dict = json.load(f)
@@ -19,8 +19,8 @@ def test_heir():
     node1_params = params_dict["node1"]
     node2_params = params_dict["node2"]
 
-    rpc = rpc_connect(node1_params["rpc_user"], node1_params["rpc_password"], node1_params["rpc_ip"], node1_params["rpc_port"])
-    rpc1 = rpc_connect(node2_params["rpc_user"], node2_params["rpc_password"], node2_params["rpc_ip"], node2_params["rpc_port"])
+    rpc = proxy_connection(node1_params)
+    rpc1 = proxy_connection(node2_params)
     pubkey = node1_params["pubkey"]
     pubkey1 = node2_params["pubkey"]
     is_fresh_chain = params_dict["is_fresh_chain"]
@@ -68,7 +68,7 @@ def test_heir():
     assert result["type"] == "coins"
     assert result["InactivityTimeSetting"] == "10"
     # TODO: we have non insta blocks now so should set inactivity time more than blocktime to proper test it
-    #assert result["IsHeirSpendingAllowed"] == "false"
+    # assert result["IsHeirSpendingAllowed"] == "false"
 
     # waiting for 11 seconds to be sure that needed time passed for heir claiming
     time.sleep(11)
@@ -94,8 +94,8 @@ def test_heir():
     # balance of second node after heirclaim should increase for 1000 coins - txfees
     # + get one block reward when broadcasted heir_claim_txid
     # TODO: very bad test with non-clearly hardcoded blockreward - needs to be changed
-    #result = round(rpc1.getbalance()) - round(second_node_balance)
-    #assert result > 100999
+    # result = round(rpc1.getbalance()) - round(second_node_balance)
+    # assert result > 100999
 
     # no more funds should be available for claiming
     result = rpc.heirinfo(heir_fund_txid)
@@ -127,7 +127,7 @@ def test_heir():
     assert result["type"] == "tokens"
     assert result["InactivityTimeSetting"] == "10"
     # TODO: we have non insta blocks now so should set inactivity time more than blocktime to proper test it
-    #assert result["IsHeirSpendingAllowed"] == "false"
+    # assert result["IsHeirSpendingAllowed"] == "false"
 
     # waiting for 11 seconds to be sure that needed time passed for heir claiming
     time.sleep(11)
@@ -139,7 +139,7 @@ def test_heir():
     # let's claim whole heir sum from second node
     result = rpc1.heirclaim("100000000", token_heir_txid)
     assert_success(result)
-    
+
     heir_tokens_claim_txid = send_and_mine(result["hex"], rpc1)
     assert heir_tokens_claim_txid, "got claim txid"
 
