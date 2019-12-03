@@ -87,7 +87,7 @@ def main():
                    '-pubkey=' + env_params.get('test_pubkey')[i],
                    ]
         if i > 0:
-            cl_args.append('-addnode=127.0.0.1:' + str(6000 + i))
+            cl_args.append('-addnode=127.0.0.1:6000')
         if ac_params.get('ac_rewards'):
             cl_args.append('-ac_rewards=' + ac_params.get('ac_rewards'))
         else:
