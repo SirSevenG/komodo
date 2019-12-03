@@ -28,4 +28,16 @@ def validate_proxy(env_params_dictionary, proxy, node=0):
     assert proxy.validateaddress(env_params_dictionary.get('test_address')[node])['ismine']
     assert proxy.getinfo()['pubkey'] == env_params_dictionary.get('test_pubkey')[node]
     assert proxy.getbalance() > 777
-    return 1
+
+
+def validate_transaction(proxy, txid, conf_req):
+    try:
+        isinstance(proxy, Proxy)
+    except Exception as e:
+        raise TypeError("Not a Proxy object, error: " + str(e))
+    conf = 0
+    while conf < conf_req:
+        print("\nWaiting confirmations...")
+        resp = proxy.gettransaction(txid)
+        conf = resp.get('confirmations')
+        time.sleep(2)
