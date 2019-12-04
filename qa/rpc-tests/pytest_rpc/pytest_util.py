@@ -1,5 +1,6 @@
 from slickrpc import Proxy
 import time
+import jsonschema
 
 
 def create_proxy(node_params_dictionary):
@@ -41,3 +42,43 @@ def validate_transaction(proxy, txid, conf_req):
         resp = proxy.gettransaction(txid)
         conf = resp.get('confirmations')
         time.sleep(2)
+
+
+def validate_template(blocktemplate):  # BIP 0022
+    blockschema = {
+        'type': 'object',
+        'required': ['bits', 'curtime', 'height', 'previousblockhash', 'version', 'coinbasetxn'],
+        'properties': {
+            'capabilities': {'type': 'array',
+                             'items': {'type': 'string'}},
+            'version': {'type': ['integer', 'number']},
+            'previousblockhash': {'type': 'string'},
+            'finalsaplingroothash': {'type': 'string'},
+            'transactions': {'type': 'array',
+                             'items': {'type': 'object'}},
+            'coinbasetxn': {'type': 'object',
+                            'required': ['data', 'hash', 'depends', 'fee', 'required', 'sigops'],
+                            'properties': {
+                                'data': {'type': 'string'},
+                                'hash': {'type': 'string'},
+                                'depends': {'type': 'array'},
+                                'fee': {'type': ['integer', 'number']},
+                                'sigops': {'type': ['integer', 'number']},
+                                'coinbasevalue': {'type': ['integer', 'number']},
+                                'required': {'type': 'boolean'}
+                            }
+                            },
+            'longpollid': {'type': 'string'},
+            'target': {'type': 'string'},
+            'mintime': {'type': ['integer', 'number']},
+            'mutable': {'type': 'array',
+                        'items': {'type': 'string'}},
+            'noncerange': {'type': 'string'},
+            'sigoplimit': {'type': ['integer', 'number']},
+            'sizelimit': {'type': ['integer', 'number']},
+            'curtime': {'type': ['integer', 'number']},
+            'bits': {'type': 'string'},
+            'height': {'type': ['integer', 'number']}
+        }
+    }
+    jsonschema.validate(instance=blocktemplate, schema=blockschema)
