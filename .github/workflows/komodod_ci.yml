@@ -210,6 +210,42 @@ jobs:
           ./zcutil/fetch-params.sh
           cd qa/rpc-tests/pytest_rpc
           ./ci_setup.sh test_blocks.py
+          
+  linux-test-mining-network:
+    name: Test (Linux/MiningNetwork)
+    runs-on: ubuntu-latest
+    needs: linux-build
+
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Install deps (MiningNetwork)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -q \
+                 curl \
+                 python3 \
+                 python3-dev \
+                 python3-setuptools \
+                 python3-pip \
+                 libcurl4-openssl-dev \
+                 libssl-dev -y
+          python3 -m pip install setuptools wheel
+          python3 -m pip install slick-bitcoinrpc pytest wget jsonschema
+
+      - name: Download komodo-linux.tar.gz
+        uses: actions/download-artifact@v1
+        with:
+          name: komodo-linux
+
+      - name: MiningNetwork Test (Linux)
+        run: |
+          mv komodo-linux/komodo-linux.tar.gz .
+          mkdir -p src
+          tar xzvf komodo-linux.tar.gz
+          ./zcutil/fetch-params.sh
+          cd qa/rpc-tests/pytest_rpc
+          ./ci_setup.sh test_network_mining.py
 
   linux-test-channels:
     name: Test (Linux/ChannelsCC)
