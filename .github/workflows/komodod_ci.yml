@@ -175,6 +175,42 @@ jobs:
           cd qa/rpc-tests/cc_pytest/
           ./ci_setup.sh test_token.py
 
+  linux-test-blocks:
+    name: Test (Linux/Blocks)
+    runs-on: ubuntu-latest
+    needs: linux-build
+
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Install deps (Blocks)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -q \
+                 curl \
+                 python3 \
+                 python3-dev \
+                 python3-setuptools \
+                 python3-pip \
+                 libcurl4-openssl-dev \
+                 libssl-dev -y
+          python3 -m pip install setuptools wheel
+          python3 -m pip install slick-bitcoinrpc pytest wget
+
+      - name: Download komodo-linux.tar.gz
+        uses: actions/download-artifact@v1
+        with:
+          name: komodo-linux
+
+      - name: Blocks Test (Linux)
+        run: |
+          mv komodo-linux/komodo-linux.tar.gz .
+          mkdir -p src
+          tar xzvf komodo-linux.tar.gz
+          ./zcutil/fetch-params.sh
+          cd qa/rpc-tests/pytest_rpc
+          ./ci_setup.sh test_blocks.py
+
   linux-test-channels:
     name: Test (Linux/ChannelsCC)
     runs-on: ubuntu-latest
