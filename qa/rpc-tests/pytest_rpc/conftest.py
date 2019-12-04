@@ -31,11 +31,9 @@ def test_params(proxy_connection):
         params_dict = json.load(f)
     node1_params = params_dict['node1']
     node2_params = params_dict['node2']
-    test_params = {'node1': {}, 'node2': {}}
-    pubkey1 = node1_params['pubkey']
-    pubkey2 = node2_params['pubkey']
     rpc1 = proxy_connection(node1_params)
     rpc2 = proxy_connection(node2_params)
-    test_params['node1'].update({'pubkey': pubkey1, 'rpc': rpc1})
-    test_params['node2'].update({'pubkey': pubkey2, 'rpc': rpc2})
+    test_params = {'node1': node1_params, 'node2': node2_params}
+    test_params['node1'].update({'rpc': rpc1})
+    test_params['node2'].update({'rpc': rpc2})
     return test_params
