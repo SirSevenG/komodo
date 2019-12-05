@@ -44,7 +44,7 @@ def validate_transaction(proxy, txid, conf_req):
         time.sleep(2)
 
 
-def validate_template(blocktemplate):  # BIP 0022
+def validate_template(blocktemplate, schema=''):  # BIP 0022
     blockschema = {
         'type': 'object',
         'required': ['bits', 'curtime', 'height', 'previousblockhash', 'version', 'coinbasetxn'],
@@ -81,4 +81,6 @@ def validate_template(blocktemplate):  # BIP 0022
             'height': {'type': ['integer', 'number']}
         }
     }
-    jsonschema.validate(instance=blocktemplate, schema=blockschema)
+    if not schema:
+        schema = blockschema
+    jsonschema.validate(instance=blocktemplate, schema=schema)
