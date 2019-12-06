@@ -25,7 +25,7 @@ def proxy_connection():
         each.stop()
 
 
-@pytest.fixture(scope='class')
+@pytest.fixture(scope='session')
 def test_params(proxy_connection):
     with open('nodesconfig.json', 'r') as f:
         params_dict = json.load(f)
