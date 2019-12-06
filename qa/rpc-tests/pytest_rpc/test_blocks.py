@@ -39,15 +39,54 @@ class TestBlockchainMethods:
         test_values = {
             'block15': '15'
         }
+        schema = {
+            'type': 'object',
+            'properties': {
+                'last_notarized_height': {'type': 'integer'},
+                'hash': {'type': 'string'},
+                'confirmations': {'type': 'integer'},
+                'rawconfirmations': {'type': 'integer'},
+                'size': {'type': 'integer'},
+                'height': {'type': 'integer'},
+                'version': {'type': 'integer'},
+                'merkleroot': {'type': 'string'},
+                'segid': {'type': 'integer'},
+                'finalsaplingroot': {'type': 'string'},
+                'tx': {'type': 'array'},
+                'time': {'type': 'integer'},
+                'nonce': {'type': 'string'},
+                'solution': {'type': 'string'},
+                'bits': {'type': 'string'},
+                'difficulty': {'type': ['number', 'integer']},
+                'chainwork': {'type': 'string'},
+                'blocktype': {'type': 'string'},
+                'valuePools': {
+                    'type': 'array',
+                    'items': {
+                        'type': 'object',
+                        'properties': {
+                            'id': {'type': 'string'},
+                            'monitored': {'type': 'boolean'},
+                            'chainValue': {'type': ['number', 'integer']},
+                            'chainValueZat': {'type': ['number', 'integer']},
+                            'valueDelta': {'type': ['number', 'integer']},
+                            'valueDeltaZat': {'type': ['number', 'integer']}
+                        }
+                    }
+                },
+                'previousblockhash': {'type': 'string'},
+                'nextblockhash': {'type': 'string'}
+            },
+            'required': ['last_notarized_height', 'hash', 'confirmations', 'rawconfirmations', 'size', 'height',
+                         'version', 'merkleroot', 'segid', 'finalsaplingroot', 'tx', 'time', 'nonce', 'solution',
+                         'bits', 'difficulty', 'chainwork', 'anchor', 'blocktype', 'valuePools',
+                         'previousblockhash', 'nextblockhash']
+        }
         rpc = test_params.get('node1').get('rpc')
         res = rpc.getblock(test_values['block15'])
-        assert res.get('height') == int(test_values['block15'])
-        assert res.get('hash') == test_values['hash15']
-        assert res.get('size') == int(test_values['size'])
-        res = rpc.getblock(test_values['hash15'])
-        assert res.get('height') == int(test_values['block15'])
-        assert res.get('hash') == test_values['hash15']
-        assert res.get('size') == int(test_values['size'])
+        validate_template(res, schema)
+        res = rpc.getblock(test_values['block15'], False)
+        assert isinstance(res, str)
 
     def test_getblockchaininfo(self, test_params):
         schema = {
@@ -102,22 +141,40 @@ class TestBlockchainMethods:
     #     res = rpc.getblockhashes(test_values['high'], test_values['low'], test_values['options'])
 
     def test_getblockheader(self, test_params):
-        test_values = {
-            'blockhex': '009a0806606f3cbed90d01556735e878fac2451b7cd865c8193af7a85f1627ab',
-            'height': 123,
-            'expected_data': '04000000ca16739f4dab6be5f1265eb5b08281081cc130758b2c0249303f74fc7ccd6c01fb0666044a364de8ec32b22143f577278d6ed6988d4a3e809570021f15e5b564fbc2f4300c01f0b7820d00e3347c8da4ee614674376cbc45359daa54f9b5493eee37d55d39ea012006000a0ca215d728e337fa145f3fa2168667a980c7674156f744b3422cbe0000fd400500a051ac20904ff178ec44500caa4d8718e31aeca90364ac0a42154f30c5e4f24061f204e6723053e5712287f9b219734cb1c97352621563cc2534f0adab5f377ba9c6f2520066a7db48a698d103dafb02be066900cc36d48f4ff02f5d0bc0e2a3beb5b276a75b8c800780f05ca19821955cab60edd877ca2e1533f81ca2064e0d581c265a355fb5b1a3045ba2028fe23a37390b41bd2829e4af3b7905550f395058db472efb971601046f6f7902dbfaaf53f2632af562b165bb9671533dc2e40041db9f3cf379a407aa209c95ce4738a86e100c4d61a46e3bf9e712355ebdbe97f37a4dbdf54b6f826e64eb5ee6633186e7173478d2e35c3f5f76040b5b1c06352d25b79077357c52e23c85e4db1832903e2cbe99afe3db23feeff4a44a61035965b1ef27310f4dc6069ee8dfed9b2181ebaeecf3255d8f12db7f1888a47430df2a5f4a432697e84df3c2df2e5a00b4047a9abe4045e60fc98ad63f3b4eb656a93595f9e904874443c645d83ff27b231cde3088fad4485d251519454178ebdfcdcd124921ad47d656847dc6797cf51f2b16fcb7ae15717d27f24792162df5855f6e663e06022ca77112e5f6f311a70f9dc3e8ddd818da3d673ba06dfd1e91244ce4edd460513942cdc92754f51d1e3db567218c4c77f75f62eab0394020cfe0886c931f6ad9d16f9abc00e0f633881c21c2550fc12be0bc067a67029452bb278094f5f420d65ebe4f031eb96b0ba4b25831de1279a0d62210e02d0fc9af751df7150d7d157dac1ad79b245413112f24e169005529680a29f8920d5cedbff1777e339ee1a7e71b6e085ec1d5085b7b48874584baaff4234c19b882bb2780bb63e05629bba2979c5315e69f758152527ee175a217d2bf2043f55904a9d619921ae3f3e4f83b9248e71656677ab21d83ad6839c5a21a0c6c4b7a727f51071ca72e00d6f2fb114460a27c55b0f9d5ec106d2c3bbf5b772d0233cc94e1a23b2b24748648e865b754239d417c0d43551a43466aa3115301792f12d348cae47a5e2b143d2e99d3a08b6d189d9201641d0ef1a0e58f29b603030630b809ae505cceb0712fd083e03f7b3abc4e10b962a7a9191e33efcd6768da525c5aad58dffa720a695dc39fa0e0f3b3d85227adf7e34d9bda18252e249b32aea41cc74dcc1b64258059b5ad72882cd8b301ce2e5802cc733cd09e30f3ddafbe7d9538ae3fdc21471ec73370c74f8d1862dc6bd3f81627ce720c290bf9f6ef9c494eafe35bd16bf26a736a263e9979c11bd9d1ee424a0ce158dee1fe0a1d65450b9bf3c08106fc6d0b9504d8173b20a084888c8fec6435ad5b5b204bb43b8bcdc084ab83321ed7b583ddb15e7a285d215b4a0e41f896fbe0fac2556a992b28fb8c147ce43c3452e74e54c0b37240bdca71fb81f77f7e5ed76700f765baf7029f88f58f40bbea0af34abe1c3e09d818d9d5a5dc09242c702e58b09dc5e022df833860d911634be0fe15d222fe1be91b8c5d2aef80c31e47fe1df91fee1de1b03b964bb2cdfcd42c11894ed714141b051c45b25773e9280815d29dea4b566260777a8c2135151dc5213135b85c156cd6ff06060ddb3d24cf1b81f74a90a1c3172b5cf497adc5db3bab9dddb0ab39b7e2cc37a14d15e874c42358a912312cc08e4f0d057a011f6e56434f4f75d24e4cc5f10a3dafde151a549a55deec682197fcad15daed4ccc51b27cf030c90762b197b4597fe32898e20a927a64167e52fc62574460a4e595dfa0cdf199e5de84ce3e9b3f7dbb8abc08534c9e4d5ca345b683f2385aee6018a419b7cf7b27485b126ae5d9cfc5b038af4148edc7336b5cbcca118c26e4aa89be5bc0ed417ed722f1f1448c5647ef24682ab656612babbd41f42993cba2fddcc0974878'
+        schema = {
+            'type': 'object',
+            'properties': {
+                'last_notarized_height': {'type': 'integer'},
+                'hash': {'type': 'string'},
+                'confirmations': {'type': 'integer'},
+                'rawconfirmations': {'type': 'integer'},
+                'height': {'type': 'integer'},
+                'version': {'type': 'integer'},
+                'merkleroot': {'type': 'string'},
+                'segid': {'type': 'integer'},
+                'finalsaplingroot': {'type': 'string'},
+                'time': {'type': 'integer'},
+                'nonce': {'type': 'string'},
+                'solution': {'type': 'string'},
+                'bits': {'type': 'string'},
+                'difficulty': {'type': ['number', 'integer']},
+                'chainwork': {'type': 'string'},
+                'previousblockhash': {'type': 'string'},
+                'nextblockhash': {'type': 'string'}
+            },
+            'required': ['last_notarized_height', 'hash', 'confirmations', 'rawconfirmations',
+                         'height', 'version', 'merkleroot', 'segid', 'finalsaplingroot', 'time',
+                         'nonce', 'solution', 'bits', 'difficulty', 'chainwork', 'previousblockhash']
         }
         rpc = test_params.get('node1').get('rpc')
         res = rpc.getinfo()
         block = res.get('blocks')
-        res = rpc.getblockheader(test_values['blockhex'])
-        assert res.get('hash') == test_values['blockhex']
-        assert res.get('height') == test_values['height']
-        # With 'true' optional param response should be same
-        res = rpc.getblockheader(test_values['blockhex'], True)
-        assert res.get('hash') == test_values['blockhex']
-        assert res.get('height') == test_values['height']
-        res = rpc.getblockheader(test_values['blockhex'], False)
+        blockhash = rpc.getblockhash(block)
+        res1 = rpc.getblockheader(blockhash)
+        res2 = rpc.getblockheader(blockhash, True)
+        assert res1 == res2
+        validate_template(res1, schema)
+        res = rpc.getblockheader(blockhash, False)
         assert isinstance(res, str)
 
     def test_getchaintips(self, test_params):
@@ -139,33 +196,31 @@ class TestBlockchainMethods:
         validate_template(res, schema)
 
     def test_getchaintxstats(self, test_params):
-        test_values = {
-            'full_txcount': 132,
-            'full_blockcount': 130,
-            'full_win_fblock': '01188f110a6cd6f04a621e394b21bad6441b9d0dd18167312329c0127f084757',
-            'num': 30,
-            'num_txcount': 132,
-            'num_blockcount':  30,
-            'num_win_fblock': '01188f110a6cd6f04a621e394b21bad6441b9d0dd18167312329c0127f084757',
-            'hash': '01188f110a6cd6f04a621e394b21bad6441b9d0dd18167312329c0127f084757',
-            'hs_num': 21,
-            'num_hash_win_txcount': 21,
-            'num_hash_fblock': '01188f110a6cd6f04a621e394b21bad6441b9d0dd18167312329c0127f084757',
-            'num_hash_blockcount': 21
+        schema = {
+            'type': 'object',
+            'properties': {
+                'time': {'type': 'integer'},
+                'txcount': {'type': 'integer'},
+                'window_final_block_hash': {'type': 'string'},
+                'window_final_block_count': {'type': 'integer'},
+                'window_block_count': {'type': 'integer'},
+                'window_tx_count': {'type': 'integer'},
+                'window_interval': {'type': 'integer'},
+                'txrate': {'type': ['number', 'integer']}
+            },
+            'required': ['time', 'txcount', 'txrate', 'window_final_block_hash', 'window_interval',
+                         'window_block_count', 'window_tx_count']
         }
         rpc = test_params.get('node1').get('rpc')
         res = rpc.getchaintxstats()
-        assert res.get('txcount') == test_values['full_txcount']
-        assert res.get('window_final_block_hash') == test_values['full_win_fblock']
-        assert res.get('window_block_count') == test_values['full_blockcount']
-        res = rpc.getchaintxstats(test_values['num'])
-        assert res.get('txcount') == test_values['num_txcount']
-        assert res.get('window_final_block_hash') == test_values['num_win_fblock']
-        assert res.get('window_block_count') == test_values['num_blockcount']
-        res = rpc.getchaintxstats(test_values['hs_num'], test_values['hash'])
-        assert res.get('window_tx_count') == test_values['num_hash_win_txcount']
-        assert res.get('window_final_block_hash') == test_values['num_hash_fblock']
-        assert res.get('window_block_count') == test_values['num_hash_blockcount']
+        validate_template(res, schema)
+        res = rpc.getinfo()
+        nblocks = (int(res.get('blocks')) - 100)
+        blockhash = rpc.getblockhash(res.get('blocks'))
+        res = rpc.getchaintxstats(nblocks)
+        validate_template(res, schema)
+        res = rpc.getchaintxstats(nblocks, blockhash)
+        validate_template(res, schema)
 
     def test_getdifficulty(self, test_params):
         rpc = test_params.get('node1').get('rpc')
@@ -193,18 +248,38 @@ class TestBlockchainMethods:
     #     pass
 
     def test_gettxout(self, test_params):
-        test_values = {
-            'tx': '68ee9d23ba51e40112be3957dd15bc5c8fa9a751a411db63ad0c8205bec5e8a1',
-            'vout0': 0,
-            'voutN': 1,
-            'bestblock': '01188f110a6cd6f04a621e394b21bad6441b9d0dd18167312329c0127f084757',
-            'coins_value': 1000.0
+        schema = {
+            'type': 'object',
+            'properties': {
+                'bestblock': {'type': 'string'},
+                'confirmations': {'type': 'integer'},
+                'rawconfirmations': {'type': 'integer'},
+                'value': {'type': 'number'},
+                'scriptPubKey': {
+                    'type': 'object',
+                    'properties': {
+                                 'asm': {'type': 'string'},
+                                 'hex': {'type': 'string'},
+                                 'reqSigs': {'type': 'integer'},
+                                 'type': {'type': 'string'},
+                                 'addresses': {
+                                               'type': 'array',
+                                               'items': {'type': 'string'}
+                                               }
+                                  }
+                                 },
+                'version': {'type': 'integer'},
+                'coinbase': {'type': 'boolean'}
+            },
+            'required': ['bestblock', 'confirmations', 'rawconfirmations',
+                         'value', 'scriptPubKey', 'version', 'coinbase']
         }
         rpc = test_params.get('node1').get('rpc')
-        res = rpc.gettxout(test_values['tx'], test_values['vout0'])
-        assert res.get('bestblock') == test_values['bestblock']
-        assert res.get('value') == test_values['coins_value']
-        res = rpc.gettxout(test_values['tx'], test_values['voutN'])
+        res = rpc.listunspent()
+        txid = res[0].get('txid')
+        res = rpc.gettxout(txid, 0)
+        validate_template(res, schema)
+        res = rpc.gettxout(txid, -1)
         assert not res  # gettxout retuns None when vout does not exist
 
     def test_gettxoutproof(self, test_params):
