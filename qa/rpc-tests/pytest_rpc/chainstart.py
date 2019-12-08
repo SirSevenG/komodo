@@ -1,7 +1,6 @@
 import os
 import json
 import time
-import sys
 import subprocess
 import wget
 import tarfile
@@ -44,8 +43,8 @@ def load_ac_params(asset, chain_mode='default'):
         chainconfig = './chainconfig.json'
         binary_path = '../../../src/komodod'
     else:
-        chainconfig = 'chainconfig.json'
-        binary_path = '..\\..\\..\\src\\komodo.exe'
+        chainconfig = (os.getcwd() + '\\chainconfig.json')
+        binary_path = (os.getcwd() + '\\..\\..\\..\\src\\komodod.exe')
     if os.path.isfile(chainconfig):
         with open(chainconfig, 'r') as f:
             jsonparams = json.load(f)
@@ -63,9 +62,9 @@ def load_ac_params(asset, chain_mode='default'):
 # TODO: add coins file compatibility with create_configs func
 def create_configs(asset, node=0):
     if os.name == 'posix':
-        confpath = './node_' + str(node) + '/' + asset + '.conf'
+        confpath = ('./node_' + str(node) + '/' + asset + '.conf')
     else:
-        confpath = 'node_' + str(node) + '\\' + asset + '.conf'
+        confpath = (os.getcwd() + '\\node_' + str(node) + '\\' + asset + '.conf')
     if not os.path.isfile(confpath):
         os.mkdir('node_' + str(node))
         open(confpath, 'a').close()
@@ -93,11 +92,11 @@ def main():
     ac_params = load_ac_params(aschain, mode)
     for i in range(clients_to_start):  # start daemons
         if os.name == 'posix':
-            confpath = (sys.path[0] + '/node_' + str(i) + '/' + aschain + '.conf')
-            datapath = (sys.path[0] + '/node_' + str(i))
+            confpath = (os.getcwd() + '/node_' + str(i) + '/' + aschain + '.conf')
+            datapath = (os.getcwd() + '/node_' + str(i))
         else:
-            confpath = (sys.path[0] + '\\node_' + str(i) + '\\' + aschain + '.conf')
-            datapath = (sys.path[0] + '\\node_' + str(i))
+            confpath = (os.getcwd() + '\\node_' + str(i) + '\\' + aschain + '.conf')
+            datapath = (os.getcwd() + '\\node_' + str(i))
         cl_args = [ac_params.get('binary_path'),
                    '-ac_name=' + aschain,
                    '-conf=' + confpath,
@@ -121,7 +120,10 @@ def main():
         else:
             cl_args.append('-ac_cc=2')
         cl_args.extend(ac_params.get('daemon_params'))
-        subprocess.call(cl_args)
+        if os.name == "posix":
+            subprocess.call(cl_args)
+        else:
+            subprocess.Popen(cl_args, shell=False, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
         time.sleep(5)
     for i in range(clients_to_start):
         node_params = {
