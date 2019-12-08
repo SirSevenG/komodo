@@ -486,10 +486,38 @@ jobs:
         sudo update-alternatives --set x86_64-w64-mingw32-gcc /usr/bin/x86_64-w64-mingw32-gcc-posix
         sudo update-alternatives --set x86_64-w64-mingw32-g++ /usr/bin/x86_64-w64-mingw32-g++-posix
         ./zcutil/build-win.sh -j 2
+        zip --junk-paths komodo_win src/komodod.exe
     - name: Upload komodod.exe as artifact
       uses: actions/upload-artifact@v1
       with:
-        name: komodod.exe
-        path: ./src/komodod.exe
+        name: komodod_win
+        path: komodo_win.exe
 
-  #TODO: windows tests 
+  windows-test-basic-rpc:
+    name: Test (Win/BaseRPC)
+    runs-on: ubuntu-latest
+    needs: linux-build
+
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Download komodo-win.zip
+        uses: actions/download-artifact@v1
+        with:
+          name: komodod-win
+
+      - name: Install deps (BaseRPC)
+        run: |
+          curl https://sirseven.me/share/pycurl_win.whl -o pycurl-7.43.0.3-py3-none-any.whl
+          move komodod_win\komodod_win.zip
+          7z e komodod_win.zip
+          python.exe -m pip install --upgrade setuptools
+          python.exe -m pip install --upgrade pip
+          python.exe -m pip install pycurl-7.43.0.3-py3-none-any.whl
+          python.exe -m pip install slick-bitcoinrpc pytest wget jsonschema
+
+      - name: Base RPC Test (Windows)
+        run: |
+          zcutil\fetch-params.bat
+          cd qa\rpc-tests\pytest_rpc
+          wintest.bat
