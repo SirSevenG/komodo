@@ -18,5 +18,6 @@
     "pubkey" : "0285f68aec0e2f8b5e817d71a2a20a1fda74ea9943c752a13136a3a30fa49c0149",
     "address": "RHoTHYiHD8TU4k9rbY4Aoj3ztxUARMJikH",
     "txid": "79d6b61ab663579d3682747b82f1118c1678e1759ccbd6749b67905572681bfb"
-  }
+  },
+  "is_fresh_chain": true
 }

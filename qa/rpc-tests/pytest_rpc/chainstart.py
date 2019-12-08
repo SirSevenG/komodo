@@ -4,7 +4,7 @@ import time
 import subprocess
 import wget
 import tarfile
-from pytest_util import create_proxy, validate_proxy
+from basic.pytest_util import create_proxy, validate_proxy
 
 
 # TODO: change env 'CHAIN' paramater to tag, use actual "coin" param from chainconfig.json instead
