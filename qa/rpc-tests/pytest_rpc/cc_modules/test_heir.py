@@ -79,6 +79,7 @@ def test_heir(test_params):
     second_node_balance = rpc1.getbalance()
     if second_node_balance < 0.1:
         rpc.sendtoaddress(rpc1.getnewaddress(), 1)
+        time.sleep(10)  # to ensure transactions are in different blocks
         rpc.sendtoaddress(rpc1.getnewaddress(), 1)
         wait_some_blocks(rpc, 2)
     assert second_node_balance > 0.1

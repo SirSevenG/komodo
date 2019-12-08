@@ -4,7 +4,7 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 import pytest
-import json
+import time
 
 from util import assert_success, assert_error, check_if_mined,\
     send_and_mine, rpc_connect, wait_some_blocks, komodo_teardown
@@ -155,6 +155,7 @@ def test_token(test_params):
     # from other node (ensuring that second node have enough balance to cover txfee
     # to get the actual error - not "not enough balance" one
     rpc.sendtoaddress(rpc1.getnewaddress(), 1)
+    time.sleep(10)  # to ensure transactions are in different blocks
     rpc.sendtoaddress(rpc1.getnewaddress(), 1)
     wait_some_blocks(rpc, 2)
     result = rpc1.getbalance()
