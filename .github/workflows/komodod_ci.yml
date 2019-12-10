@@ -378,12 +378,12 @@ jobs:
         sudo update-alternatives --set x86_64-w64-mingw32-gcc /usr/bin/x86_64-w64-mingw32-gcc-posix
         sudo update-alternatives --set x86_64-w64-mingw32-g++ /usr/bin/x86_64-w64-mingw32-g++-posix
         ./zcutil/build-win.sh -j 2
-        zip --junk-paths komodo_win src/komodod.exe
+        zip --junk-paths komodod_win src/komodod.exe
     - name: Upload komodod.exe as artifact
       uses: actions/upload-artifact@v1
       with:
         name: komodod_win
-        path: ./komodo_win.zip
+        path: ./komodod_win.zip
 
   windows-test-basic-rpc:
     name: Test (Win/BaseRPC)
@@ -393,7 +393,7 @@ jobs:
     steps:
       - uses: actions/checkout@v1
 
-      - name: Download komodo-win.zip
+      - name: Download komodo_win.zip
         uses: actions/download-artifact@v1
         with:
           name: komodod_win
