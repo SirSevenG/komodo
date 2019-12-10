@@ -85,9 +85,9 @@ def main():
     if env_params.get('is_bootstrap_needed'):  # bootstrap chains
         if not os.path.isfile('bootstrap.tar.gz'):
             wget.download(env_params.get('bootstrap_url'), "bootstrap.tar.gz")
-            tf = tarfile.open("bootstrap.tar.gz")
-            for i in range(clients_to_start):
-                tf.extractall("node_" + str(i))
+        tf = tarfile.open("bootstrap.tar.gz")
+        for i in range(clients_to_start):
+            tf.extractall("node_" + str(i))
     mode = env_params.get('chain_start_mode')
     ac_params = load_ac_params(aschain, mode)
     for i in range(clients_to_start):  # start daemons
