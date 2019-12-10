@@ -199,10 +199,12 @@ class TestNetworkMining:
         rpc.addnode(disconnect_node, 'remove')  # remove node from addnode list to prevent reconnection
         res = rpc.disconnectnode(disconnect_node)  # has empty response
         assert not res
-        time.sleep(5)  # time to stop node connection
+        time.sleep(15)  # time to stop node connection
         res = rpc.getpeerinfo()
         for peer in res:
             assert peer.get('addr') != disconnect_node
+        rpc.addnode(disconnect_node, 'add')
+        time.sleep(10)  # wait for 2nd to reconnect after test
 
     def test_ban(self, test_params):  # setban, listbanned, clearbanned calls
         rpc = test_params.get('node1').get('rpc')

@@ -355,6 +355,7 @@ class TestBlockchainMethods:
         rpc.setgenerate(True, 1)  # enable mining
         validate_transaction(rpc, txid, 1)  # wait for block
         res = rpc.kvsearch(test_values['key'])
+        rpc.setgenerate(False, 0)
         assert res.get('key') == test_values['key']
         assert res.get('keylen') == keylen
         assert res.get('value') == test_values['value']
