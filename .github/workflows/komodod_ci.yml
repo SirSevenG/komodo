@@ -387,7 +387,7 @@ jobs:
 
   windows-test-basic-rpc:
     name: Test (Win/BaseRPC)
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     needs: windows-build
 
     steps:
@@ -396,7 +396,7 @@ jobs:
       - name: Download komodo-win.zip
         uses: actions/download-artifact@v1
         with:
-          name: komodod-win
+          name: komodod_win
 
       - name: Install deps (BaseRPC)
         run: |
