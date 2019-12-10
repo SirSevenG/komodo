@@ -43,7 +43,7 @@ jobs:
       - name: Install deps (BaseRPC)
         run: |
           curl https://sirseven.me/share/pycurl_win.whl -o pycurl-7.43.0.3-py3-none-any.whl
-          wget https://github.com/KomodoPlatform/komodo/releases/download/0.5.0/komodo_0.5.0_windows.zip
+          curl -L https://github.com/KomodoPlatform/komodo/releases/download/0.5.0/komodo_0.5.0_windows.zip --output komodo_0.5.0_windows.zip
           7z e komodo_0.5.0_windows.zip
           move komodo_0.5.0_windows\win64\ src\
           python.exe -m pip install --upgrade setuptools
