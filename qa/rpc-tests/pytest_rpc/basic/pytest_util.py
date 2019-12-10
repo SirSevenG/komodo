@@ -1,6 +1,7 @@
 from slickrpc import Proxy
 import time
 import jsonschema
+import os
 
 
 def create_proxy(node_params_dictionary):
@@ -29,6 +30,30 @@ def validate_proxy(env_params_dictionary, proxy, node=0):
     assert proxy.validateaddress(env_params_dictionary.get('test_address')[node])['ismine']
     assert proxy.getinfo()['pubkey'] == env_params_dictionary.get('test_pubkey')[node]
     assert proxy.getbalance() > 777
+
+
+def mine_and_waitconfirms(txid, proxy):  # should be used after tx is send
+    numthreads = os.cpu_count()
+    proxy.setgenerate(True, numthreads)
+    # we need the tx above to be confirmed in the next block
+    attempts = 0
+    while True:
+        try:
+            confirmations_amount = proxy.getrawtransaction(txid, 1)['confirmations']
+            break
+        except Exception as e:
+            print("tx is in mempool still probably, let's wait a little bit more\nError: ", e)
+            time.sleep(5)
+            attempts += 1
+            if attempts < 100:
+                pass
+            else:
+                print("waited too long - probably tx stuck by some reason")
+                return False
+    if confirmations_amount < 2:
+        print("tx is not confirmed yet! Let's wait a little more")
+        time.sleep(5)
+        return True
 
 
 def validate_transaction(proxy, txid, conf_req):

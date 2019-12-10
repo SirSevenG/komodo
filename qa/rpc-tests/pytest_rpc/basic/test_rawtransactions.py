@@ -4,7 +4,7 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 import pytest
-from pytest_util import validate_template
+from pytest_util import validate_template, mine_and_waitconfirms
 
 
 @pytest.mark.usefixtures("proxy_connection")
@@ -47,6 +47,7 @@ class TestRawTransactions:
 
         sendtx = rpc.sendrawtransaction(signtx.get('hex'))
         assert isinstance(sendtx, str)
+        assert mine_and_waitconfirms(sendtx, rpc)
 
     def test_getrawtransaction(self, test_params):  # decode, get methods
         txschema = {
