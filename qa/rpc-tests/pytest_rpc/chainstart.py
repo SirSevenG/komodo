@@ -107,14 +107,14 @@ def main():
                    ]
         if i > 0:
             cl_args.append('-addnode=127.0.0.1:6000')
-        if ac_params.get('ac_rewards'):
-            cl_args.append('-ac_rewards=' + ac_params.get('ac_rewards'))
+        if ac_params.get('ac_reward'):
+            cl_args.append('-ac_reward=' + ac_params.get('ac_reward'))
         else:
-            cl_args.append('-ac_rewards=100000000000')
+            cl_args.append('-ac_reward=100000000000')
         if ac_params.get('ac_supply'):
             cl_args.append('-ac_supply=' + ac_params.get('ac_supply'))
         else:
-            cl_args.append('-ac_supply=100000000000')
+            cl_args.append('-ac_supply=10000000000')
         if ac_params.get('ac_cc'):
             cl_args.append('-ac_cc=' + ac_params.get('ac_cc'))
         else:
