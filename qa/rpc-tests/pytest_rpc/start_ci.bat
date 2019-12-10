@@ -10,6 +10,6 @@ set CHAIN_MODE=REGULAR
 set IS_BOOTSTRAP_NEEDED=True
 set BOOTSTRAP_URL=http://159.69.45.70/bootstrap.tar.gz
 
-python3.exe chainstart.py
+python.exe chainstart.py
 
-python3.exe -m pytest %1 -s -vv
+python.exe -m pytest %1 -s -vv
