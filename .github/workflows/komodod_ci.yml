@@ -57,7 +57,7 @@ jobs:
         shell: cmd
         run: |
           dir
-          cd \qa\rpc-tests\pytest_rpc
+          cd qa\rpc-tests\pytest_rpc
           dir
           start_ci.bat basic
 
@@ -85,7 +85,7 @@ jobs:
         shell: cmd
         run: |
           dir
-          cd \qa\rpc-tests\pytest_rpc
+          cd qa\rpc-tests\pytest_rpc
           dir
           start_ci.bat cc_modules\test_dice.py cc_modules\test_faucet.py cc_modules\test_token.py cc_modules\test_rewards.py
     
@@ -113,7 +113,7 @@ jobs:
         shell: cmd
         run: |
           dir
-          cd \qa\rpc-tests\pytest_rpc
+          cd qa\rpc-tests\pytest_rpc
           dir
           start_ci.bat cc_modules\test_oracles.py
 
@@ -141,7 +141,7 @@ jobs:
         shell: cmd
         run: |
           dir
-          cd \qa\rpc-tests\pytest_rpc
+          cd qa\rpc-tests\pytest_rpc
           dir
           start_ci.bat cc_modules\test_heir.py
 
@@ -169,7 +169,7 @@ jobs:
         shell: cmd
         run: |
           dir
-          cd \qa\rpc-tests\pytest_rpc
+          cd qa\rpc-tests\pytest_rpc
           dir
           start_ci.bat cc_modules\test_channels.py
 
