@@ -3,7 +3,7 @@ Updated RPC unit-tests infrastructure for Antara smart-chain custom modules
 Using pytest as testing framework and slickrpc as rpc proxy. No more python2 support.
 
 To start just set test nodes RPC credentials in `nodesconfig.json`.
-I thought such config usage might be useful as in some manual testing plays as well as in some CI configuration tests integration.
+`chainconfig.json` contains daemon start cli params, change hardcoded parameters to use with your chain, default parmas are valid for test bootstrap `http://159.69.45.70/bootstrap.tar.gz`
 
 `is_fresh_chain=False` param allows to run tests on existing chains (it skips some tests which expecting first CC usage on chain)
 
