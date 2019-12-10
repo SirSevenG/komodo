@@ -390,7 +390,7 @@ jobs:
     runs-on: windows-latest
     needs: windows-build
 
-     steps:
+    steps:
       - uses: actions/checkout@v1
 
       - name: Download komodo_win.zip
@@ -421,7 +421,7 @@ jobs:
     runs-on: windows-latest
     needs: windows-build
 
-     steps:
+    steps:
       - uses: actions/checkout@v1
 
       - name: Download komodo_win.zip
@@ -452,7 +452,7 @@ jobs:
     runs-on: windows-latest
     needs: windows-build
 
-     steps:
+    steps:
       - uses: actions/checkout@v1
 
       - name: Download komodo_win.zip
@@ -483,7 +483,7 @@ jobs:
     runs-on: windows-latest
     needs: windows-build
 
-     steps:
+    steps:
       - uses: actions/checkout@v1
 
       - name: Download komodo_win.zip
@@ -514,7 +514,7 @@ jobs:
     runs-on: windows-latest
     needs: windows-build
 
-     steps:
+    steps:
       - uses: actions/checkout@v1
 
       - name: Download komodo_win.zip
