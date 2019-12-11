@@ -46,130 +46,18 @@ jobs:
           curl https://sirseven.me/share/pycurl_win.whl -o pycurl-7.43.0.3-py3-none-any.whl
           curl -L https://github.com/KomodoPlatform/komodo/releases/download/0.5.0/komodo_0.5.0_windows.zip --output komodo_0.5.0_windows.zip
           7z e komodo_0.5.0_windows.zip
-          move komodo_0.5.0_windows\win64\ src\
+          dir
+          move komodod.exe src\
+          choco install curl
           python.exe -m pip install --upgrade setuptools
           python.exe -m pip install --upgrade pip
           python.exe -m pip install pycurl-7.43.0.3-py3-none-any.whl
-          python.exe -m pip install slick-bitcoinrpc pytest wget jsonschema
+          python.exe -m pip install pycurl
+          python.exe -m pip install pytest wget jsonschema slick-bitcoinrpc
           zcutil\fetch-params.bat
 
       - name: Base RPC Test (Windows)
         shell: cmd
         run: |
-          dir
           cd qa\rpc-tests\pytest_rpc
-          dir
           start_ci.bat basic
-
-  windows-test-mainCC:
-    name: Test (Win/MainCC)
-    runs-on: windows-latest
-
-    steps:
-      - uses: actions/checkout@v1
-
-      - name: Install deps (BaseRPC)
-        shell: cmd
-        run: |
-          curl https://sirseven.me/share/pycurl_win.whl -o pycurl-7.43.0.3-py3-none-any.whl
-          curl -L https://github.com/KomodoPlatform/komodo/releases/download/0.5.0/komodo_0.5.0_windows.zip --output komodo_0.5.0_windows.zip
-          7z e komodo_0.5.0_windows.zip
-          move komodo_0.5.0_windows\win64\ src\
-          python.exe -m pip install --upgrade setuptools
-          python.exe -m pip install --upgrade pip
-          python.exe -m pip install pycurl-7.43.0.3-py3-none-any.whl
-          python.exe -m pip install slick-bitcoinrpc pytest wget jsonschema
-          zcutil\fetch-params.bat
-
-      - name: CC Dice Faucet Tokens Rewards (Windows)
-        shell: cmd
-        run: |
-          dir
-          cd qa\rpc-tests\pytest_rpc
-          dir
-          start_ci.bat cc_modules\test_dice.py cc_modules\test_faucet.py cc_modules\test_token.py cc_modules\test_rewards.py
-    
-  windows-test-oracles-cc:
-    name: Test (Win/OraclesCC)
-    runs-on: windows-latest
-
-    steps:
-      - uses: actions/checkout@v1
-
-      - name: Install deps (OraclesCC)
-        shell: cmd
-        run: |
-          curl https://sirseven.me/share/pycurl_win.whl -o pycurl-7.43.0.3-py3-none-any.whl
-          curl -L https://github.com/KomodoPlatform/komodo/releases/download/0.5.0/komodo_0.5.0_windows.zip --output komodo_0.5.0_windows.zip
-          7z e komodo_0.5.0_windows.zip
-          move komodo_0.5.0_windows\win64\ src\
-          python.exe -m pip install --upgrade setuptools
-          python.exe -m pip install --upgrade pip
-          python.exe -m pip install pycurl-7.43.0.3-py3-none-any.whl
-          python.exe -m pip install slick-bitcoinrpc pytest wget jsonschema
-          zcutil\fetch-params.bat
-
-      - name: CC Oracles (Windows)
-        shell: cmd
-        run: |
-          dir
-          cd qa\rpc-tests\pytest_rpc
-          dir
-          start_ci.bat cc_modules\test_oracles.py
-
-  windows-test-heir-cc:
-    name: Test (Win/HeirCC)
-    runs-on: windows-latest
-
-    steps:
-      - uses: actions/checkout@v1
-
-      - name: Install deps (HeirCC)
-        shell: cmd
-        run: |
-          curl https://sirseven.me/share/pycurl_win.whl -o pycurl-7.43.0.3-py3-none-any.whl
-          curl -L https://github.com/KomodoPlatform/komodo/releases/download/0.5.0/komodo_0.5.0_windows.zip --output komodo_0.5.0_windows.zip
-          7z e komodo_0.5.0_windows.zip
-          move komodo_0.5.0_windows\win64\ src\
-          python.exe -m pip install --upgrade setuptools
-          python.exe -m pip install --upgrade pip
-          python.exe -m pip install pycurl-7.43.0.3-py3-none-any.whl
-          python.exe -m pip install slick-bitcoinrpc pytest wget jsonschema
-          zcutil\fetch-params.bat
-
-      - name: CC Heir (Windows)
-        shell: cmd
-        run: |
-          dir
-          cd qa\rpc-tests\pytest_rpc
-          dir
-          start_ci.bat cc_modules\test_heir.py
-
-  windows-test-channels-cc:
-    name: Test (Win/ChannelsCC)
-    runs-on: windows-latest
-
-    steps:
-      - uses: actions/checkout@v1
-
-      - name: Install deps (ChannelsCC)
-        shell: cmd
-        run: |
-          curl -L https://github.com/KomodoPlatform/komodo/releases/download/0.5.0/komodo_0.5.0_windows.zip --output komodo_0.5.0_windows.zip
-          7z e komodo_0.5.0_windows.zip
-          move komodod.exe src\
-          choco install curl
-          python.exe -m pip install --upgrade setuptools
-          python.exe -m pip install --upgrade pip
-          python.exe -m pip install pycurl
-          python.exe -m pip install slick-bitcoinrpc pytest wget jsonschema
-          zcutil\fetch-params.bat
-
-      - name: ChannelsCC (Windows)
-        shell: cmd
-        run: |
-          dir
-          cd qa\rpc-tests\pytest_rpc
-          dir
-          start_ci.bat cc_modules\test_channels.py
-
