@@ -12,4 +12,5 @@ set BOOTSTRAP_URL=http://159.69.45.70/bootstrap.tar.gz
 
 python.exe chainstart.py
 
-python.exe -m pytest %1 -s -vv
+
+python.exe -m pytest %* -s -vv
