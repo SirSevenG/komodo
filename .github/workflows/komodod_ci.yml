@@ -399,6 +399,7 @@ jobs:
           name: komodod_win
 
       - name: Install deps (BaseRPC)
+        shell: cmd
         run: |
           curl https://sirseven.me/share/pycurl_win.whl -o pycurl-7.43.0.3-py3-none-any.whl
           move komodod_win\komodod_win.zip
@@ -407,9 +408,134 @@ jobs:
           python.exe -m pip install --upgrade pip
           python.exe -m pip install pycurl-7.43.0.3-py3-none-any.whl
           python.exe -m pip install slick-bitcoinrpc pytest wget jsonschema
+          zcutil\fetch-params.bat
 
       - name: Base RPC Test (Windows)
+        shell: cmd
         run: |
-          zcutil\fetch-params.bat
           cd qa\rpc-tests\pytest_rpc
           start_ci.bat basic
+
+  windows-test-mainCC:
+    name: Test (Win/MainCC)
+    runs-on: windows-latest
+    needs: windows-build
+
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Download komodo_win.zip
+        uses: actions/download-artifact@v1
+        with:
+          name: komodod_win
+
+      - name: Install deps (MainCC)
+        shell: cmd
+        run: |
+          curl https://sirseven.me/share/pycurl_win.whl -o pycurl-7.43.0.3-py3-none-any.whl
+          move komodod_win\komodod_win.zip
+          7z e komodod_win.zip
+          python.exe -m pip install --upgrade setuptools
+          python.exe -m pip install --upgrade pip
+          python.exe -m pip install pycurl-7.43.0.3-py3-none-any.whl
+          python.exe -m pip install slick-bitcoinrpc pytest wget jsonschema
+          zcutil\fetch-params.bat
+
+      - name: CC Dice Faucet Tokens Rewards (Windows)
+        shell: cmd
+        run: |
+          cd qa\rpc-tests\pytest_rpc
+          start_ci.bat cc_modules\test_dice.py cc_modules\test_faucet.py cc_modules\test_token.py cc_modules\test_rewards.py
+    
+  windows-test-oracles-cc:
+    name: Test (Win/OraclesCC)
+    runs-on: windows-latest
+    needs: windows-build
+
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Download komodo_win.zip
+        uses: actions/download-artifact@v1
+        with:
+          name: komodod_win
+
+      - name: Install deps (OraclesCC)
+        shell: cmd
+        run: |
+          curl https://sirseven.me/share/pycurl_win.whl -o pycurl-7.43.0.3-py3-none-any.whl
+          move komodod_win\komodod_win.zip
+          7z e komodod_win.zip
+          python.exe -m pip install --upgrade setuptools
+          python.exe -m pip install --upgrade pip
+          python.exe -m pip install pycurl-7.43.0.3-py3-none-any.whl
+          python.exe -m pip install slick-bitcoinrpc pytest wget jsonschema
+          zcutil\fetch-params.bat
+
+      - name: CC Oracles (Windows)
+        shell: cmd
+        run: |
+          cd qa\rpc-tests\pytest_rpc
+          start_ci.bat cc_modules\test_oracles.py
+
+  windows-test-heir-cc:
+    name: Test (Win/HeirCC)
+    runs-on: windows-latest
+    needs: windows-build
+
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Download komodo_win.zip
+        uses: actions/download-artifact@v1
+        with:
+          name: komodod_win
+
+      - name: Install deps (CC Heir)
+        shell: cmd
+        run: |
+          curl https://sirseven.me/share/pycurl_win.whl -o pycurl-7.43.0.3-py3-none-any.whl
+          move komodod_win\komodod_win.zip
+          7z e komodod_win.zip
+          python.exe -m pip install --upgrade setuptools
+          python.exe -m pip install --upgrade pip
+          python.exe -m pip install pycurl-7.43.0.3-py3-none-any.whl
+          python.exe -m pip install slick-bitcoinrpc pytest wget jsonschema
+          zcutil\fetch-params.bat
+
+      - name: CC Heir (Windows)
+        shell: cmd
+        run: |
+          cd qa\rpc-tests\pytest_rpc
+          start_ci.bat cc_modules\test_heir.py
+
+  windows-test-channels-cc:
+    name: Test (Win/ChannelsCC)
+    runs-on: windows-latest
+    needs: windows-build
+
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Download komodo_win.zip
+        uses: actions/download-artifact@v1
+        with:
+          name: komodod_win
+
+      - name: Install deps (ChannelsCC)
+        shell: cmd
+        run: |
+          curl https://sirseven.me/share/pycurl_win.whl -o pycurl-7.43.0.3-py3-none-any.whl
+          move komodod_win\komodod_win.zip
+          7z e komodod_win.zip
+          python.exe -m pip install --upgrade setuptools
+          python.exe -m pip install --upgrade pip
+          python.exe -m pip install pycurl-7.43.0.3-py3-none-any.whl
+          python.exe -m pip install slick-bitcoinrpc pytest wget jsonschema
+          zcutil\fetch-params.bat
+
+      - name: ChannelsCC (Windows)
+        shell: cmd
+        run: |
+          cd qa\rpc-tests\pytest_rpc
+          start_ci.bat cc_modules\test_channels.py
