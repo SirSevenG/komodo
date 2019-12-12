@@ -5,6 +5,7 @@
 
 import pytest
 import time
+from decimal import *
 from pytest_util import validate_template
 
 
@@ -58,7 +59,8 @@ class TestNetworkMining:
     def test_getlocalsolps(self, test_params):
         rpc = test_params.get('node1').get('rpc')
         res = rpc.getlocalsolps()
-        assert isinstance(res, float) or isinstance(res, int)  # python can interpret number as either int or float
+        # python-bitcoinrpc Proxy can return value as decimal
+        assert isinstance(res, float) or isinstance(res, int) or isinstance(res, Decimal)
 
     #  getnetworkhashps call is deprecated
 

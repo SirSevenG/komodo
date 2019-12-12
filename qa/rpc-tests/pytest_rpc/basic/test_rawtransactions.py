@@ -4,6 +4,7 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 import pytest
+from decimal import *
 from pytest_util import validate_template, mine_and_waitconfirms
 
 
@@ -30,7 +31,12 @@ class TestRawTransactions:
         res = rpc.listunspent()
         txid = res[0].get('txid')
         vout = res[0].get('vout')
-        amount = res[0].get('amount') * 0.9
+        base_amount = res[0].get('amount')
+        if isinstance(base_amount, Decimal):
+            amount = float(base_amount) * 0.9
+            print(amount)
+        else:
+            amount = base_amount * 0.9
         address = rpc.getnewaddress()
         ins = [{'txid': txid, 'vout': vout}]
         outs = {address: amount}

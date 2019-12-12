@@ -6,6 +6,7 @@
 import pytest
 from pytest_util import validate_transaction
 from pytest_util import validate_template
+from decimal import *
 
 
 @pytest.mark.usefixtures("proxy_connection")
@@ -225,7 +226,8 @@ class TestBlockchainMethods:
     def test_getdifficulty(self, test_params):
         rpc = test_params.get('node1').get('rpc')
         res = rpc.getdifficulty()
-        assert isinstance(res, float) or isinstance(res, int)
+        # python-bitcoinrpc Proxy can return value as decimal
+        assert isinstance(res, float) or isinstance(res, int) or isinstance(res, Decimal)
 
     #
     # Only applies to -ac_staked Smart Chains
