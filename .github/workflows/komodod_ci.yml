@@ -48,11 +48,11 @@ jobs:
           7z e komodo_0.5.0_windows.zip
           dir
           move komodod.exe src\
-          choco install curl
+          choco install curl 
+          choco install openssl.light
           python.exe -m pip install --upgrade setuptools
           python.exe -m pip install --upgrade pip
           python.exe -m pip install pycurl-7.43.0.3-py3-none-any.whl
-          python.exe -m pip install pycurl --upgrade
           python.exe -m pip install pytest wget jsonschema slick-bitcoinrpc
           zcutil\fetch-params.bat
           python.exe --version
@@ -60,6 +60,7 @@ jobs:
       - name: Base RPC Test (Windows)
         shell: cmd
         run: |
+          whoami
           python.exe --version
           python.exe -m pip freeze
           cd qa\rpc-tests\pytest_rpc
