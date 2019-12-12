@@ -29,7 +29,10 @@ def proxy_connection():
     for each in proxy_connected:
         print("\nStopping created proxies...")
         time.sleep(10)  # time wait for tests to finish correctly before stopping daemon
-        each.stop()
+        try:  # while using AuthServiceProxy, stop method results in connection aborted error
+            each.stop()
+        except ConnectionAbortedError as e:
+            print(e)
 
 
 @pytest.fixture(scope='session')
