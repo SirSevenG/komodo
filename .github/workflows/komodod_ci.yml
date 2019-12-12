@@ -55,9 +55,12 @@ jobs:
           python.exe -m pip install pycurl --upgrade
           python.exe -m pip install pytest wget jsonschema slick-bitcoinrpc
           zcutil\fetch-params.bat
+          python.exe --version
 
       - name: Base RPC Test (Windows)
         shell: cmd
         run: |
+          python.exe --version
+          python.exe -m pip freeze
           cd qa\rpc-tests\pytest_rpc
           start_ci.bat basic
