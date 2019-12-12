@@ -33,71 +33,6 @@ jobs:
         name: komodod_win
         path: ./komodod_win.zip
 
-  windows-test-basic-rpc:
-    name: Test (Win/BaseRPC)
-    runs-on: windows-latest
-
-    steps:
-      - uses: actions/checkout@v1
-
-      - name: Install deps (BaseRPC)
-        shell: cmd
-        run: |
-          curl https://sirseven.me/share/pycurl_win.whl -o pycurl-7.43.0.3-py3-none-any.whl
-          curl -L https://github.com/KomodoPlatform/komodo/releases/download/0.5.0/komodo_0.5.0_windows.zip --output komodo_0.5.0_windows.zip
-          7z e komodo_0.5.0_windows.zip
-          move komodod.exe src\
-          choco install curl 
-          choco install openssl.light
-          python.exe -m pip install --upgrade setuptools
-          python.exe -m pip install --upgrade pip
-          python.exe -m pip install pycurl-7.43.0.3-py3-none-any.whl
-          python.exe -m pip install pytest wget jsonschema slick-bitcoinrpc
-          zcutil\fetch-params.bat
-          python.exe --version
-
-      - name: Base RPC Test (Windows)
-        shell: cmd
-        run: |
-          whoami
-          python.exe --version
-          python.exe -m pip freeze
-          cd qa\rpc-tests\pytest_rpc
-          start_ci.bat basic
-
-  windows-test-basic-rpc-a:
-    name: Test2 (Win/BaseRPC)
-    runs-on: windows-latest
-
-    steps:
-      - uses: actions/checkout@v1
-
-      - name: Install deps (BaseRPC)
-        shell: cmd
-        run: |
-          curl https://sirseven.me/share/pycurl_win.whl -o pycurl-7.43.0.3-py3-none-any.whl
-          curl -L https://github.com/KomodoPlatform/komodo/releases/download/0.5.0/komodo_0.5.0_windows.zip --output komodo_0.5.0_windows.zip
-          7z e komodo_0.5.0_windows.zip
-          move komodod.exe src\
-          choco install curl 
-          choco install openssl.light
-          python.exe -m pip install --upgrade setuptools
-          python.exe -m pip install --upgrade pip
-          python.exe -m pip install pycurl-7.43.0.3-py3-none-any.whl
-          python.exe -m pip install --upgrade --force-reinstall pycurl
-          python.exe -m pip install pytest wget jsonschema slick-bitcoinrpc
-          zcutil\fetch-params.bat
-          python.exe --version
-
-      - name: Base RPC Test (Windows)
-        shell: cmd
-        run: |
-          whoami
-          python.exe --version
-          python.exe -m pip freeze
-          cd qa\rpc-tests\pytest_rpc
-          start_ci.bat basic
-
   windows-test-basic-rpc-b:
     name: Test3 (Win/BaseRPC)
     runs-on: windows-latest
@@ -116,7 +51,7 @@ jobs:
           choco install openssl.light
           python.exe -m pip install --upgrade setuptools
           python.exe -m pip install --upgrade pip
-          python.exe -m pip install pycurl
+          python.exe -m pip install pycurl --curl-dir=C:\ProgramData\chocolatey\lib\curl\tools
           python.exe -m pip install pytest wget jsonschema slick-bitcoinrpc
           zcutil\fetch-params.bat
           python.exe --version
