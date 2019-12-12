@@ -1,7 +1,10 @@
-from slickrpc import Proxy
 import time
 import jsonschema
 import os
+if os.name == 'posix':
+    from slickrpc import Proxy
+else:
+    from bitcoinrpc.authproxy import AuthServiceProxy as Proxy
 
 
 def create_proxy(node_params_dictionary):

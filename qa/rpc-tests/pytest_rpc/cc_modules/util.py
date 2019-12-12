@@ -4,7 +4,10 @@ import sys
 import os
 from random import choice
 from string import ascii_uppercase
-from slickrpc import Proxy
+if os.name == 'posix':
+    from slickrpc import Proxy
+else:
+    from bitcoinrpc.authproxy import AuthServiceProxy as Proxy
 
 
 def assert_success(result):

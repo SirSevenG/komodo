@@ -1,6 +1,11 @@
 import pytest
 import json
-from slickrpc import Proxy
+import os
+# Using different proxy to bypass libcurl issues on Windows
+if os.name == 'posix':
+    from slickrpc import Proxy
+else:
+    from bitcoinrpc.authproxy import AuthServiceProxy as Proxy
 
 
 @pytest.fixture(scope='session')
