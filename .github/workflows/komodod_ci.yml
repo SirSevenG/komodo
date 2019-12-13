@@ -250,7 +250,7 @@ jobs:
   windows-build:
 
     name: Win Build
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-16.04
 
     steps:
     - uses: actions/checkout@v1
@@ -295,6 +295,7 @@ jobs:
         run: |
           move komodod_win\komodod_win.zip
           7z e komodod_win.zip
+          move komodod.exe src\
           python.exe -m pip install --upgrade setuptools
           python.exe -m pip install --upgrade pip
           python.exe -m pip install python-bitcoinrpc pytest wget jsonschema
@@ -324,6 +325,7 @@ jobs:
         run: |
           move komodod_win\komodod_win.zip
           7z e komodod_win.zip
+          move komodod.exe src\
           python.exe -m pip install --upgrade setuptools
           python.exe -m pip install --upgrade pip
           python.exe -m pip install python-bitcoinrpc pytest wget jsonschema
@@ -353,6 +355,7 @@ jobs:
         run: |
           move komodod_win\komodod_win.zip
           7z e komodod_win.zip
+          move komodod.exe src\
           python.exe -m pip install --upgrade setuptools
           python.exe -m pip install --upgrade pip
           python.exe -m pip install python-bitcoinrpc pytest wget jsonschema
@@ -382,6 +385,7 @@ jobs:
         run: |
           move komodod_win\komodod_win.zip
           7z e komodod_win.zip
+          move komodod.exe src\
           python.exe -m pip install --upgrade setuptools
           python.exe -m pip install --upgrade pip
           python.exe -m pip install python-bitcoinrpc pytest wget jsonschema
@@ -411,6 +415,7 @@ jobs:
         run: |
           move komodod_win\komodod_win.zip
           7z e komodod_win.zip
+          move komodod.exe src\
           python.exe -m pip install --upgrade setuptools
           python.exe -m pip install --upgrade pip
           python.exe -m pip install python-bitcoinrpc pytest wget jsonschema
