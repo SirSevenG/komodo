@@ -5,7 +5,7 @@ on: [push, pull_request]
 jobs:
   linux-build:
     name: Linux Build
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     
     steps:
       - uses: actions/checkout@v1
@@ -250,7 +250,7 @@ jobs:
   windows-build:
 
     name: Win Build
-    runs-on: ubuntu-16.04
+    runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v1
