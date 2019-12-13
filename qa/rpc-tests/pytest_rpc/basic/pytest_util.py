@@ -36,7 +36,10 @@ def validate_proxy(env_params_dictionary, proxy, node=0):
 
 
 def mine_and_waitconfirms(txid, proxy):  # should be used after tx is send
-    numthreads = os.cpu_count()
+    if os.cpu_count() > 1:
+        numthreads = (os.cpu_count() - 1)
+    else:
+        numthreads = 1
     proxy.setgenerate(True, numthreads)
     # we need the tx above to be confirmed in the next block
     attempts = 0
@@ -52,13 +55,16 @@ def mine_and_waitconfirms(txid, proxy):  # should be used after tx is send
                 pass
             else:
                 print("\nwaited too long - probably tx stuck by some reason")
+                proxy.setgenerate(False, numthreads)
                 return False
     if confirmations_amount < 2:
         print("\ntx is not confirmed yet! Let's wait a little more")
         time.sleep(5)
+        proxy.setgenerate(False, numthreads)
         return True
     else:
         print("\ntx confirmed")
+        proxy.setgenerate(False, numthreads)
         return True
 
 
