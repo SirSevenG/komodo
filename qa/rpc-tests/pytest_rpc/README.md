@@ -10,8 +10,15 @@ To start just set test nodes RPC credentials in `nodesconfig.json`.
 So yes - you can run these tests on existing chains, just RPC creds (and wallets with some balance) needed.
 
 # Dependencies
-
-`pip3 install setuptools wheel slick-bitcoinrpc pytest wget jsonschema`
+On Linux and MacOS:
+```bash
+pip3 install setuptools wheel slick-bitcoinrpc pytest wget jsonschema
+```
+On Windows:
+```cmd
+pip3 install setuptools wheel python-bitcoinrpc pytest wget jsonschema
+```
+slik-bitcoinrpc relies on libcurl and can have issues on Windows machines, thus we suggest to use different Proxy library.
 
 # Usage
 

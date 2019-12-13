@@ -1,6 +1,7 @@
 import pytest
 import json
 import os
+import time
 # Using different proxy to bypass libcurl issues on Windows
 if os.name == 'posix':
     from slickrpc import Proxy
@@ -27,7 +28,11 @@ def proxy_connection():
 
     for each in proxy_connected:
         print("\nStopping created proxies...")
-        each.stop()
+        time.sleep(10)  # time wait for tests to finish correctly before stopping daemon
+        try:  # while using AuthServiceProxy, stop method results in connection aborted error
+            each.stop()
+        except ConnectionAbortedError as e:
+            print(e)
 
 
 @pytest.fixture(scope='session')
