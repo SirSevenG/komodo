@@ -17,8 +17,9 @@ class TestZcalls:
         rpc = test_params.get('node1').get('rpc')
         res = rpc.z_getnewaddress()
         assert isinstance(res, str)
+    # test sendmany, operationstatus, operationresult and listreceivedbyaddress calls
 
-    def test_z_send(self, test_params):  # test sendmany, operationstatus and operationresult calls
+    def test_z_send(self, test_params):
         schema = {
             'type': 'array',
             'items': {
@@ -61,6 +62,23 @@ class TestZcalls:
                 }
             }
         }
+        schema_list = {
+            'type': 'array',
+            'items': {
+                'type': 'object',
+                'properties': {
+                    'txid': {'type': 'string'},
+                    'memo': {'type': 'string'},
+                    'amount': {'type': ['number', 'integer']},
+                    'change': {'type': 'boolean'},
+                    'outindex': {'type': 'integer'},
+                    'confirmations': {'type': 'integer'},
+                    'rawconfirmations': {'type': 'integer'},
+                    'jsoutindex': {'type': 'integer'},
+                    'jsindex': {'type': 'integer'}
+                }
+            }
+        }
         rpc1 = test_params.get('node1').get('rpc')
         rpc2 = test_params.get('node2').get('rpc')
         transparent1 = rpc1.getnewaddress()
@@ -70,22 +88,19 @@ class TestZcalls:
         amount1 = rpc1.getbalance() / 100
         amount2 = amount1 / 10
         t_send1 = [{'address': transparent1, 'amount': amount2}]
-        t_send2 = [{'address': transparent1, 'amount': (amount2 * 0.4)}]
+        t_send2 = [{'address': transparent2, 'amount': (amount2 * 0.4)}]
         z_send1 = [{'address': shielded1, 'amount': (amount2 * 0.95)}]
         z_send2 = [{'address': shielded2, 'amount': (amount2 * 0.4)}]
         cases = [(transparent1, t_send1), (transparent1, z_send1), (shielded1, t_send2), (shielded1, z_send2)]
-
         if os.cpu_count() > 1:
             numthreads = (os.cpu_count() - 1)
         else:
             numthreads = 1
         rpc1.setgenerate(True, numthreads)
         rpc2.setgenerate(True, numthreads)
-
         # sendmany cannot use coinbase tx vouts
         txid = rpc1.sendtoaddress(transparent1, amount1)
         mine_and_waitconfirms(txid, rpc1)
-
         for case in cases:
             assert check_synced(rpc1)  # to perform z_sendmany nodes should be synced
             opid = rpc1.z_sendmany(case[0], case[1])
@@ -93,11 +108,8 @@ class TestZcalls:
             attempts = 0
             while True:
                 res = rpc1.z_getoperationstatus([opid])
-                print(res)
                 validate_template(res, schema)
                 status = res[0].get('status')
-                print(status)
-                print(rpc1.z_listunspent())
                 if status == 'success':
                     print('Operation successfull\nWaiting confirmations\n')
                     res = rpc1.z_getoperationresult([opid])  # also clears op from memory
@@ -129,6 +141,8 @@ class TestZcalls:
                     print('operation takes too long, aborting\n')
                     return False
         rpc1.setgenerate(False, numthreads)
+        res = rpc1.z_listreceivedbyaddress(shielded1)
+        validate_template(res, schema_list)
 
     def test_z_getbalance(self, test_params):
         rpc = test_params.get('node1').get('rpc')
@@ -136,17 +150,36 @@ class TestZcalls:
         res = rpc.z_getbalance(zaddr, 1)
         assert isinstance(res, float) or isinstance(res, int) or isinstance(res, Decimal)
 
-    def test_z_exportkey(self, test_params):
+    def test_z_gettotalbalance(self, test_params):
+        schema = {
+            'type': 'object',
+            'properties': {
+                'transparent': {'type': ['integer', 'number']},
+                'interest': {'type': ['integer', 'number']},
+                'private': {'type': ['integer', 'number']},
+                'total': {'type': ['integer', 'number']},
+            }
+        }
+        rpc = test_params.get('node1').get('rpc')
+        res = rpc.z_gettotalbalance(1)
+        validate_template(res, schema)
+
+    def test_z_export_viewing_key(self, test_params):
         rpc = test_params.get('node1').get('rpc')
         zaddr = rpc.z_getnewaddress()
         res = rpc.z_exportkey(zaddr)
         assert isinstance(res, str)
+        res = rpc.z_exportviewingkey(zaddr)
+        assert isinstance(res, str)
 
-    def test_z_importkey(self, test_params):
+    def test_z_import_viewing_key(self, test_params):
         rpc1 = test_params.get('node1').get('rpc')
         rpc2 = test_params.get('node2').get('rpc')
         zaddr = rpc2.z_getnewaddress()
         zkey = rpc2.z_exportkey(zaddr)
+        zvkey = rpc2.z_exportviewingkey(zaddr)
+        # res = rpc1.z_importviewingkey(zvkey)  # https://github.com/zcash/zcash/issues/3060
+        # assert not res
         res = rpc1.z_importkey(zkey)
         assert not res
 
@@ -172,4 +205,20 @@ class TestZcalls:
         res = rpc.z_listoperationids()
         validate_template(res, schema)
         res = rpc.z_listoperationids('success')
+        validate_template(res, schema)
+
+    def test_z_validateaddress(self, test_params):
+        schema = {
+            'type': 'object',
+            'properties': {
+                'isvalid': {'type': 'boolean'},
+                'address': {'type': 'string'},
+                'payingkey': {'type': 'string'},
+                'transmissionkey': {'type': 'string'},
+                'ismine': {'type': 'boolean'}
+            }
+        }
+        rpc = test_params.get('node1').get('rpc')
+        zaddr = rpc.z_getnewaddress()
+        res = rpc.z_validateaddress(zaddr)
         validate_template(res, schema)
