@@ -72,6 +72,7 @@ class TestZcalls:
         amount_full = rpc1.getbalance() - fee
         t_send = [{'address': transparent2, 'amount': amount}]
         z_send = [{'address': shielded2, 'amount': amount}]
+        cases = [(transparent1, t_send), (transparent1, z_send), (shielded1, t_send), (shielded2, z_send)]
         # sendmany cannot use coinbase tx vouts
         txid = rpc1.sendtoaddress(transparent1, amount_full)
         mine_and_waitconfirms(txid, rpc1)
@@ -82,27 +83,27 @@ class TestZcalls:
             numthreads = 1
         rpc1.setgenerate(True, numthreads)
         assert check_synced(rpc1, rpc2)  # to perform z_sendmany nodes should be synced
-        # test t to t tx
-        opid = rpc1.z_sendmany(transparent1, t_send)
-        assert isinstance(opid, str)
-        attempts = 0
-        while True:
-            res = rpc1.z_getoperationstatus([opid])
-            print(res)
-            validate_template(res, schema)
-            status = rpc1.z_getoperationstatus([opid])[0].get('status')
-            if status == 'success':
-                print('Operation successfull\n')
-                res = rpc1.z_getoperationresult([opid])  # also clears op from memory
+
+        for case in cases:
+            opid = rpc1.z_sendmany(case[0], case[1])
+            assert isinstance(opid, str)
+            attempts = 0
+            while True:
+                res = rpc1.z_getoperationstatus([opid])
                 validate_template(res, schema)
-                break
-            else:
-                attempts += 1
-                print('Waiting operation result\n')
-                time.sleep(10)
-            if attempts >= 100:
-                print('operation timed out\n')
-                return False
+                status = rpc1.z_getoperationstatus([opid])[0].get('status')
+                if status == 'success':
+                    print('Operation successfull\n')
+                    res = rpc1.z_getoperationresult([opid])  # also clears op from memory
+                    validate_template(res, schema)
+                    break
+                else:
+                    attempts += 1
+                    print('Waiting operation result\n')
+                    time.sleep(10)
+                if attempts >= 100:
+                    print('operation timed out\n')
+                    return False
         rpc1.setgenerate(False, numthreads)
 
     def test_z_getbalance(self, test_params):
