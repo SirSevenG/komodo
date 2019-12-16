@@ -67,42 +67,66 @@ class TestZcalls:
         shielded1 = rpc1.z_getnewaddress()
         transparent2 = rpc2.getnewaddress()
         shielded2 = rpc2.z_getnewaddress()
-        amount = rpc1.getbalance() / 1000
-        fee = 0.00005
-        amount_full = rpc1.getbalance() - fee
-        t_send = [{'address': transparent2, 'amount': amount}]
-        z_send = [{'address': shielded2, 'amount': amount}]
-        cases = [(transparent1, t_send), (transparent1, z_send), (shielded1, t_send), (shielded2, z_send)]
-        # sendmany cannot use coinbase tx vouts
-        txid = rpc1.sendtoaddress(transparent1, amount_full)
-        mine_and_waitconfirms(txid, rpc1)
+        amount1 = rpc1.getbalance() / 100
+        amount2 = amount1 / 10
+        t_send1 = [{'address': transparent1, 'amount': amount2}]
+        t_send2 = [{'address': transparent1, 'amount': (amount2 * 0.4)}]
+        z_send1 = [{'address': shielded1, 'amount': (amount2 * 0.95)}]
+        z_send2 = [{'address': shielded2, 'amount': (amount2 * 0.4)}]
+        cases = [(transparent1, t_send1), (transparent1, z_send1), (shielded1, t_send2), (shielded1, z_send2)]
 
         if os.cpu_count() > 1:
             numthreads = (os.cpu_count() - 1)
         else:
             numthreads = 1
         rpc1.setgenerate(True, numthreads)
-        assert check_synced(rpc1, rpc2)  # to perform z_sendmany nodes should be synced
+        rpc2.setgenerate(True, numthreads)
+
+        # sendmany cannot use coinbase tx vouts
+        txid = rpc1.sendtoaddress(transparent1, amount1)
+        mine_and_waitconfirms(txid, rpc1)
 
         for case in cases:
+            assert check_synced(rpc1)  # to perform z_sendmany nodes should be synced
             opid = rpc1.z_sendmany(case[0], case[1])
             assert isinstance(opid, str)
             attempts = 0
             while True:
                 res = rpc1.z_getoperationstatus([opid])
+                print(res)
                 validate_template(res, schema)
-                status = rpc1.z_getoperationstatus([opid])[0].get('status')
+                status = res[0].get('status')
+                print(status)
+                print(rpc1.z_listunspent())
                 if status == 'success':
-                    print('Operation successfull\n')
+                    print('Operation successfull\nWaiting confirmations\n')
                     res = rpc1.z_getoperationresult([opid])  # also clears op from memory
                     validate_template(res, schema)
+                    txid = res[0].get('result').get('txid')
+                    time.sleep(30)
+                    tries = 0
+                    while True:
+                        try:
+                            res = rpc1.getrawtransaction(txid, 1)
+                            confirms = res['confirmations']
+                            print('TX confirmed \nConfirmations: ', confirms)
+                            break
+                        except Exception as e:
+                            print("\ntx is in mempool still probably, let's wait a little bit more\nError: ", e)
+                            time.sleep(5)
+                            tries += 1
+                            if tries < 100:
+                                pass
+                            else:
+                                print("\nwaited too long - probably tx stuck by some reason")
+                                return False
                     break
                 else:
                     attempts += 1
                     print('Waiting operation result\n')
                     time.sleep(10)
                 if attempts >= 100:
-                    print('operation timed out\n')
+                    print('operation takes too long, aborting\n')
                     return False
         rpc1.setgenerate(False, numthreads)
 
