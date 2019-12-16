@@ -121,3 +121,18 @@ def validate_template(blocktemplate, schema=''):  # BIP 0022
     if not schema:
         schema = blockschema
     jsonschema.validate(instance=blocktemplate, schema=schema)
+
+
+def check_synced(*proxies):
+    for proxy in proxies:
+        for i in range(20):
+            check = proxy.getinfo().get('synced')
+            if check:
+                print("Synced\n")
+                break
+            else:
+                print("Waiting for sync\nAttempt: ", i + 1, "\n")
+                time.sleep(10)
+            if i >= 19:
+                return False
+    return True
