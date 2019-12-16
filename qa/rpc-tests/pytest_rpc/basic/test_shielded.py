@@ -154,10 +154,10 @@ class TestZcalls:
         schema = {
             'type': 'object',
             'properties': {
-                'transparent': {'type': ['integer', 'number']},
-                'interest': {'type': ['integer', 'number']},
-                'private': {'type': ['integer', 'number']},
-                'total': {'type': ['integer', 'number']},
+                'transparent': {'type': ['string']},
+                'interest': {'type': ['string']},
+                'private': {'type': ['string']},
+                'total': {'type': ['string']},
             }
         }
         rpc = test_params.get('node1').get('rpc')
