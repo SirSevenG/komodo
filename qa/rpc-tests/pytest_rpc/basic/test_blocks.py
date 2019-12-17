@@ -101,7 +101,7 @@ class TestBlockchainMethods:
                 'headers': {'type': 'integer'},
                 'bestblockhash': {'type': 'string'},
                 'difficulty': {'type': ['integer', 'number']},
-                'verificationprogress': {'type': 'integer'},
+                'verificationprogress': {'type': ['integer', 'number']},
                 'chainwork': {'type': 'string'},
                 'pruned': {'type': 'boolean'},
                 'commitments': {'type': ['integer', 'number']},

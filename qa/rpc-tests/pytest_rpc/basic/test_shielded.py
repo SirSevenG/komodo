@@ -4,7 +4,6 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 import pytest
-import os
 import time
 from decimal import *
 from pytest_util import validate_template, check_synced, mine_and_waitconfirms
@@ -87,17 +86,13 @@ class TestZcalls:
         shielded2 = rpc2.z_getnewaddress()
         amount1 = rpc1.getbalance() / 100
         amount2 = amount1 / 10
-        t_send1 = [{'address': transparent1, 'amount': amount2}]
-        t_send2 = [{'address': transparent2, 'amount': (amount2 * 0.4)}]
-        z_send1 = [{'address': shielded1, 'amount': (amount2 * 0.95)}]
-        z_send2 = [{'address': shielded2, 'amount': (amount2 * 0.4)}]
+        t_send1 = [{'address': transparent1, 'amount': float(amount2)}]
+        t_send2 = [{'address': transparent2, 'amount': (float(amount2) * 0.4)}]
+        z_send1 = [{'address': shielded1, 'amount': (float(amount2) * 0.95)}]
+        z_send2 = [{'address': shielded2, 'amount': (float(amount2) * 0.4)}]
         cases = [(transparent1, t_send1), (transparent1, z_send1), (shielded1, t_send2), (shielded1, z_send2)]
-        if os.cpu_count() > 1:
-            numthreads = (os.cpu_count() - 1)
-        else:
-            numthreads = 1
-        rpc1.setgenerate(True, numthreads)
-        rpc2.setgenerate(True, numthreads)
+        rpc1.setgenerate(True, 1)
+        rpc2.setgenerate(True, 1)
         # sendmany cannot use coinbase tx vouts
         txid = rpc1.sendtoaddress(transparent1, amount1)
         mine_and_waitconfirms(txid, rpc1)
@@ -140,7 +135,6 @@ class TestZcalls:
                 if attempts >= 100:
                     print('operation takes too long, aborting\n')
                     return False
-        rpc1.setgenerate(False, numthreads)
         res = rpc1.z_listreceivedbyaddress(shielded1)
         validate_template(res, schema_list)
 

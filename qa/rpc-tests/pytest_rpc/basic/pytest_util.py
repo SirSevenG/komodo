@@ -12,7 +12,7 @@ def create_proxy(node_params_dictionary):
         proxy = Proxy("http://%s:%s@%s:%d" % (node_params_dictionary.get('rpc_user'),
                                               node_params_dictionary.get('rpc_password'),
                                               node_params_dictionary.get('rpc_ip'),
-                                              node_params_dictionary.get('rpc_port')))
+                                              node_params_dictionary.get('rpc_port')), timeout=120)
     except Exception as e:
         raise Exception("Connection error! Probably no daemon on selected port. Error: ", e)
     return proxy
