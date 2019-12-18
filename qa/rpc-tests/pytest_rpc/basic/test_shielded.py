@@ -96,7 +96,7 @@ class TestZcalls:
             amount2 = float(amount2)
         # python float() is double precision floating point number,
         # where z_sendmany expects regural float (8 digits) value
-        # "{0:.8f}".format(value)) returns float-like string with 8 digit precision and float() corrects the type
+        # "{0:.8f}".format(value)) returns number string with 8 digit precision and float() corrects the type
         t_send1 = [{'address': transparent1, 'amount': float("{0:.8f}".format(amount2))}]
         t_send2 = [{'address': transparent2, 'amount': float("{0:.8f}".format(amount2 * 0.4))}]
         z_send1 = [{'address': shielded1, 'amount': float("{0:.8f}".format(amount2 * 0.95))}]
