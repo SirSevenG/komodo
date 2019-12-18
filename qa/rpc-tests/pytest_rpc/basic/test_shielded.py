@@ -86,10 +86,13 @@ class TestZcalls:
         shielded2 = rpc2.z_getnewaddress()
         amount1 = rpc1.getbalance() / 100
         amount2 = amount1 / 10
-        t_send1 = [{'address': transparent1, 'amount': float(amount2)}]
-        t_send2 = [{'address': transparent2, 'amount': (float(amount2) * 0.4)}]
-        z_send1 = [{'address': shielded1, 'amount': (float(amount2) * 0.95)}]
-        z_send2 = [{'address': shielded2, 'amount': (float(amount2) * 0.4)}]
+        # python float() is double precision floating point number,
+        # where z_sendmany expects regural float (8 digits) value
+        # "{0:.8f}".format(value)) returns float-like string and float() corrects the type
+        t_send1 = [{'address': transparent1, 'amount': float("{0:.8f}".format(amount2))}]
+        t_send2 = [{'address': transparent2, 'amount': float("{0:.8f}".format(amount2 * 0.4))}]
+        z_send1 = [{'address': shielded1, 'amount': float("{0:.8f}".format(amount2 * 0.95))}]
+        z_send2 = [{'address': shielded2, 'amount': float("{0:.8f}".format(amount2 * 0.4))}]
         cases = [(transparent1, t_send1), (transparent1, z_send1), (shielded1, t_send2), (shielded1, z_send2)]
         rpc1.setgenerate(True, 1)
         rpc2.setgenerate(True, 1)
