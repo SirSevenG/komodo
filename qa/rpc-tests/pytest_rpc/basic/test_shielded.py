@@ -7,12 +7,6 @@ import pytest
 import time
 from decimal import *
 from pytest_util import validate_template, check_synced, mine_and_waitconfirms
-try:
-    import slickrpc
-except Exception as e:
-    import bitcoinrpc.authproxy
-    global authproxy
-    authproxy = 1
 
 
 @pytest.mark.usefixtures("proxy_connection")
@@ -92,9 +86,14 @@ class TestZcalls:
         shielded2 = rpc2.z_getnewaddress()
         amount1 = rpc1.getbalance() / 100
         amount2 = amount1 / 10
-        # if authproxy:  # type correction when using python-bitcoinrpc Proxy
-        #     amount1 = float(amount1)
-        #     amount2 = float(amount2)
+        try:
+            import slickrpc
+            authproxy = 0
+        except ImportError:
+            authproxy = 1
+        if authproxy:  # type correction when using python-bitcoinrpc Proxy
+            amount1 = float(amount1)
+            amount2 = float(amount2)
         # python float() is double precision floating point number,
         # where z_sendmany expects regural float (8 digits) value
         # "{0:.8f}".format(value)) returns float-like string with 8 digit precision and float() corrects the type
