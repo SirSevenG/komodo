@@ -63,8 +63,6 @@ def test_oracles(test_params):
     # using such naming to re-use it for data publishing / reading (e.g. oracle_s for s type)
     print(len(rpc.listunspent()))
     # enable mining
-    numthreads = os.cpu_count()
-    rpc.setgenerate(True, numthreads)
     valid_formats = ["s", "S", "d", "D", "c", "C", "t", "T", "i", "I", "l", "L", "h", "Ihh"]
     for f in valid_formats:
         result = rpc.oraclescreate("Test_" + f, "Test_" + f, f)

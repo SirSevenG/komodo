@@ -4,10 +4,9 @@ import time
 import subprocess
 import wget
 import tarfile
-from basic.pytest_util import create_proxy, validate_proxy
+from basic.pytest_util import create_proxy, validate_proxy, enable_mining
 
 
-# TODO: change env 'CHAIN' paramater to tag, use actual "coin" param from chainconfig.json instead
 def load_env_config():
     tp = {}  # test env parameters
     if os.name == 'posix':
@@ -134,6 +133,7 @@ def main():
         }
         rpc_p = create_proxy(node_params)
         validate_proxy(env_params, rpc_p, i)
+        enable_mining(rpc_p)
 
 
 if __name__ == '__main__':

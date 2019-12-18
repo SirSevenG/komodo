@@ -307,11 +307,6 @@ class TestWalletRPC:
         rpc = test_params.get('node1').get('rpc')
         addr = rpc.getnewaddress()
         amount = rpc.getbalance() / 1000
-        if os.cpu_count() > 1:
-            numthreads = (os.cpu_count() - 1)
-        else:
-            numthreads = 1
-        rpc.setgenerate(True, numthreads)
         txid = rpc.sendtoaddress(addr, amount)
         assert isinstance(txid, str)
         # wait tx to be confirmed
@@ -328,7 +323,6 @@ class TestWalletRPC:
             else:
                 attempts += 1
             time.sleep(10)
-        rpc.setgenerate(False, 0)
 
     def test_sendmany(self, test_params):
         rpc1 = test_params.get('node1').get('rpc')
@@ -337,11 +331,6 @@ class TestWalletRPC:
         address2 = rpc2.getnewaddress()
         amount = rpc1.getbalance() / 1000
         send = {address1: amount, address2: amount}
-        if os.cpu_count() > 1:
-            numthreads = (os.cpu_count() - 1)
-        else:
-            numthreads = 1
-        rpc2.setgenerate(True, numthreads)
         txid = rpc1.sendmany("", send)
         assert isinstance(txid, str)
         # wait tx to be confirmed
@@ -358,7 +347,6 @@ class TestWalletRPC:
             else:
                 attempts += 1
             time.sleep(10)
-        rpc2.setgenerate(False, 0)
 
     def test_setupkey(self, test_params):
         schema = {

@@ -19,14 +19,18 @@ def create_proxy(node_params_dictionary):
 
 
 def validate_proxy(env_params_dictionary, proxy, node=0):
+    attempts = 0
     while True:  # base connection check
         try:
             getinfo_output = proxy.getinfo()
             print(getinfo_output)
             break
         except Exception as e:
-            print(e)
+            print("Coennction failed, error: ", e, "\nRetrying")
+            attempts += 1
             time.sleep(2)
+        if attempts > 15:
+            raise ChildProcessError("Node ", node, " does not respond")
     print("IMPORTING PRIVKEYS")
     res = proxy.importprivkey(env_params_dictionary.get('test_wif')[node], '', True)
     print(res)
@@ -35,12 +39,16 @@ def validate_proxy(env_params_dictionary, proxy, node=0):
     assert proxy.getbalance() > 777
 
 
-def mine_and_waitconfirms(txid, proxy):  # should be used after tx is send
-    if os.cpu_count() > 1:
-        numthreads = (os.cpu_count() - 1)
+def enable_mining(proxy):
+    cores = os.cpu_count()
+    if cores > 2:
+        threads_count = cores - 2
     else:
-        numthreads = 1
-    proxy.setgenerate(True, numthreads)
+        threads_count = 1
+    proxy.setgenerate(True, threads_count)
+
+
+def mine_and_waitconfirms(txid, proxy):  # should be used after tx is send
     # we need the tx above to be confirmed in the next block
     attempts = 0
     while True:
@@ -55,16 +63,13 @@ def mine_and_waitconfirms(txid, proxy):  # should be used after tx is send
                 pass
             else:
                 print("\nwaited too long - probably tx stuck by some reason")
-                proxy.setgenerate(False, numthreads)
                 return False
     if confirmations_amount < 2:
         print("\ntx is not confirmed yet! Let's wait a little more")
         time.sleep(5)
-        proxy.setgenerate(False, numthreads)
         return True
     else:
         print("\ntx confirmed")
-        proxy.setgenerate(False, numthreads)
         return True
 
 

@@ -7,6 +7,12 @@ import pytest
 import time
 from decimal import *
 from pytest_util import validate_template, check_synced, mine_and_waitconfirms
+try:
+    import slickrpc
+except Exception as e:
+    import bitcoinrpc.authproxy
+    global authproxy
+    authproxy = 1
 
 
 @pytest.mark.usefixtures("proxy_connection")
@@ -86,16 +92,17 @@ class TestZcalls:
         shielded2 = rpc2.z_getnewaddress()
         amount1 = rpc1.getbalance() / 100
         amount2 = amount1 / 10
+        # if authproxy:  # type correction when using python-bitcoinrpc Proxy
+        #     amount1 = float(amount1)
+        #     amount2 = float(amount2)
         # python float() is double precision floating point number,
         # where z_sendmany expects regural float (8 digits) value
-        # "{0:.8f}".format(value)) returns float-like string and float() corrects the type
+        # "{0:.8f}".format(value)) returns float-like string with 8 digit precision and float() corrects the type
         t_send1 = [{'address': transparent1, 'amount': float("{0:.8f}".format(amount2))}]
         t_send2 = [{'address': transparent2, 'amount': float("{0:.8f}".format(amount2 * 0.4))}]
         z_send1 = [{'address': shielded1, 'amount': float("{0:.8f}".format(amount2 * 0.95))}]
         z_send2 = [{'address': shielded2, 'amount': float("{0:.8f}".format(amount2 * 0.4))}]
         cases = [(transparent1, t_send1), (transparent1, z_send1), (shielded1, t_send2), (shielded1, z_send2)]
-        rpc1.setgenerate(True, 1)
-        rpc2.setgenerate(True, 1)
         # sendmany cannot use coinbase tx vouts
         txid = rpc1.sendtoaddress(transparent1, amount1)
         mine_and_waitconfirms(txid, rpc1)

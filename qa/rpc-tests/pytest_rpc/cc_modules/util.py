@@ -39,8 +39,6 @@ def check_if_mined(rpc_connection, txid):
 
 
 def send_and_mine(tx_hex, rpc_connection):
-    numthreads = os.cpu_count()
-    rpc_connection.setgenerate(True, numthreads)
     txid = rpc_connection.sendrawtransaction(tx_hex)
     assert txid, 'got txid'
     # we need the tx above to be confirmed in the next block
