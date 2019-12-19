@@ -130,15 +130,17 @@ def validate_template(blocktemplate, schema=''):  # BIP 0022
 
 def check_synced(*proxies):
     for proxy in proxies:
-        for i in range(30):
+        tries = 0
+        while True:
             check = proxy.getinfo().get('synced')
             proxy.ping()
             if check:
                 print("Synced\n")
                 break
             else:
-                print("Waiting for sync\nAttempt: ", i + 1, "\n")
+                print("Waiting for sync\nAttempt: ", tries + 1, "\n")
                 time.sleep(10)
-            if i >= 29:
+                tries += 1
+            if tries > 120:  # up to 20 minutes
                 return False
     return True
