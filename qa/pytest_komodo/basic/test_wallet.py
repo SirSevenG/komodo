@@ -332,6 +332,7 @@ class TestWalletRPC:
         rpc2 = test_params.get('node2').get('rpc')
         address1 = rpc1.getnewaddress()
         address2 = rpc2.getnewaddress()
+        # clarification in test_sendtoaddress above
         amount = float("{0:.8f}".format(rpc1.getbalance() / 1000))  # float("{0:.8f}".format(amount2))
         send = {address1: amount, address2: amount}
         txid = rpc1.sendmany("", send)
