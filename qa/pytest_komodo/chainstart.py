@@ -119,6 +119,7 @@ def main():
         else:
             cl_args.append('-ac_cc=2')
         cl_args.extend(ac_params.get('daemon_params'))
+        print(cl_args)
         if os.name == "posix":
             subprocess.call(cl_args)
         else:
