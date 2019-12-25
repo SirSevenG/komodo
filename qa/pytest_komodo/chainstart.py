@@ -133,8 +133,8 @@ def main():
             'rpc_port': 7000 + i
         }
         rpc_p = create_proxy(node_params)
-        validate_proxy(env_params, rpc_p, i)
         enable_mining(rpc_p)
+        validate_proxy(env_params, rpc_p, i)
 
 
 if __name__ == '__main__':
