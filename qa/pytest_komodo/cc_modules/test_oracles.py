@@ -107,9 +107,10 @@ def test_oracles(test_params):
         # TODO: for most of the non valid oraclesregister and oraclessubscribe transactions generating and broadcasting now
         # so trying only valid oraclessubscribe atm
         # Temp disable test -- tends to fail need investigation
-        # result = rpc.oraclessubscribe(globals()["oracle_{}".format(f)], pubkey, "1")
-        # assert_success(result)
-        # subscribe_txid = rpc.sendrawtransaction(result["hex"])
+        result = rpc.oraclessubscribe(globals()["oracle_{}".format(f)], pubkey, "1")
+        print("\n", result, "\n")
+        assert_success(result)
+        subscribe_txid = rpc.sendrawtransaction(result["hex"])
         # assert register_txid, "got txid"
 
     wait_some_blocks(rpc, 2)
