@@ -69,7 +69,7 @@ def mine_and_waitconfirms(txid, proxy):  # should be used after tx is send
         try:
             confirmations_amount = proxy.getrawtransaction(txid, 1)['confirmations']
             break
-        except Exception as e:
+        except KeyError as e:
             print("\ntx is in mempool still probably, let's wait a little bit more\nError: ", e)
             time.sleep(5)
             attempts += 1

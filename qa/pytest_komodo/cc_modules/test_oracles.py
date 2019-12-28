@@ -5,7 +5,7 @@
 
 import pytest
 import os
-
+import time
 from util import assert_success, assert_error, check_if_mined,\
     send_and_mine, rpc_connect, wait_some_blocks, generate_random_string, komodo_teardown
 
@@ -67,10 +67,10 @@ def test_oracles(test_params):
     for f in valid_formats:
         result = rpc.oraclescreate("Test_" + f, "Test_" + f, f)
         assert_success(result)
-        globals()["oracle_{}".format(f)] = rpc.sendrawtransaction(result['hex'])
+        # globals()["oracle_{}".format(f)] = rpc.sendrawtransaction(result['hex'])
+        globals()["oracle_{}".format(f)] = send_and_mine(result['hex'], rpc)
 
-    wait_some_blocks(rpc, 1)
-
+    list_fund_txid = []
     for f in valid_formats:
         # trying to register with negative datafee
         result = rpc.oraclesregister(globals()["oracle_{}".format(f)], "-100")
@@ -92,25 +92,35 @@ def test_oracles(test_params):
         result = rpc.oraclesfund(globals()["oracle_{}".format(f)])
         assert_success(result)
         fund_txid = rpc.sendrawtransaction(result["hex"])
+        list_fund_txid.append(fund_txid)
         assert fund_txid, "got txid"
 
-    wait_some_blocks(rpc, 1)
+    wait_some_blocks(rpc, 2)
+
+    for t in list_fund_txid:
+        c = 0
+        print("Waiting confiramtions for oraclesfund")
+        while c < 2:
+            try:
+                c = rpc.getrawtransaction(t, 1)['confirmations']
+            except KeyError:
+                time.sleep(29)
+        print("Oracles fund confirmed \n", t)
 
     for f in valid_formats:
         # trying to register valid (funded)
-        result = rpc.oraclesregister(globals()["oracle_{}".format(f)], "10000")
-        print(f)
+        result = rpc.oraclesregister(globals()["oracle_{}".format(f)], "100000")
         assert_success(result)
+        print("Registering ", f)
         register_txid = rpc.sendrawtransaction(result["hex"])
         assert register_txid, "got txid"
 
         # TODO: for most of the non valid oraclesregister and oraclessubscribe transactions generating and broadcasting now
         # so trying only valid oraclessubscribe atm
-        # Temp disable test -- tends to fail need investigation
-        # result = rpc.oraclessubscribe(globals()["oracle_{}".format(f)], pubkey, "1")
-        # assert_success(result)
-        # subscribe_txid = rpc.sendrawtransaction(result["hex"])
-        # assert register_txid, "got txid"
+        result = rpc.oraclessubscribe(globals()["oracle_{}".format(f)], pubkey, "1")
+        assert_success(result)
+        subscribe_txid = rpc.sendrawtransaction(result["hex"])
+        assert register_txid, "got txid"
 
     wait_some_blocks(rpc, 2)
 
