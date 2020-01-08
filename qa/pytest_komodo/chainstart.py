@@ -51,6 +51,10 @@ def load_ac_params(asset, chain_mode='default'):
         ac.update({'binary_path': binary_path})
         if chain_mode == 'REGTEST':
             ac.update({'daemon_params': ['-daemon', '-whitelist=127.0.0.1', '-regtest']})
+        elif chain_mode == 'DEX1':
+            ac.update({'daemon_params': ['-daemon', '-whitelist=127.0.0.1', '-dexp2p=1']})
+        elif chain_mode == 'DEX2':
+            ac.update({'daemon_params': ['-daemon', '-whitelist=127.0.0.1', '-dexp2p=2']})
         else:
             ac.update({'daemon_params': ['-daemon', '-whitelist=127.0.0.1']})
     else:
