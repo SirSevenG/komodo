@@ -29,6 +29,7 @@
  For sparsely connected nodes, as the pull process propagates a new quote, they will eventually also see the new quote. Worst case would be the last node in a singly connected chain of peers. Assuming most all nodes will have 3 or more peers, then most all nodes will get a quote broadcast in a few multiples of KOMODO_DEX_LOCALHEARTBEAT
  
  todo:
+ cleanup DEX_list iteration
  get rpc call ( timestamp, hashes[])
  broadcast file (high priority for directory of shorthashes)
 
@@ -1377,7 +1378,7 @@ UniValue komodo_DEXbroadcast(char *hexstr,int32_t priority,char *tagA,char *tagB
 
 UniValue komodo_DEXlist(uint32_t stopat,int32_t minpriority,char *tagA,char *tagB,char *destpub33,char *minA,char *maxA,char *minB,char *maxB,char *stophashstr)
 {
-    UniValue result(UniValue::VOBJ),a(UniValue::VARR); char str[2*KOMODO_DEX_MAXKEYSIZE+1]; struct DEX_index *tips[KOMODO_DEX_MAXINDICES],*index; struct DEX_datablob *ptr; uint64_t amountA,amountB; int32_t i,j,ind,n=0,priority; bits256 stophash; uint32_t t; uint64_t minamountA=0,maxamountA=(1LL<<63),minamountB=0,maxamountB=(1LL<<63); int8_t lenA=0,lenB=0,plen=0; uint8_t destpub[33];
+    UniValue result(UniValue::VOBJ),a(UniValue::VARR); char str[2*KOMODO_DEX_MAXKEYSIZE+1]; struct DEX_index *tips[KOMODO_DEX_MAXINDICES],*index; struct DEX_datablob *ptr; uint64_t amountA,amountB; int32_t i,j,ind,n=0,priority,skipflag; bits256 stophash; uint32_t t; uint64_t minamountA=0,maxamountA=(1LL<<63),minamountB=0,maxamountB=(1LL<<63); int8_t lenA=0,lenB=0,plen=0; uint8_t destpub[33];
     if ( tagA != 0 )
         lenA = (int32_t)strlen(tagA);
     if ( tagB != 0 )
@@ -1447,38 +1448,53 @@ UniValue komodo_DEXlist(uint32_t stopat,int32_t minpriority,char *tagA,char *tag
                 komodo_DEX_lockindex(index);
                 for (ptr=index->tail; ptr!=0; ptr=ptr->prevs[ind])
                 {
-                    //char  str[65],str2[65];
-                    //fprintf(stderr,"n.%d %p -> %p %u/%s vs %u/%s\n",n,ptr,ptr->prevs[ind],ptr->hash.uints[0],bits256_str(str2,ptr->hash),stopat,bits256_str(str,stophash));
+                    skipflag = 0;
                     if ( (stopat != 0 && komodo_DEX_id(ptr) == stopat) || memcmp(stophash.bytes,ptr->hash.bytes,32) == 0 )
-                    {
-                        //fprintf(stderr,"reached stopat id\n");
                         break;
-                    }
                     if ( komodo_DEX_tagsmatch(ptr,(uint8_t *)tagA,lenA,(uint8_t *)tagB,lenB,destpub,plen) < 0 )
                     {
                         fprintf(stderr,"skip %p due to no tagsmatch\n",ptr);
-                        continue;
+                        skipflag = 1;
+                        /*if ( ptr == index->head )
+                            break;
+                        continue;*/
                     }
-                    if ( (priority= komodo_DEX_priority(ptr->hash.ulongs[0],ptr->datalen)) < minpriority )
+                    else if ( (priority= komodo_DEX_priority(ptr->hash.ulongs[0],ptr->datalen)) < minpriority )
                     {
                         fprintf(stderr,"priority.%d < min.%d, skip\n",komodo_DEX_priority(ptr->hash.ulongs[0],ptr->datalen),minpriority);
-                        continue;
+                        skipflag = 1;
+                        /*if ( ptr == index->head )
+                            break;
+                        continue;*/
                     }
-                    iguana_rwnum(0,&ptr->data[KOMODO_DEX_ROUTESIZE],sizeof(amountA),&amountA);
-                    iguana_rwnum(0,&ptr->data[KOMODO_DEX_ROUTESIZE + sizeof(amountA)],sizeof(amountB),&amountB);
-                    if ( amountA < minamountA || amountA > maxamountA )
+                    else
                     {
-                        fprintf(stderr,"amountA %.8f vs min %.8f max %.8f, skip\n",dstr(amountA),dstr(minamountA),dstr(maxamountA));
-                        continue;
-                    }
-                    if ( amountB < minamountB || amountB > maxamountB )
-                    {
-                        fprintf(stderr,"amountB %.8f vs min %.8f max %.8f, skip\n",dstr(amountB),dstr(minamountB),dstr(maxamountB));
-                        continue;
+                        iguana_rwnum(0,&ptr->data[KOMODO_DEX_ROUTESIZE],sizeof(amountA),&amountA);
+                        iguana_rwnum(0,&ptr->data[KOMODO_DEX_ROUTESIZE + sizeof(amountA)],sizeof(amountB),&amountB);
+                        if ( amountA < minamountA || amountA > maxamountA )
+                        {
+                            fprintf(stderr,"amountA %.8f vs min %.8f max %.8f, skip\n",dstr(amountA),dstr(minamountA),dstr(maxamountA));
+                            skipflag = 1;
+                            /*if ( ptr == index->head )
+                             break;
+                             continue;*/
+                        }
+                        else if ( amountB < minamountB || amountB > maxamountB )
+                        {
+                            fprintf(stderr,"amountB %.8f vs min %.8f max %.8f, skip\n",dstr(amountB),dstr(minamountB),dstr(maxamountB));
+                            skipflag = 1;
+                            /*
+                             if ( ptr == index->head )
+                             break;
+                             continue;*/
+                        }
                     }
                     //fprintf(stderr,"DEX_list ind.%d %p ptr.%p prev.%p\n",ind,index,ptr,ptr->prevs[ind]);
-                    a.push_back(komodo_DEX_dataobj(ptr));
-                    n++;
+                    if ( skipflag == 0 )
+                    {
+                        a.push_back(komodo_DEX_dataobj(ptr));
+                        n++;
+                    }
                     if ( ptr == index->head )
                         break;
                 }
@@ -1509,7 +1525,7 @@ UniValue komodo_DEX_stats()
     sprintf(logstr,"RAM.%d %08x R.%d S.%d A.%d dup.%d | L.%d A.%d coll.%d | lag  (%.4f %.4f %.4f) err.%d pend.%d T/F %d/%d | ",total,totalhash,DEX_totalrecv,DEX_totalsent,DEX_totaladd,DEX_duplicate,DEX_lookup32,DEX_add32,DEX_collision32,DEX_lag,DEX_lag2,DEX_lag3,DEX_maxlag,DEX_Numpending,DEX_truncated,DEX_freed);
     for (i=13; i>=0; i--)
         sprintf(logstr+strlen(logstr),"%.0f ",(double)histo[i]);//1000.*histo[i]/(total+1)); // expected 1 1 2 5 | 10 10 10 10 10 | 10 9 9 7 5
-    if ( (d= (now-lasttime)) == 0 )
+    if ( (d= (now-lasttime)) <= 0 )
         d = 1;
     sprintf(logstr+strlen(logstr),"%s %d/sec\n",komodo_DEX_islagging()!=0?"LAG":"",(DEX_totaladd - lastadd)/d);
     lasttime = now;
