@@ -11,9 +11,9 @@ from pytest_util import validate_template
 
 
 @pytest.mark.usefixtures("proxy_connection")
-class TestDexP2P:
+class TestDexP2Prpc:
 
-    def test_DEXbase(self, test_params):
+    def test_dexbase(self, test_params):
         rpc1 = test_params.get('node1').get('rpc')
         schema_stats = {
             'type': 'object',
@@ -83,3 +83,10 @@ class TestDexP2P:
         validate_template(res, schema_broadcast)
         res = rpc1.DEX_list(stopat, minpriority, taga, tagb, pubkey)
         validate_template(res, schema_list)
+
+
+@pytest.mark.usefixtures("proxy_connection")
+class TestDexP2Pe2e:
+
+    def test_dex_messaging(self, test_params):
+        rpc1 = test_params.get('node1').get('rpc')

@@ -1,12 +1,14 @@
 import time
 import jsonschema
 import os
-if os.name == 'posix':
+try:
     from slickrpc import Proxy
     from slickrpc.exc import RpcException as RPCError
-else:
+    from pycurl import error as HttpError
+except ImportError:
     from bitcoinrpc.authproxy import AuthServiceProxy as Proxy
     from bitcoinrpc.authproxy import JSONRPCException as RPCError
+    from http.client import HTTPException as HttpError
 
 
 def create_proxy(node_params_dictionary):
@@ -40,7 +42,8 @@ def validate_proxy(env_params_dictionary, proxy, node=0):
     assert proxy.getinfo()['pubkey'] == env_params_dictionary.get('test_pubkey')[node]
     assert proxy.verifychain()
     time.sleep(15)
-    assert proxy.getbalance() > 777
+    print("\nBalance: " + str(proxy.getbalance()))
+    print("Each node should have at least 777 coins to perform CC tests\n")
 
 
 def enable_mining(proxy):
@@ -54,7 +57,7 @@ def enable_mining(proxy):
         try:
             proxy.setgenerate(True, threads_count)
             break
-        except RPCError as e:
+        except (RPCError, HttpError) as e:
             print(e, " Waiting chain startup\n")
             time.sleep(10)
             tries += 1
@@ -158,4 +161,3 @@ def check_synced(*proxies):
             if tries > 120:  # up to 20 minutes
                 return False
     return True
-
