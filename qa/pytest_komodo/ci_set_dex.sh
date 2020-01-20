@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # chains start script params
-export CLIENTS=3
+export CLIENTS=2
 export CHAIN="TONYCI"
 export TEST_ADDY0="RPWhA4f4ZTZxNi5K36bcwsWdVjSVDSjUnd"
 export TEST_WIF0="UpcQympViQpLmv1WzMwszKPrmKUa28zsv8pdLCMgNMXDFBBBKxCN"

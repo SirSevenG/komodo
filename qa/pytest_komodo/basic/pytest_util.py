@@ -1,6 +1,8 @@
 import time
 import jsonschema
 import os
+import random
+import string
 try:
     from slickrpc import Proxy
     from slickrpc.exc import RpcException as RPCError
@@ -161,3 +163,15 @@ def check_synced(*proxies):
             if tries > 120:  # up to 20 minutes
                 return False
     return True
+
+
+def randomstring(length):
+    chars = string.ascii_letters
+    return ''.join(random.choice(chars) for i in range(length))
+
+
+def in_99_range(compare, base):
+    if compare >= 0.99*base:
+        return True
+    else:
+        return False
