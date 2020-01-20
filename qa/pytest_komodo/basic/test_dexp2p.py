@@ -211,10 +211,10 @@ class TestDexP2Pe2e:
         rpc1 = test_params.get('node1').get('rpc')
         message = randomstring(15)
         priority = '4'
-        base = 'Atest'
-        rel = 'Btest'
-        amounta = 1000
-        amountb = 1
+        base = randomstring(6)
+        rel = randomstring(6)
+        amounta = '1000'
+        amountb = '1'
 
         # broadcast orderbooks
 
