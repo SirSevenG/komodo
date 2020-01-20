@@ -41,7 +41,11 @@ def validate_proxy(env_params_dictionary, proxy, node=0):
     res = proxy.importprivkey(env_params_dictionary.get('test_wif')[node], '', True)
     print(res)
     assert proxy.validateaddress(env_params_dictionary.get('test_address')[node])['ismine']
-    assert proxy.getinfo()['pubkey'] == env_params_dictionary.get('test_pubkey')[node]
+    try:
+        pubkey = env_params_dictionary.get('test_pubkey')[node]
+        assert proxy.getinfo()['pubkey'] == pubkey
+    except (KeyError, IndexError):
+        print("\nNo -pubkey= runtime parameter specified")
     assert proxy.verifychain()
     time.sleep(15)
     print("\nBalance: " + str(proxy.getbalance()))

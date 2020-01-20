@@ -25,7 +25,8 @@ def load_env_config():
         for i in range(tp.get('clients_to_start')):
             test_wif_list.append(os.environ["TEST_WIF" + str(i)])
             test_addr_list.append(os.environ["TEST_ADDY" + str(i)])
-            test_pubkey_list.append(os.environ["TEST_PUBKEY" + str(i)])
+            if os.environ['CHAIN_MODE'] not in ['DEX1', 'DEX2']:
+                test_pubkey_list.append(os.environ["TEST_PUBKEY" + str(i)])
         tp.update({'test_wif': test_wif_list})
         tp.update({'test_address': test_addr_list})
         tp.update({'test_pubkey': test_pubkey_list})
@@ -103,8 +104,13 @@ def main():
                    '-ac_name=' + aschain,
                    '-conf=' + confpath,
                    '-datadir=' + datapath,
-                   '-pubkey=' + env_params.get('test_pubkey')[i],
+                   # '-pubkey=' + env_params.get('test_pubkey')[i],
                    ]
+        try:
+            pubkey = env_params.get('test_pubkey')[i]
+            cl_args.append('-pubkey=' + pubkey)
+        except IndexError:
+            pass
         if i == 0:
             for key in ac_params.keys():
                 if key not in ['binary_path', 'daemon_params', 'rpc_user', 'rpcpassword'] and ac_params.get(key):

@@ -135,12 +135,16 @@ class TestDexP2Prpc:
         res = rpc1.DEX_list('', '4', '', '', pubkey)
         validate_template(res, schema_list)
         # orderbook broadcast
-        res = rpc1.DEX_broadcast(message, '4', 'BASE', 'REL', '', '100', '1')
+        res = rpc1.DEX_broadcast(message, '4', 'BASE', 'REL', pubkey, '100', '1')
+        id = str(res.get('id'))
         validate_template(res, schema_broadcast)
         # check orderbook
         res = rpc1.DEX_orderbook('', '0', 'BASE', 'REL')
         validate_template(res, schema_orderbook)
-        # DEX_cancel is not included atm
+        # cancel order
+        res = rpc1.DEX_cancel(id)
+        print(res)
+        assert res.get('tagA') == 'cancel'  # currently cancel has response similar to broadcast => subject to change
 
 
 @pytest.mark.usefixtures("proxy_connection")
@@ -218,18 +222,30 @@ class TestDexP2Pe2e:
         rel = randomstring(6)
         amounta = '1000'
         amountb = '1'
+        pubkey = rpc1.DEX_stats().get('publishable_pubkey')
 
         # broadcast orderbooks
-
-        res = rpc1.DEX_broadcast(message, priority, base, rel, '', amounta, amountb)
+        res = rpc1.DEX_broadcast(message, priority, base, rel, pubkey, amounta, amountb)
         assert res['tagA'] == base
         assert res['tagB'] == rel
         assert res['cancelled'] == 0
-        id = res['id']
+        order_id = str(res['id'])
+        # swapping base - rel values, asks - bids should swap accordingly
+        # this simple test works under assumption that random tags are unique
         res = rpc1.DEX_orderbook('', '0', base, rel, '')
-        # supposing tags are not real coins, swapping base - rel values, asks - bids should swap accordingly
         assert not res['bids']
         res = rpc1.DEX_orderbook('', '0', rel, base, '')
         assert not res['asks']
-        # DEX_cancel is not working properly atm
-        # TODO: add DEX_cancel test here for orders
+
+        # cancel order
+        res = rpc1.DEX_cancel(order_id)
+        assert res.get('tagA') == 'cancel'
+        # cancelled order should be excluded from list
+        res = rpc1.DEX_orderbook('', '0', base, rel, '')
+        for order in res.get('asks'):  # should return only asks here
+            assert str(order.get('id')) != order_id
+        # order should have its cancellation timestamp in list response as cancelled property
+        res = rpc1.DEX_list('', '', base, '', '')
+        for blob in res.get('matches'):
+            if str(blob.get('id')) == order_id:
+                assert blob.get('cancelled') > 0
