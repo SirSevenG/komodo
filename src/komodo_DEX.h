@@ -65,7 +65,7 @@ void komodo_DEX_privkey(bits256 &priv0);
 #define KOMODO_DEX_HASHLOG2 14
 #define KOMODO_DEX_HASHSIZE (1 << KOMODO_DEX_HASHLOG2) // effective limit of sustained datablobs/sec
 #define KOMODO_DEX_HASHMASK (KOMODO_DEX_HASHSIZE - 1)
-#define KOMODO_DEX_PURGETIME 300
+#define KOMODO_DEX_PURGETIME 3600
 
 #define KOMOD_DEX_PEERMASKSIZE 128
 #define KOMODO_DEX_MAXPEERID (KOMOD_DEX_PEERMASKSIZE * 8)
@@ -160,7 +160,11 @@ void komodo_DEX_init()
         pthread_mutex_init(&DEX_listmutex,0);
         komodo_DEX_pubkey(DEX_pubkey);
         G = (struct DEX_globals *)calloc(1,sizeof(*G));
-        G->fp = fopen((char *)"/tmp/DEX.log","wb");
+        if ( (G->fp= fopen((char *)"DEX.log","wb")) == 0 )
+        {
+            fprintf(stderr,"FATAL ERROR couldnt open DEX.log file\n");
+            exit(-1);
+        }
         char str[67]; fprintf(stderr,"DEX_pubkey.(01%s) sizeof DEX_globals %ld\n\n",bits256_str(str,DEX_pubkey),sizeof(*G));
         onetime = 1;
     }
@@ -275,12 +279,14 @@ int32_t komodo_DEX_purgeindex(int32_t ind,struct DEX_index *index,uint32_t cutof
             CLEARBIT(&ptr->linkmask,ind);
             if ( ptr->linkmask == 0 )
             {
-                fprintf(G->fp,"purge %p ind.%d\n",ptr,ind);
-                fflush(G->fp);
-                if ( 0 )
-                    G->Purgelist[G->numpurges++] = ptr;
-                else
+                if ( 1 )
                 {
+                    G->Purgelist[G->numpurges++] = ptr;
+                }
+                else // this path crashes on testnet blaster loop
+                {
+                    fprintf(G->fp,"free %p\n",ptr);
+                    fflush(G->fp);
                     free(ptr);
                     DEX_freed++;
                 }
@@ -352,13 +358,14 @@ int32_t komodo_DEX_purgeindices(uint32_t cutoff)
         if ( (ptr= G->Purgelist[i]) != 0 )
         {
             iguana_rwnum(0,&ptr->data[2],sizeof(t),&t);
-            if ( t <= cutoff - KOMODO_DEX_MAXLAG )
+            if ( t <= cutoff - KOMODO_DEX_MAXLAG/2 )
             {
                 if ( ptr->linkmask == 0 )
                 {
                     G->Purgelist[i] = G->Purgelist[--G->numpurges];
                     G->Purgelist[G->numpurges] = 0;
                     i--;
+                    rewind(G->fp); // dont remove these G->fp calls, they seem to stabilize purging!?
                     fprintf(G->fp,"free %p\n",ptr);
                     fflush(G->fp);
                     free(ptr);
@@ -628,11 +635,8 @@ int32_t DEX_updatetips(struct DEX_index *tips[KOMODO_DEX_MAXINDICES],int32_t pri
         fprintf(stderr,"DEX_updatetips: impossible case ind.%d > KOMODO_DEX_MAXINDICES %d\n",ind,KOMODO_DEX_MAXINDICES);
         exit(1);
     }
-    if ( ptr != 0 )
-    {
-        fprintf(G->fp,"tips updated %x ptr.%p\n",mask,ptr);
-        fflush(G->fp);
-    }
+    //if ( ptr != 0 )
+        //fprintf(stderr,"tips updated %x ptr.%p\n",mask,ptr);
     return(mask); // err bits are <<= 16
 }
 
@@ -1041,7 +1045,7 @@ void komodo_DEXpoll(CNode *pto)
             for (; purgetime<ptime; purgetime++)
                 komodo_DEXpurge(purgetime);
             //komodo_DEX_purgeindices(purgetime+3); // call once at the end
-            komodo_DEX_purgeindices(ptime - KOMODO_DEX_PURGETIME); // call once at the end
+            komodo_DEX_purgeindices(ptime - 3); // call once at the end
         }
         DEX_Numpending *= 0.999; // decay pending to compensate for hashcollision remnants
     }
