@@ -40,12 +40,17 @@ def proxy_connection():
 def test_params(proxy_connection):
     with open('nodesconfig.json', 'r') as f:
         params_dict = json.load(f)
-    nodelist = params_dict.keys()
-    print("\n\n" + str(nodelist) + "\n\n")
+    nodelist_raw = list(params_dict.keys())
+    nodelist = []
+    if os.environ['CLIENTS']:
+        numclients = int(os.environ['CLIENTS'])
+        for i in range(numclients):
+            nodelist.append(nodelist_raw[i])
+    else:
+        nodelist_raw.pop()  # escape extra param in dict -- is_fresh_chain
+        nodelist = nodelist_raw
     test_params = {}
     for node in nodelist:
-        if node == "is_fresh_chain":  # escape extra param in dict
-            continue
         node_params = params_dict[node]
         rpc = proxy_connection(node_params)
         test_params.update({node: node_params})

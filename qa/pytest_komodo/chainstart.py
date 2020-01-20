@@ -107,15 +107,17 @@ def main():
                    ]
         if i == 0:
             for key in ac_params.keys():
-                cl_args.append('-' + key + '=' + str(ac_params.get(key)))
+                if key not in ['binary_path', 'daemon_params', 'rpc_user', 'rpcpassword'] and ac_params.get(key):
+                    cl_args.append('-' + key + '=' + str(ac_params.get(key)))
         else:
             cl_args.append('-addnode=127.0.0.1:' + str(ac_params.get('port')))
             for key in ac_params.keys():
-                if isinstance(ac_params.get(key), int):
-                    data = ac_params.get(key) + i
-                    cl_args.append('-' + key + '=' + str(data))
-                else:
-                    cl_args.append('-' + key + '=' + str(ac_params.get(key)))
+                if key not in ['binary_path', 'daemon_params', 'rpc_user', 'rpcpassword'] and ac_params.get(key):
+                    if isinstance(ac_params.get(key), int):
+                        data = ac_params.get(key) + i
+                        cl_args.append('-' + key + '=' + str(data))
+                    else:
+                        cl_args.append('-' + key + '=' + str(ac_params.get(key)))
         cl_args.extend(ac_params.get('daemon_params'))
         print(cl_args)
         if os.name == "posix":

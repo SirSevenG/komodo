@@ -4,10 +4,13 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 import pytest
-import os
 import time
-from decimal import *
-from pytest_util import validate_template, randomstring, in_99_range
+# from decimal import *
+# import os
+import sys
+
+sys.path.append('../')
+from basic.pytest_util import validate_template, randomstring, in_99_range
 
 
 @pytest.mark.usefixtures("proxy_connection")

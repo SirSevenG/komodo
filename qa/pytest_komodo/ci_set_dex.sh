@@ -20,4 +20,4 @@ export BOOTSTRAP_URL="https://sirseven.me/share/bootstrap.tar.gz"
 python3 chainstart.py
 
 # starting the tests
-python3 -m pytest $@ -s -vv basic/test_dexp2p.py
+python3 -m pytest $@ -s -vv modules/test_dexp2p.py
