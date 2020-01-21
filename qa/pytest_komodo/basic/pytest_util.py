@@ -179,3 +179,10 @@ def in_99_range(compare, base):
         return True
     else:
         return False
+
+
+def collect_orderids(rpc_response, dict_key):  # see dexp2p tests in modules
+    orderids = []
+    for item in rpc_response.get(dict_key):
+        orderids.append(str(item.get('id')))
+    return orderids

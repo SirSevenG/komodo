@@ -10,7 +10,7 @@ import time
 import sys
 
 sys.path.append('../')
-from basic.pytest_util import validate_template, randomstring, in_99_range
+from basic.pytest_util import validate_template, randomstring, in_99_range, collect_orderids
 
 
 @pytest.mark.usefixtures("proxy_connection")
@@ -143,7 +143,6 @@ class TestDexP2Prpc:
         validate_template(res, schema_orderbook)
         # cancel order
         res = rpc1.DEX_cancel(id)
-        print(res)
         assert res.get('tagA') == 'cancel'  # currently cancel has response similar to broadcast => subject to change
 
 
@@ -229,7 +228,9 @@ class TestDexP2Pe2e:
         assert res['tagA'] == base
         assert res['tagB'] == rel
         assert res['cancelled'] == 0
-        order_id = str(res['id'])
+        order_pubkey_id = str(res['id'])
+        res = rpc1.DEX_broadcast(message, priority, base, rel, '', amounta, amountb)
+        order_nopub_id  = str(res['id'])
         # swapping base - rel values, asks - bids should swap accordingly
         # this simple test works under assumption that random tags are unique
         res = rpc1.DEX_orderbook('', '0', base, rel, '')
@@ -238,14 +239,66 @@ class TestDexP2Pe2e:
         assert not res['asks']
 
         # cancel order
-        res = rpc1.DEX_cancel(order_id)
+        res = rpc1.DEX_cancel(order_pubkey_id)
         assert res.get('tagA') == 'cancel'
         # cancelled order should be excluded from list
         res = rpc1.DEX_orderbook('', '0', base, rel, '')
         for order in res.get('asks'):  # should return only asks here
-            assert str(order.get('id')) != order_id
+            assert str(order.get('id')) != order_pubkey_id
         # order should have its cancellation timestamp in list response as cancelled property
         res = rpc1.DEX_list('', '', base, '', '')
         for blob in res.get('matches'):
-            if str(blob.get('id')) == order_id:
+            if str(blob.get('id')) == order_pubkey_id:
                 assert blob.get('cancelled') > 0
+
+        # orders broadcast without pubkey should not be cancelled
+        res = rpc1.DEX_cancel(order_nopub_id)
+        assert res.get('tagA') == 'cancel'
+        res = rpc1.DEX_orderbook('', '0', base, rel, '')
+        orders = collect_orderids(res, 'asks')
+        # for order in res.get('asks'):
+        #     orders.append(str(order.get('id')))
+        assert order_nopub_id in orders
+        res = rpc1.DEX_list('', '', base, '', '')
+        blobs = collect_orderids(res, 'matches')
+        # for blob in res.get('matches'):
+        #     blobs.append(str(blob.get('id')))
+        assert order_nopub_id in blobs
+
+    def test_dex_encryption(self, test_params):
+        rpc1 = test_params.get('node1').get('rpc')
+        message = randomstring(15)
+        priority = '8'
+        taga = randomstring(6)
+        tagb = randomstring(6)
+        pubkey1 = rpc1.DEX_stats().get('publishable_pubkey')
+
+        # case1
+        # blob sent without pubkey -- message should not be encrypted
+        res = rpc1.DEX_broadcast(message, priority, taga, tagb, '', '', '')
+        blob_bc_id = res.get('id')
+        res = rpc1.DEX_list('', '', taga, tagb, '')
+        message_res = ''
+        pubkey_res = ''
+        for blob in res.get('matches'):
+            if blob.get('id') == blob_bc_id:
+                message_res = blob.get('payload')
+                pubkey_res = blob.get('pubkey')
+        assert message_res == message
+        assert not pubkey_res
+        # case 2
+        # blob with pubkey -- message should be encrypted
+        res = rpc1.DEX_broadcast(message, priority, taga, tagb, pubkey1, '', '')
+        blob_bc_id = res.get('id')
+        res = rpc1.DEX_list('', '', taga, tagb, '')
+        message_res = ''
+        decrypt_res = ''
+        pubkey_res = ''
+        for blob in res.get('matches'):
+            if blob.get('id') == blob_bc_id:
+                message_res = blob.get('payload')
+                decrypt_res = blob.get('decrypted')
+                pubkey_res = blob.get('pubkey')
+        assert message_res != message
+        assert decrypt_res == message
+        assert pubkey_res == pubkey1

@@ -275,7 +275,7 @@ jobs:
         with:
           name: komodo-linux
 
-      - name: Heir Test (DEXP2P)
+      - name: DEXP2P Test (Linux)
         run: |
           mv komodo-linux/komodo-linux.tar.gz .
           mkdir -p src
