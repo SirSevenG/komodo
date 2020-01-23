@@ -1070,6 +1070,7 @@ int32_t komodo_DEX_cancelpubkey(char *tagA,char *tagB,uint8_t *cancelkey33,uint3
         for (ptr=index->tail; ptr!=0; ptr=ptr->prevs[ind])
         {
             iguana_rwnum(0,&ptr->data[2],sizeof(t),&t);
+            fprintf(stderr,"check cancel ptr.%p %08x t.%u (%s,%s)\n",ptr,ptr->shorthash,t,tagA,tagB);
             if ( t <= cutoff && komodo_DEX_cancelupdate(ptr,tagA,tagB,senderpub,cutoff) > 0 )
                 n++;
             if ( ptr == index->head )
@@ -1913,6 +1914,8 @@ UniValue komodo_DEXcancel(char *pubkeystr,uint32_t shorthash,char *tagA,char *ta
             return(result);
         }
         strcpy(hexstr,pubkeystr);
+        decode_hex(hex,33,hexstr);
+        komodo_DEX_cancelpubkey((char *)"",(char *)"",hex,(uint32_t)time(NULL));
     }
     else if ( tagA[0] != 0 && tagB[0] != 0 )
     {
@@ -1933,6 +1936,8 @@ UniValue komodo_DEXcancel(char *pubkeystr,uint32_t shorthash,char *tagA,char *ta
         for (i=0; i<len; i++)
             sprintf(&hexstr[i<<1],"%02x",hex[i]);
         hexstr[i<<1] = 0;
+        decode_hex(hex,33,checkstr);
+        komodo_DEX_cancelpubkey(tagA,tagB,hex,(uint32_t)time(NULL));
     }
     return(komodo_DEXbroadcast('X',hexstr,KOMODO_DEX_CMDPRIORITY,(char *)"cancel",(char *)"",checkstr,(char *)"",(char *)""));
 }
