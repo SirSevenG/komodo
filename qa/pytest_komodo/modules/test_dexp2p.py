@@ -12,6 +12,7 @@ import sys
 sys.path.append('../')
 from basic.pytest_util import validate_template, randomstring, in_99_range, collect_orderids
 
+# TODO: uncomment cancel id tests and add DEX_cancel [pubkey] check when fixed
 
 @pytest.mark.usefixtures("proxy_connection")
 class TestDexP2Prpc:
@@ -90,9 +91,9 @@ class TestDexP2Prpc:
                         'properties': {
                             'price': {'type': 'string'},
                             'price15': {'type': 'string'},
-                            'baseamount': {'type': 'integer'},
+                            'baseamount': {'type': 'string'},
                             'basesatoshis': {'type': 'integer'},
-                            'relamount': {'type': 'integer'},
+                            'relamount': {'type': 'string'},
                             'relsatoshis': {'type': 'integer'},
                             'priority': {'type': 'integer'},
                             'timestamp': {'type': 'integer'},
@@ -149,7 +150,7 @@ class TestDexP2Prpc:
 @pytest.mark.usefixtures("proxy_connection")
 class TestDexP2Pe2e:
 
-    def test_dex_broadcast_and_listing(self, test_params):
+    def test_dex_broadcast(self, test_params):
         rpc1 = test_params.get('node1').get('rpc')
         message_static = randomstring(22)
         taga_valid = 'inbox'
@@ -170,6 +171,47 @@ class TestDexP2Pe2e:
         assert res.get('pubkey') == pubkey
         assert str(res.get('amountA')) == amounta
         assert str(res.get('amountB')) == amountb
+        assert int(priority) <= int(res.get('priority'))
+
+        res = rpc1.DEX_broadcast(message_static, priority, '', tagb_valid, pubkey, amounta, amountb)
+        assert not res.get('tagA')
+        assert res.get('tagB') == tagb_valid
+        assert res.get('pubkey') == pubkey
+        assert str(res.get('amountA')) == amounta
+        assert str(res.get('amountB')) == amountb
+        assert int(priority) <= int(res.get('priority'))
+
+        res = rpc1.DEX_broadcast(message_static, priority, taga_valid, '', pubkey, amounta, amountb)
+        assert not res.get('tagB')
+        assert res.get('tagA') == taga_valid
+        assert res.get('pubkey') == pubkey
+        assert str(res.get('amountA')) == amounta
+        assert str(res.get('amountB')) == amountb
+        assert int(priority) <= int(res.get('priority'))
+
+        res = rpc1.DEX_broadcast(message_static, priority, taga_valid, tagb_valid, '', amounta, amountb)
+        assert res.get('tagA') == taga_valid
+        assert res.get('tagB') == tagb_valid
+        assert not res.get('pubkey')
+        assert str(res.get('amountA')) == amounta
+        assert str(res.get('amountB')) == amountb
+        assert int(priority) <= int(res.get('priority'))
+
+        res = rpc1.DEX_broadcast(message_static, priority, '', tagb_valid, '', amounta, amountb)
+        assert not res.get('tagA')
+        assert res.get('tagB') == tagb_valid
+        assert not res.get('pubkey')
+        assert str(res.get('amountA')) == amounta
+        assert str(res.get('amountB')) == amountb
+        assert int(priority) <= int(res.get('priority'))
+
+        res = rpc1.DEX_broadcast(message_static, priority, taga_valid, '', '', amounta, amountb)
+        assert not res.get('tagB')
+        assert res.get('tagA') == taga_valid
+        assert not res.get('pubkey')
+        assert str(res.get('amountA')) == amounta
+        assert str(res.get('amountB')) == amountb
+        assert int(priority) <= int(res.get('priority'))
 
         res = rpc1.DEX_broadcast(message_static, priority, '', '', pubkey, amounta, amountb)
         assert not res.get('tagA')
@@ -177,12 +219,14 @@ class TestDexP2Pe2e:
         assert res.get('pubkey') == pubkey
         assert str(res.get('amountA')) == amounta
         assert str(res.get('amountB')) == amountb
+        assert int(priority) <= int(res.get('priority'))
 
         res = rpc1.DEX_broadcast(message_static, priority, '', '', '', '', '')
         assert res.get('tagA') == 'general'
         assert not res.get('tagB')
         assert not res.get('destpub')
         assert res.get('payload') == message_static
+        assert int(priority) <= int(res.get('priority'))
 
         # tags are restricted to 15 characters, rpc should fail or return -1
         try:
@@ -198,20 +242,64 @@ class TestDexP2Pe2e:
         except Exception as e:
             print(e)
 
-        # test listing
+    def test_dex_listing(self, test_params):
+        rpc1 = test_params.get('node1').get('rpc')
+        message_static = randomstring(22)
+        taga = randomstring(15)
+        tagb = randomstring(15)
+        amounta = ['11.234', '1']
+        amountb = ['12.0099', '4']
+        stopat = ''
+        minpriority = ['0', '9']
+        priority = ['1', '9']
+        pubkey = rpc1.DEX_stats().get('publishable_pubkey')
+
         num_broadcast = 100
         for num in range(num_broadcast):
-            rpc1.DEX_broadcast((message_static + str(num)), priority, 'inbox', 'tag_test100', '', '', '')
-        list1 = rpc1.DEX_list(stopat, minpriority, '', 'tag_test100', '')
+            rpc1.DEX_broadcast((message_static + str(num)), priority[0], 'inbox', 'tag_test100', '', '', '')
+        list1 = rpc1.DEX_list(stopat, minpriority[0], '', 'tag_test100', '')
         time.sleep(5)
         assert num_broadcast == list1.get('n')
 
         num_broadcast = 10000
         for num in range(num_broadcast):
-            rpc1.DEX_broadcast((message_static + str(num)), minpriority, 'inbox', 'tag_test10k', '', '', '')
-        list1 = rpc1.DEX_list(stopat, minpriority, '', 'tag_test10k', '')
+            rpc1.DEX_broadcast((message_static + str(num)), minpriority[0], 'inbox', 'tag_test10k', '', '', '')
+        list1 = rpc1.DEX_list(stopat, minpriority[0], '', 'tag_test10k', '')
         time.sleep(5)
         assert in_99_range(list1['n'], num_broadcast)
+
+        # DEX_list stopat minpriority tagA tagB pubkey33 minA maxA minB maxB stophash
+        # Broadcast orders to sort
+        num_broadcast_orders = 3
+        num_cycles = 2  # equal to amount[] entries above
+        ids = []
+        hashes = []
+        for i in range(num_cycles):
+            for num in range(num_broadcast_orders):
+                rpc1.DEX_broadcast((message_static + str(num)), priority[i], taga, tagb, pubkey, amounta[i], amountb[i])
+                rpc1.DEX_broadcast((message_static + str(num)), priority[i], taga, tagb, '', amounta[i], amountb[i])
+                rpc1.DEX_broadcast((message_static + str(num)), priority[i], '', tagb, pubkey, amounta[i], amountb[i])
+                rpc1.DEX_broadcast((message_static + str(num)), priority[i], taga, '', pubkey, amounta[i], amountb[i])
+                rpc1.DEX_broadcast((message_static + str(num)), priority[i], '', tagb, '', amounta[i], amountb[i])
+                rpc1.DEX_broadcast((message_static + str(num)), priority[i], taga, '', '', amounta[i], amountb[i])
+                rpc1.DEX_broadcast((message_static + str(num)), priority[i], taga, tagb, '', amounta[i], amountb[i])
+                rpc1.DEX_broadcast((message_static + str(num)), priority[i], '', '', pubkey, amounta[i], amountb[i])
+            # get ids and hashes to use later
+            res = rpc1.DEX_broadcast(message_static, priority[i], taga, tagb, pubkey, amounta[i], amountb[i])
+            ids.append(res.get('id'))
+            hashes.append(res.get('hash'))
+
+        for i in range(num_cycles):
+            res = rpc1.DEX_list(stopat, minpriority[i], taga, tagb, pubkey, '', '', '', '', '')
+            print("\n\n----------", res.get('n'))
+            res = rpc1.DEX_list(stopat, minpriority[i], '', tagb, pubkey, '', '', '', '', '')
+            print("\n\n----------", res.get('n'))
+            res = rpc1.DEX_list(stopat, minpriority[i], taga, '', pubkey, '', '', '', '', '')
+            print("\n\n----------", res.get('n'))
+            res = rpc1.DEX_list(stopat, minpriority[i], taga, tagb, '', '', '', '', '', '')
+            print("\n\n----------", res.get('n'))
+            res = rpc1.DEX_list(stopat, minpriority[i], '', '', pubkey, '', '', '', '', '')
+            print("\n\n----------", res.get('n'))
 
     def test_dex_orderbooks(self, test_params):
         rpc1 = test_params.get('node1').get('rpc')
@@ -230,7 +318,7 @@ class TestDexP2Pe2e:
         assert res['cancelled'] == 0
         order_pubkey_id = str(res['id'])
         res = rpc1.DEX_broadcast(message, priority, base, rel, '', amounta, amountb)
-        order_nopub_id  = str(res['id'])
+        order_nopub_id = str(res['id'])
         # swapping base - rel values, asks - bids should swap accordingly
         # this simple test works under assumption that random tags are unique
         res = rpc1.DEX_orderbook('', '0', base, rel, '')
@@ -256,13 +344,9 @@ class TestDexP2Pe2e:
         assert res.get('tagA') == 'cancel'
         res = rpc1.DEX_orderbook('', '0', base, rel, '')
         orders = collect_orderids(res, 'asks')
-        # for order in res.get('asks'):
-        #     orders.append(str(order.get('id')))
         assert order_nopub_id in orders
         res = rpc1.DEX_list('', '', base, '', '')
         blobs = collect_orderids(res, 'matches')
-        # for blob in res.get('matches'):
-        #     blobs.append(str(blob.get('id')))
         assert order_nopub_id in blobs
 
     def test_dex_encryption(self, test_params):
@@ -287,7 +371,7 @@ class TestDexP2Pe2e:
         assert message_res == message
         assert not pubkey_res
         # case 2
-        # blob with pubkey -- message should be encrypted
+        # blob with pubkey -- message should be encrypted and visible to key owner
         res = rpc1.DEX_broadcast(message, priority, taga, tagb, pubkey1, '', '')
         blob_bc_id = res.get('id')
         res = rpc1.DEX_list('', '', taga, tagb, '')
