@@ -90,9 +90,9 @@ class TestDexP2Prpc:
                         'properties': {
                             'price': {'type': 'string'},
                             'price15': {'type': 'string'},
-                            'baseamount': {'type': 'integer'},
+                            'baseamount': {'type': 'string'},
                             'basesatoshis': {'type': 'integer'},
-                            'relamount': {'type': 'integer'},
+                            'relamount': {'type': 'string'},
                             'relsatoshis': {'type': 'integer'},
                             'priority': {'type': 'integer'},
                             'timestamp': {'type': 'integer'},
