@@ -432,7 +432,7 @@ int32_t komodo_DEXpurge(uint32_t cutoff)
         } // else fprintf(stderr,"modval.%d unexpected purge.%d t.%u vs cutoff.%u\n",modval,i,t,cutoff);
     }
     //totalhash = komodo_DEXtotal(total);
-    if ( n != 0 || (modval % 60) == 0 )//totalhash != prevtotalhash )
+    if ( (modval % 60) == 0 ) // n != 0 ||  //totalhash != prevtotalhash )
     {
         int32_t histo[64];
         memset(histo,0,sizeof(histo));
@@ -951,7 +951,7 @@ int32_t komodo_DEXmodval(uint32_t now,const int32_t modval,CNode *peer)
                     }
                     if ( GETBIT(ptr->peermask,peerpos) == 0 && ptr->priority >= KOMODO_DEX_VIPLEVEL )
                     {
-                        fprintf(G->fp,"%08x ",ptr->shorthash);
+                        //fprintf(G->fp,"%08x ",ptr->shorthash);
                         vip++;
                     }
                     recents[p][num[p]++] = h;
@@ -972,8 +972,8 @@ int32_t komodo_DEXmodval(uint32_t now,const int32_t modval,CNode *peer)
     }
     if ( vip != 0 )
     {
-        fprintf(G->fp,"missing vip.%d dexmodval.%d peer.%d n.%d\n",vip,modval,peerpos,n);
-        fflush(G->fp);
+        //fprintf(G->fp,"missing vip.%d dexmodval.%d peer.%d n.%d\n",vip,modval,peerpos,n);
+        //fflush(G->fp);
     }
     for (p=15; p>=0; p--)
     {
@@ -1180,7 +1180,7 @@ int32_t komodo_DEXprocess(uint32_t now,CNode *pfrom,uint8_t *msg,int32_t len)
         {
             DEX_totalrecv++;
             //fprintf(stderr," f.%c t.%u [%d] ",funcid,t,relay);
-            fprintf(G->fp," recv modval.%d from (%s) relay.%d p.%d shorthash.%08x %016llx\n",modval,pfrom->addr.ToString().c_str(),relay,priority,h,(long long)hash.ulongs[0]);
+            //fprintf(G->fp," recv modval.%d from (%s) relay.%d p.%d shorthash.%08x %016llx\n",modval,pfrom->addr.ToString().c_str(),relay,priority,h,(long long)hash.ulongs[0]);
             if ( (hash.ulongs[0] & KOMODO_DEX_TXPOWMASK) != (0x777 & KOMODO_DEX_TXPOWMASK) )
             {
                 static uint32_t count;
@@ -1271,20 +1271,20 @@ int32_t komodo_DEXprocess(uint32_t now,CNode *pfrom,uint8_t *msg,int32_t len)
                         if ( tmpval < 0 ) //|| (p >= KOMODO_DEX_VIPLEVEL && (rand() % 10)) )
                         {
                             komodo_DEXadd32(G->Pendings,(int32_t)(sizeof(G->Pendings)/sizeof(*G->Pendings)),h);
-                            fprintf(G->fp,">>>> %08x <<<<< ",h);
+                            //fprintf(G->fp,">>>> %d/%08x <<<<< ",m,h);
                             if ( tmpval < 0 )
                                 DEX_Numpending++;
                             komodo_DEXgenget(getshorthash,now,h,m);
                             pfrom->PushMessage("DEX",getshorthash);
                             flag++;
                         }
-                        fprintf(G->fp,"%d/%08x ",m,h);
+                        //fprintf(G->fp,"%d/%08x ",m,h);
                     }
                     if ( (0) && flag != 0 )
                     {
                         fprintf(stderr," f.%c t.%u [%d] ",funcid,t,relay);
                         fprintf(stderr," recv at %u from (%s) PULL these.%d lag.%d\n",(uint32_t)time(NULL),pfrom->addr.ToString().c_str(),flag,lag);
-                    } else if ( (1) && n > 0 )
+                    } else if ( (0) && n > 0 )
                         fprintf(G->fp,"ping[%d] modval.%d from %s\n",n,m,pfrom->addr.ToString().c_str());
                 } else fprintf(stderr,"ping packetsize error %d != %d, offset.%d n.%d, modval.%d purgtime.%d\n",len,offset+n*4,offset,n,m,KOMODO_DEX_PURGETIME);
                 if ( funcid == 'P' && haves > 0 )
@@ -1299,7 +1299,7 @@ int32_t komodo_DEXprocess(uint32_t now,CNode *pfrom,uint8_t *msg,int32_t len)
         {
             iguana_rwnum(0,&msg[KOMODO_DEX_ROUTESIZE],sizeof(h),&h);
             iguana_rwnum(0,&msg[KOMODO_DEX_ROUTESIZE+sizeof(h)],sizeof(modval),&modval);
-            fprintf(G->fp," modval.%d f.%c t.%u [%d] get.%08x\n",modval,funcid,t,relay,h);
+            //fprintf(G->fp," modval.%d f.%c t.%u [%d] get.%08x\n",modval,funcid,t,relay,h);
             //fprintf(stderr," recv at %u from (%s)\n",(uint32_t)time(NULL),pfrom->addr.ToString().c_str());
             if ( modval >= 0 && modval < KOMODO_DEX_PURGETIME )
             {
@@ -1313,7 +1313,7 @@ int32_t komodo_DEXprocess(uint32_t now,CNode *pfrom,uint8_t *msg,int32_t len)
             } else fprintf(stderr,"illegal modval.%d\n",modval);
         }
     }
-    fflush(G->fp);
+    //fflush(G->fp);
     return(0);
 }
 
@@ -1564,9 +1564,11 @@ UniValue komodo_DEXbroadcast(uint8_t funcid,char *hexstr,int32_t priority,char *
             return(0);
         }
         pthread_mutex_lock(&DEX_globalmutex);
+        iguana_rwnum(0,&packet[2],sizeof(timestamp),&timestamp);
+        modval = (timestamp % KOMODO_DEX_PURGETIME);
         if ( (ptr= komodo_DEXfind(modval,shorthash)) == 0 )
         {
-            if ( (ptr= komodo_DEXadd(timestamp,timestamp % KOMODO_DEX_PURGETIME,hash,shorthash,&packet[0],packet.size())) == 0 )
+            if ( (ptr= komodo_DEXadd(timestamp,modval,hash,shorthash,&packet[0],packet.size())) == 0 )
             {
                 char str[65];
                 for (i=0; i<len&&i<64; i++)
@@ -2030,9 +2032,10 @@ void komodo_DEXmsg(CNode *pfrom,std::vector<uint8_t> request) // received a pack
 void komodo_DEXpoll(CNode *pto) // from mainloop polling
 {
     static uint32_t purgetime;
-    std::vector<uint8_t> packet; uint32_t i,now,numiters,shorthash,len,ptime,modval;
+    std::vector<uint8_t> packet; uint32_t i,now,numiters,shorthash,len,ptime,modval,peerpos;
     now = (uint32_t)time(NULL);
     ptime = now - KOMODO_DEX_PURGETIME + 6;
+    peerpos = komodo_DEXpeerpos(now,pto->id);
     pthread_mutex_lock(&DEX_globalmutex);
     if ( ptime > purgetime )
     {
@@ -2050,9 +2053,9 @@ void komodo_DEXpoll(CNode *pto) // from mainloop polling
     }
     if ( (now == Got_Recent_Quote && now > pto->dexlastping) || now >= pto->dexlastping+KOMODO_DEX_LOCALHEARTBEAT )
     {
-        if ( (now % KOMODO_DEX_POLLVIP) == 0 ) // check the VIP packets
+        if ( ((now + peerpos) % KOMODO_DEX_POLLVIP) == 0 ) // check the VIP packets
         {
-            numiters = KOMODO_DEX_PURGETIME - 0*KOMODO_DEX_MAXLAG;
+            numiters = KOMODO_DEX_PURGETIME - KOMODO_DEX_MAXLAG;
             pto->dexlastping = now;
         } else numiters = KOMODO_DEX_MAXLAG - KOMODO_DEX_MAXHOPS;
         for (i=0; i<numiters; i++)
