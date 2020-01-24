@@ -505,7 +505,7 @@ bool Myprivkey(uint8_t myprivkey[])
         {
             void OS_randombytes(unsigned char *x,long xlen);
             OS_randombytes(sessionpriv,32);
-            fprintf(stderr,"generate session specific privkey\n");
+            fprintf(stderr,"privkey for pubkey not found -> generate session specific privkey\n");
             onetimeflag = 1;
         }
         memcpy(myprivkey,sessionpriv,32);
@@ -1112,6 +1112,11 @@ void komodo_DEX_pubkey(bits256 &pubkey)
 {
     bits256 privkey;
     komodo_DEX_privkey(privkey);
+    /*{
+        char *bits256_str(char hexstr[65],bits256 x);
+        char str[65];
+        fprintf(stderr,"new DEX_privkey %s\n",bits256_str(str,privkey));
+    }*/
     pubkey = curve25519(privkey,curve25519_basepoint9());
     memset(privkey.bytes,0,sizeof(privkey));
 }
