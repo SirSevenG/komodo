@@ -137,20 +137,22 @@ class TestDexP2Prpc:
         validate_template(res, schema_list)
         # orderbook broadcast
         res = rpc1.DEX_broadcast(message, '4', 'BASE', 'REL', pubkey, '100', '1')
-        id = str(res.get('id'))
+        order_id = str(res.get('id'))
         validate_template(res, schema_broadcast)
+        res = rpc1.DEX_get(order_id)
+        validate_template(res, schema_broadcast)  # same response to broadcast
         # check orderbook
         res = rpc1.DEX_orderbook('', '0', 'BASE', 'REL')
         validate_template(res, schema_orderbook)
         # cancel order
-        res = rpc1.DEX_cancel(id)
+        res = rpc1.DEX_cancel(order_id)
         assert res.get('tagA') == 'cancel'  # currently cancel has response similar to broadcast => subject to change
 
 
 @pytest.mark.usefixtures("proxy_connection")
 class TestDexP2Pe2e:
 
-    def test_dex_broadcast(self, test_params):
+    def test_dex_broadcast_get(self, test_params):
         rpc1 = test_params.get('node1').get('rpc')
         message_static = randomstring(22)
         taga_valid = 'inbox'
@@ -159,8 +161,6 @@ class TestDexP2Pe2e:
         tagb_invalid = randomstring(16)
         amounta = '11'
         amountb = '12'
-        stopat = ''
-        minpriority = '0'
         priority = '1'
         pubkey = rpc1.DEX_stats().get('publishable_pubkey')
 
@@ -172,6 +172,8 @@ class TestDexP2Pe2e:
         assert str(res.get('amountA')) == amounta
         assert str(res.get('amountB')) == amountb
         assert int(priority) <= int(res.get('priority'))
+        get_order = rpc1.DEX_get(str(res.get('id')))
+        assert res == get_order  # should return exact same blob info
 
         res = rpc1.DEX_broadcast(message_static, priority, '', tagb_valid, pubkey, amounta, amountb)
         assert not res.get('tagA')
@@ -260,7 +262,7 @@ class TestDexP2Pe2e:
             rpc1.DEX_broadcast((message_static + str(num)), '4', 'inbox', 'tag_test100', '', '', '')
         list1 = rpc1.DEX_list(stopat, minpriority[0], '', 'tag_test100', '')
         list2 = rpc2.DEX_list(stopat, minpriority[0], '', 'tag_test100', '')
-        time.sleep(20)  # time to sync broadcasts for both nodes
+        time.sleep(5)  # time to sync broadcasts for both nodes
         assert num_broadcast == list1.get('n')
 
         num_broadcast = 10000
