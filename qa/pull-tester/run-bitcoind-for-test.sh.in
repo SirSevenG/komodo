@@ -1,13 +1,13 @@
 #!/bin/bash
 # Copyright (c) 2013-2014 The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
-# file COPYING or http://www.opensource.org/licenses/mit-license.php.
+# file COPYING or https://www.opensource.org/licenses/mit-license.php .
 #
 ZCASH_LOAD_TIMEOUT=500
-DATADIR="@abs_top_builddir@/.zcash"
+DATADIR="@abs_top_builddir@/.komodo"
 rm -rf "$DATADIR"
 mkdir -p "$DATADIR"/regtest
-touch "$DATADIR/zcash.conf"
+touch "$DATADIR/komodo.conf"
 touch "$DATADIR/regtest/debug.log"
 tail -q -n 1 -F "$DATADIR/regtest/debug.log" | grep -m 1 -q "Done loading" &
 WAITER=$!

@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # Copyright (c) 2014 The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
-# file COPYING or http://www.opensource.org/licenses/mit-license.php.
+# file COPYING or https://www.opensource.org/licenses/mit-license.php .
 
 # Base class for RPC testing
 
@@ -94,7 +94,7 @@ class BitcoinTestFramework(object):
         parser.add_option("--noshutdown", dest="noshutdown", default=False, action="store_true",
                           help="Don't stop komodods after the test execution")
         parser.add_option("--srcdir", dest="srcdir", default="../../src",
-                          help="Source directory containing komodod/komodo-cli (default: %default)")
+                          help="Source directory containing komodod/komdod-cli (default: %default)")
         parser.add_option("--tmpdir", dest="tmpdir", default=tempfile.mkdtemp(prefix="test"),
                           help="Root directory for datadirs")
         parser.add_option("--tracerpc", dest="trace_rpc", default=False, action="store_true",
@@ -137,7 +137,7 @@ class BitcoinTestFramework(object):
             stop_nodes(self.nodes)
             wait_bitcoinds()
         else:
-            print("Note: komodods were not stopped and may still be running")
+            print("Note: komdodods were not stopped and may still be running")
 
         if not self.options.nocleanup and not self.options.noshutdown:
             print("Cleaning up")
@@ -151,7 +151,7 @@ class BitcoinTestFramework(object):
             sys.exit(1)
 
 
-# Test framework for doing p2p comparison testing, which sets up some komodod
+# Test framework for doing p2p comparison testing, which sets up some bitcoind
 # binaries:
 # 1 binary: test binary
 # 2 binaries: 1 test binary, 1 ref binary
@@ -180,7 +180,6 @@ class ComparisonTestFramework(BitcoinTestFramework):
                                     extra_args=[['-debug', '-whitelist=127.0.0.1']] * self.num_nodes,
                                     binary=[self.options.testbinary] +
                                            [self.options.refbinary]*(self.num_nodes-1))
-
 
 class CryptoconditionsTestFramework(BitcoinTestFramework):
 
@@ -249,3 +248,4 @@ class CryptoconditionsTestFramework(BitcoinTestFramework):
         # we need the tx above to be confirmed in the next block
         rpc_connection.generate(1)
         return txid
+
