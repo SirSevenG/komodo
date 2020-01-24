@@ -244,21 +244,23 @@ class TestDexP2Pe2e:
 
     def test_dex_listing(self, test_params):
         rpc1 = test_params.get('node1').get('rpc')
+        rpc2 = test_params.get('node2').get('rpc')
         message_static = randomstring(22)
+        minpriority = ['0', '9']
+        priority = ['1', '9']
         taga = randomstring(15)
         tagb = randomstring(15)
         amounta = ['11.234', '1']
         amountb = ['12.0099', '4']
         stopat = ''
-        minpriority = ['0', '9']
-        priority = ['1', '9']
         pubkey = rpc1.DEX_stats().get('publishable_pubkey')
 
         num_broadcast = 100
         for num in range(num_broadcast):
-            rpc1.DEX_broadcast((message_static + str(num)), priority[0], 'inbox', 'tag_test100', '', '', '')
+            rpc1.DEX_broadcast((message_static + str(num)), '4', 'inbox', 'tag_test100', '', '', '')
         list1 = rpc1.DEX_list(stopat, minpriority[0], '', 'tag_test100', '')
-        time.sleep(5)
+        list2 = rpc2.DEX_list(stopat, minpriority[0], '', 'tag_test100', '')
+        time.sleep(20)  # time to sync broadcasts for both nodes
         assert num_broadcast == list1.get('n')
 
         num_broadcast = 10000
@@ -268,7 +270,6 @@ class TestDexP2Pe2e:
         time.sleep(5)
         assert in_99_range(list1['n'], num_broadcast)
 
-        # DEX_list stopat minpriority tagA tagB pubkey33 minA maxA minB maxB stophash
         # Broadcast orders to sort
         num_broadcast_orders = 3
         num_cycles = 2  # equal to amount[] entries above
@@ -285,21 +286,51 @@ class TestDexP2Pe2e:
                 rpc1.DEX_broadcast((message_static + str(num)), priority[i], taga, tagb, '', amounta[i], amountb[i])
                 rpc1.DEX_broadcast((message_static + str(num)), priority[i], '', '', pubkey, amounta[i], amountb[i])
             # get ids and hashes to use later
-            res = rpc1.DEX_broadcast(message_static, priority[i], taga, tagb, pubkey, amounta[i], amountb[i])
+            res = rpc1.DEX_broadcast((message_static + str(num_broadcast_orders + i)), priority[i], taga, tagb,
+                                     pubkey, amounta[i], amountb[i])
             ids.append(res.get('id'))
             hashes.append(res.get('hash'))
-
-        for i in range(num_cycles):
-            res = rpc1.DEX_list(stopat, minpriority[i], taga, tagb, pubkey, '', '', '', '', '')
-            print("\n\n----------", res.get('n'))
-            res = rpc1.DEX_list(stopat, minpriority[i], '', tagb, pubkey, '', '', '', '', '')
-            print("\n\n----------", res.get('n'))
-            res = rpc1.DEX_list(stopat, minpriority[i], taga, '', pubkey, '', '', '', '', '')
-            print("\n\n----------", res.get('n'))
-            res = rpc1.DEX_list(stopat, minpriority[i], taga, tagb, '', '', '', '', '', '')
-            print("\n\n----------", res.get('n'))
-            res = rpc1.DEX_list(stopat, minpriority[i], '', '', pubkey, '', '', '', '', '')
-            print("\n\n----------", res.get('n'))
+        time.sleep(10)
+        # DEX_list stopat minpriority taga tagb pubkey mina maxa minb maxb stophash
+        res_min0 = rpc1.DEX_list(stopat, minpriority[0], taga, '', '')
+        assert int(res_min0.get('n')) == 32
+        # Should have less broadcasts with high priority
+        # Can't operate set numbers here
+        res_min1 = rpc1.DEX_list(stopat, minpriority[1], taga, '', '')
+        assert int(res_min1.get('n')) < int(res_min0.get('n'))
+        # base listing check
+        res = rpc1.DEX_list(stopat, minpriority[0], '', tagb, '')
+        assert int(res.get('n')) == 32
+        res = rpc1.DEX_list(stopat, minpriority[0], '', '', pubkey)
+        assert int(res.get('n')) >= 26  # including previous broadcasts with same pubkey, might be more than 26
+        # in case when tests are run together
+        res = rpc1.DEX_list(stopat, minpriority[0], taga, tagb, pubkey)
+        assert int(res.get('n')) == 8
+        res = rpc1.DEX_list(stopat, minpriority[0], taga, '', pubkey)
+        assert int(res.get('n')) == 14
+        res = rpc1.DEX_list(stopat, minpriority[0], '', tagb, pubkey)
+        assert int(res.get('n')) == 14
+        res = rpc1.DEX_list(stopat, minpriority[0], taga, tagb, '')
+        assert int(res.get('n')) == 20
+        # check amounts
+        res = rpc1.DEX_list(stopat, minpriority[0], taga, tagb, '', amounta[1], amounta[0], amountb[1], amountb[0])
+        assert int(res.get('n')) == 20
+        res = rpc1.DEX_list(stopat, minpriority[0], taga, tagb, '', '', '', amountb[1], amountb[0])
+        assert int(res.get('n')) == 20
+        res = rpc1.DEX_list(stopat, minpriority[0], taga, tagb, '', '', amounta[0], amountb[1], '')
+        assert int(res.get('n')) == 20
+        res = rpc1.DEX_list(stopat, minpriority[0], taga, tagb, '', amounta[0], '', '', '')
+        assert int(res.get('n')) == 10
+        # check stopat
+        res = rpc1.DEX_list(str(ids[1]), minpriority[0], taga, '', '')
+        assert int(res.get('n')) == 0  # ids[1] is last id
+        res = rpc1.DEX_list(str(ids[0]), minpriority[0], taga, '', '')
+        assert int(res.get('n')) == 16
+        # check stophash
+        res = rpc1.DEX_list(stopat, minpriority[0], taga, '', '', '', '', '', '', hashes[1])
+        assert int(res.get('n')) == 0  # hashes[1] is the last orders' hash
+        res = rpc1.DEX_list(stopat, minpriority[0], taga, '', '', '', '', '', '', hashes[0])
+        assert int(res.get('n')) == 16
 
     def test_dex_orderbooks(self, test_params):
         rpc1 = test_params.get('node1').get('rpc')
