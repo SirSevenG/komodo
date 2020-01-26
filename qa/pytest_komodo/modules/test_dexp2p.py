@@ -12,7 +12,6 @@ import sys
 sys.path.append('../')
 from basic.pytest_util import validate_template, randomstring, in_99_range, collect_orderids
 
-# TODO: uncomment cancel id tests and add DEX_cancel [pubkey] check when fixed
 
 @pytest.mark.usefixtures("proxy_connection")
 class TestDexP2Prpc:
@@ -39,8 +38,8 @@ class TestDexP2Prpc:
                 'destpub': {'type': 'string'},
                 'payload': {'type': 'string'},
                 'hex': {'type': 'integer'},
-                'amountA': {'type': ['integer', 'number']},
-                'amountB': {'type': ['integer', 'number']},
+                'amountA': {'type': ['string']},
+                'amountB': {'type': ['string']},
                 'priority': {'type': 'integer'},
                 'error': {'type': 'string'},
                 'cancelled': {'type': 'integer'}
@@ -63,8 +62,8 @@ class TestDexP2Prpc:
                             'id': {'type': 'integer'},
                             'hex': {'type': 'integer'},
                             'priority': {'type': 'integer'},
-                            'amountA': {'type': ['integer', 'number']},
-                            'amountB': {'type': ['integer', 'number']},
+                            'amountA': {'type': ['string']},
+                            'amountB': {'type': ['string']},
                             'tagA': {'type': 'string'},
                             'tagB': {'type': 'string'},
                             'destpub': {'type': 'string'},
@@ -169,8 +168,8 @@ class TestDexP2Pe2e:
         assert res.get('tagA') == taga_valid
         assert res.get('tagB') == tagb_valid
         assert res.get('pubkey') == pubkey
-        assert str(res.get('amountA')) == amounta
-        assert str(res.get('amountB')) == amountb
+        assert float(res.get('amountA')) == float(amounta)
+        assert float(res.get('amountB')) == float(amountb)
         assert int(priority) <= int(res.get('priority'))
         get_order = rpc1.DEX_get(str(res.get('id')))
         assert res == get_order  # should return exact same blob info
@@ -179,48 +178,48 @@ class TestDexP2Pe2e:
         assert not res.get('tagA')
         assert res.get('tagB') == tagb_valid
         assert res.get('pubkey') == pubkey
-        assert str(res.get('amountA')) == amounta
-        assert str(res.get('amountB')) == amountb
+        assert float(res.get('amountA')) == float(amounta)
+        assert float(res.get('amountB')) == float(amountb)
         assert int(priority) <= int(res.get('priority'))
 
         res = rpc1.DEX_broadcast(message_static, priority, taga_valid, '', pubkey, amounta, amountb)
         assert not res.get('tagB')
         assert res.get('tagA') == taga_valid
         assert res.get('pubkey') == pubkey
-        assert str(res.get('amountA')) == amounta
-        assert str(res.get('amountB')) == amountb
+        assert float(res.get('amountA')) == float(amounta)
+        assert float(res.get('amountB')) == float(amountb)
         assert int(priority) <= int(res.get('priority'))
 
         res = rpc1.DEX_broadcast(message_static, priority, taga_valid, tagb_valid, '', amounta, amountb)
         assert res.get('tagA') == taga_valid
         assert res.get('tagB') == tagb_valid
         assert not res.get('pubkey')
-        assert str(res.get('amountA')) == amounta
-        assert str(res.get('amountB')) == amountb
+        assert float(res.get('amountA')) == float(amounta)
+        assert float(res.get('amountB')) == float(amountb)
         assert int(priority) <= int(res.get('priority'))
 
         res = rpc1.DEX_broadcast(message_static, priority, '', tagb_valid, '', amounta, amountb)
         assert not res.get('tagA')
         assert res.get('tagB') == tagb_valid
         assert not res.get('pubkey')
-        assert str(res.get('amountA')) == amounta
-        assert str(res.get('amountB')) == amountb
+        assert float(res.get('amountA')) == float(amounta)
+        assert float(res.get('amountB')) == float(amountb)
         assert int(priority) <= int(res.get('priority'))
 
         res = rpc1.DEX_broadcast(message_static, priority, taga_valid, '', '', amounta, amountb)
         assert not res.get('tagB')
         assert res.get('tagA') == taga_valid
         assert not res.get('pubkey')
-        assert str(res.get('amountA')) == amounta
-        assert str(res.get('amountB')) == amountb
+        assert float(res.get('amountA')) == float(amounta)
+        assert float(res.get('amountB')) == float(amountb)
         assert int(priority) <= int(res.get('priority'))
 
         res = rpc1.DEX_broadcast(message_static, priority, '', '', pubkey, amounta, amountb)
         assert not res.get('tagA')
         assert not res.get('tagB')
         assert res.get('pubkey') == pubkey
-        assert str(res.get('amountA')) == amounta
-        assert str(res.get('amountB')) == amountb
+        assert float(res.get('amountA')) == float(amounta)
+        assert float(res.get('amountB')) == float(amountb)
         assert int(priority) <= int(res.get('priority'))
 
         res = rpc1.DEX_broadcast(message_static, priority, '', '', '', '', '')
@@ -334,7 +333,7 @@ class TestDexP2Pe2e:
         res = rpc1.DEX_list(stopat, minpriority[0], taga, '', '', '', '', '', '', hashes[0])
         assert int(res.get('n')) == 16
 
-    def test_dex_orderbooks(self, test_params):
+    def test_dex_orderbooks_cancel(self, test_params):
         rpc1 = test_params.get('node1').get('rpc')
         message = randomstring(15)
         priority = '4'
@@ -359,7 +358,7 @@ class TestDexP2Pe2e:
         res = rpc1.DEX_orderbook('', '0', rel, base, '')
         assert not res['asks']
 
-        # cancel order
+        # cancel order by id
         res = rpc1.DEX_cancel(order_pubkey_id)
         assert res.get('tagA') == 'cancel'
         # cancelled order should be excluded from list
@@ -381,6 +380,41 @@ class TestDexP2Pe2e:
         res = rpc1.DEX_list('', '', base, '', '')
         blobs = collect_orderids(res, 'matches')
         assert order_nopub_id in blobs
+
+        # broadcast more orders with different tags to cancel
+        unique_pairs = 2
+        base_list = []
+        rel_list = []
+        for i in range(unique_pairs):
+            base_list.append(randomstring(6))
+            rel_list.append(randomstring(6))
+        message = randomstring(15)
+        amounta = '0.7777'
+        amountb = '0.66'
+        for i in range(unique_pairs):
+            for num in range(5):
+                rpc1.DEX_broadcast((message + str(num)), priority, base_list[i], rel_list[i], pubkey, amounta, amountb)
+                rpc1.DEX_broadcast((message + str(num)), priority, rel_list[i], base_list[i], pubkey, amounta, amountb)
+        time.sleep(15)  # orders should be old enough to be cancelled by tag/pubkey
+
+        # cancel by tags
+        blobs1 = collect_orderids(rpc1.DEX_list('', '', base_list[0], rel_list[0], pubkey), 'matches')
+        blobs2 = collect_orderids(rpc1.DEX_list('', '', base_list[1], rel_list[1], pubkey), 'matches')
+        res = rpc1.DEX_cancel('', '', base_list[0], rel_list[0])  # cancel all orders with pubkey by tags pair
+        cancel = res.get('timestamp')
+        for blob in blobs1:
+            res = rpc1.DEX_get(blob)
+            assert res.get('cancelled') == cancel
+        for blob in blobs2:  # other pairs must be unaffected
+            res = rpc1.DEX_get(blob)
+            assert res.get('cancelled') == 0
+
+        # cancel by pubkey
+        res = rpc1.DEX_cancel('', pubkey)
+        cancel = res.get('timestamp')
+        for blob in blobs2:
+            res = rpc1.DEX_get(blob)
+            assert res.get('cancelled') == cancel
 
     def test_dex_encryption(self, test_params):
         rpc1 = test_params.get('node1').get('rpc')
