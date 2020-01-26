@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Copyright (c) 2020 SuperNET developers
 # Distributed under the MIT software license, see the accompanying
-# file COPYING or http://www.opensource.org/licenses/mit-license.php.
+# file COPYING or https://www.opensource.org/licenses/mit-license.php.
 
 import pytest
 import time
@@ -23,8 +23,7 @@ class TestDexP2Prpc:
             'properties': {
                 'publishable_pubkey': {'type': 'string'},
                 'perfstats': {'type': 'string'}
-            },
-            'required': ['publishable_pubkey']
+            }
         }
         schema_broadcast = {
             'type': 'object',
@@ -354,7 +353,7 @@ class TestDexP2Pe2e:
         priority = '4'
         base = randomstring(6)
         rel = randomstring(6)
-        amounta = '100'
+        amounta = '81.44'
         amountb = '0.7771'
         pubkey = rpc1.DEX_stats().get('publishable_pubkey')
 
@@ -370,8 +369,14 @@ class TestDexP2Pe2e:
         # this simple test works under assumption that random tags are unique
         res = rpc1.DEX_orderbook('', '0', base, rel, '')
         assert not res['bids']
+        price_calc = float(amountb) / float(amounta)
+        price_res = float(res.get('asks')[0].get('price'))
+        assert round(price_calc, 6) == round(price_res, 6)  # rounding due to possible diff in 8th decimal
         res = rpc1.DEX_orderbook('', '0', rel, base, '')
         assert not res['asks']
+        price_calc = float(amounta) / float(amountb)
+        price_res = float(res.get('bids')[0].get('price'))
+        assert round(price_calc, 6) == round(price_res, 6)
 
         # cancel order by id
         res = rpc1.DEX_cancel(order_pubkey_id)
