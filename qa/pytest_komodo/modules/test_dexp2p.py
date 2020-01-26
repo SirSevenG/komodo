@@ -10,7 +10,7 @@ import time
 import sys
 
 sys.path.append('../')
-from basic.pytest_util import validate_template, randomstring, in_99_range, collect_orderids
+from basic.pytest_util import validate_template, randomstring, in_99_range, collect_orderids, randomhex
 
 
 @pytest.mark.usefixtures("proxy_connection")
@@ -124,6 +124,14 @@ class TestDexP2Prpc:
             },
             'required': ['asks', 'bids']
         }
+        schema_setpub = {
+            'type': 'object',
+            'properties': {
+                'result': {'type': 'string'},
+                'publishable_pubkey': {'type': 'string'},
+                'perfstats': {'type': 'string'},
+            }
+        }
         res = rpc1.DEX_stats()
         validate_template(res, schema_stats)
         pubkey = res.get('publishable_pubkey')
@@ -145,7 +153,12 @@ class TestDexP2Prpc:
         validate_template(res, schema_orderbook)
         # cancel order
         res = rpc1.DEX_cancel(order_id)
-        assert res.get('tagA') == 'cancel'  # currently cancel has response similar to broadcast => subject to change
+        validate_template(res, schema_broadcast)
+        # currently cancel has response similar to broadcast => subject to change
+        assert res.get('tagA') == 'cancel'
+        res = rpc1.DEX_setpubkey('01' + randomhex())
+        validate_template(res, schema_setpub)
+        assert res.get('result') == 'success'
 
 
 @pytest.mark.usefixtures("proxy_connection")
@@ -171,8 +184,10 @@ class TestDexP2Pe2e:
         assert float(res.get('amountA')) == float(amounta)
         assert float(res.get('amountB')) == float(amountb)
         assert int(priority) <= int(res.get('priority'))
+
+        # DEX_get should return exact same blob as broadcast above
         get_order = rpc1.DEX_get(str(res.get('id')))
-        assert res == get_order  # should return exact same blob info
+        assert res == get_order
 
         res = rpc1.DEX_broadcast(message_static, priority, '', tagb_valid, pubkey, amounta, amountb)
         assert not res.get('tagA')
@@ -339,8 +354,8 @@ class TestDexP2Pe2e:
         priority = '4'
         base = randomstring(6)
         rel = randomstring(6)
-        amounta = '1000'
-        amountb = '1'
+        amounta = '100'
+        amountb = '0.7771'
         pubkey = rpc1.DEX_stats().get('publishable_pubkey')
 
         # broadcast orderbooks
@@ -437,6 +452,7 @@ class TestDexP2Pe2e:
                 pubkey_res = blob.get('pubkey')
         assert message_res == message
         assert not pubkey_res
+
         # case 2
         # blob with pubkey -- message should be encrypted and visible to key owner
         res = rpc1.DEX_broadcast(message, priority, taga, tagb, pubkey1, '', '')

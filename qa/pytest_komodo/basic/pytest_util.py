@@ -186,3 +186,8 @@ def collect_orderids(rpc_response, dict_key):  # see dexp2p tests in modules
     for item in rpc_response.get(dict_key):
         orderids.append(str(item.get('id')))
     return orderids
+
+
+def randomhex():  # returns 64 chars long pubkey-like hex string
+    chars = string.hexdigits
+    return (''.join(random.choice(chars) for i in range(64))).lower()
