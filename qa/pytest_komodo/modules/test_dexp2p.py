@@ -475,92 +475,92 @@ class TestDexP2Pe2e:
             res = rpc1.DEX_get(blob)
             assert res.get('cancelled') == cancel
 
-#    def test_file_publish(self, test_params):
-#        rpc1 = test_params.get('node1').get('rpc')
-#        rpc2 = test_params.get('node2').get('rpc')
-#        pubkey = rpc1.DEX_stats().get('publishable_pubkey')
-#        filename1 = 'file_' + randomstring(5)
-#        write_file(filename1)
-#        filename2 = 'file_' + randomstring(5)
-#        write_file(filename2)
-#        size1 = get_size(filename1)
-#        size2 = get_size(filename2)
-#        fhash1 = get_filehash(filename1)
-#        fhash2 = get_filehash(filename2)
-#
-#        # publish both files on 1st node
-#        res = rpc1.DEX_publish(filename1, '0')
-#        f_id1 = str(res.get('id'))
-#        assert res.get('result') == 'success'
-#        assert res.get('fname') == filename1
-#        assert res.get('filesize') == size1
-#        assert res.get('filehash') == fhash1
-#        res = rpc1.DEX_publish(filename2, '0')
-#        assert res.get('result') == 'success'
-#        assert res.get('fname') == filename2
-#        assert res.get('filesize') == size2
-#        assert res.get('filehash') == fhash2
-#
-#        # Both nodes should be able locate file by files tag and locators tag
-#        res = rpc1.DEX_list('0', '0', 'files')
-#        f_published = ""
-#        for match in res.get('matches'):
-#            f_published += (match.get('tagB'))  # if tagA is "files", filenames are tagBs
-#        assert filename1 in f_published
-#        assert filename2 in f_published
-#        res = rpc2.DEX_list('0', '0', 'files')
-#        f_published = ""
-#        for match in res.get('matches'):
-#            f_published += (match.get('tagB'))
-#        assert filename1 in f_published
-#        assert filename2 in f_published
-#
-#        res = rpc1.DEX_list('0', '0', filename1, 'locators')
-#        res_fname = res.get('tagA')
-#        match_fname = res.get('matches')[0].get('tagA')
-#        ramount = res.get('matches')[0].get('amountA')
-#        rsize = float(ramount) * 100000000
-#        assert res_fname == filename1
-#        assert match_fname == filename1
-#        assert rsize == size1
-#        res = rpc1.DEX_list('0', '0', filename2, 'locators')
-#        res_fname = res.get('tagA')
-#        match_fname = res.get('matches')[0].get('tagA')
-#        ramount = res.get('matches')[0].get('amountA')
-#        rsize = float(ramount) * 100000000
-#        assert res_fname == filename2
-#        assert match_fname == filename2
-#        assert rsize == size2
-#        res = rpc2.DEX_list('0', '0', filename1, 'locators')
-#        res_fname = res.get('tagA')
-#        match_fname = res.get('matches')[0].get('tagA')
-#        ramount = res.get('matches')[0].get('amountA')
-#        rsize = float(ramount) * 100000000
-#        assert res_fname == filename1
-#        assert match_fname == filename1
-#        assert rsize == size1
-#        res = rpc2.DEX_list('0', '0', filename2, 'locators')
-#        res_fname = res.get('tagA')
-#        match_fname = res.get('matches')[0].get('tagA')
-#        ramount = res.get('matches')[0].get('amountA')
-#        rsize = float(ramount) * 100000000
-#        assert res_fname == filename2
-#        assert match_fname == filename2
-#        assert rsize == size2
-#
-#        # get file by id
-#        res = rpc2.DEX_subscribe(filename1, '0', f_id1)
-#        assert res.get('fname') == filename1
-#        assert res.get('result') == 'success'
-#        assert res.get('filesize') == size1
-#        assert res.get('filehash') == fhash1
-#
-#        # get file with pubkey
-#        res = rpc2.DEX_subscribe(filename2, '0', '0', pubkey)
-#        assert res.get('fname') == filename2
-#        assert res.get('result') == 'success'
-#        assert res.get('filesize') == size2
-#        assert res.get('filehash') == fhash2
+    def test_file_publish(self, test_params):
+        rpc1 = test_params.get('node1').get('rpc')
+        rpc2 = test_params.get('node2').get('rpc')
+        pubkey = rpc1.DEX_stats().get('publishable_pubkey')
+        filename1 = 'file_' + randomstring(5)
+        write_file(filename1)
+        filename2 = 'file_' + randomstring(5)
+        write_file(filename2)
+        size1 = get_size(filename1)
+        size2 = get_size(filename2)
+        fhash1 = get_filehash(filename1)
+        fhash2 = get_filehash(filename2)
+
+        # publish both files on 1st node
+        res = rpc1.DEX_publish(filename1, '0')
+        f_id1 = str(res.get('id'))
+        assert res.get('result') == 'success'
+        assert res.get('fname') == filename1
+        assert res.get('filesize') == size1
+        assert res.get('filehash') == fhash1
+        res = rpc1.DEX_publish(filename2, '0')
+        assert res.get('result') == 'success'
+        assert res.get('fname') == filename2
+        assert res.get('filesize') == size2
+        assert res.get('filehash') == fhash2
+
+        # Both nodes should be able locate file by files tag and locators tag
+        res = rpc1.DEX_list('0', '0', 'files')
+        f_published = ""
+        for match in res.get('matches'):
+            f_published += (match.get('tagB'))  # if tagA is "files", filenames are tagBs
+        assert filename1 in f_published
+        assert filename2 in f_published
+        res = rpc2.DEX_list('0', '0', 'files')
+        f_published = ""
+        for match in res.get('matches'):
+            f_published += (match.get('tagB'))
+        assert filename1 in f_published
+        assert filename2 in f_published
+
+        res = rpc1.DEX_list('0', '0', filename1, 'locators')
+        res_fname = res.get('tagA')
+        match_fname = res.get('matches')[0].get('tagA')
+        ramount = res.get('matches')[0].get('amountA')
+        rsize = float(ramount) * 100000000
+        assert res_fname == filename1
+        assert match_fname == filename1
+        assert rsize == size1
+        res = rpc1.DEX_list('0', '0', filename2, 'locators')
+        res_fname = res.get('tagA')
+        match_fname = res.get('matches')[0].get('tagA')
+        ramount = res.get('matches')[0].get('amountA')
+        rsize = float(ramount) * 100000000
+        assert res_fname == filename2
+        assert match_fname == filename2
+        assert rsize == size2
+        res = rpc2.DEX_list('0', '0', filename1, 'locators')
+        res_fname = res.get('tagA')
+        match_fname = res.get('matches')[0].get('tagA')
+        ramount = res.get('matches')[0].get('amountA')
+        rsize = float(ramount) * 100000000
+        assert res_fname == filename1
+        assert match_fname == filename1
+        assert rsize == size1
+        res = rpc2.DEX_list('0', '0', filename2, 'locators')
+        res_fname = res.get('tagA')
+        match_fname = res.get('matches')[0].get('tagA')
+        ramount = res.get('matches')[0].get('amountA')
+        rsize = float(ramount) * 100000000
+        assert res_fname == filename2
+        assert match_fname == filename2
+        assert rsize == size2
+
+        # get file by id
+        res = rpc2.DEX_subscribe(filename1, '0', f_id1)
+        assert res.get('fname') == filename1
+       assert res.get('result') == 'success'
+        assert res.get('filesize') == size1
+        assert res.get('filehash') == fhash1
+
+        # get file with pubkey
+        res = rpc2.DEX_subscribe(filename2, '0', '0', pubkey)
+        assert res.get('fname') == filename2
+        assert res.get('result') == 'success'
+        assert res.get('filesize') == size2
+        assert res.get('filehash') == fhash2
 
     def test_dex_encryption(self, test_params):
         rpc1 = test_params.get('node1').get('rpc')
