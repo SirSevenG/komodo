@@ -191,3 +191,21 @@ def collect_orderids(rpc_response, dict_key):  # see dexp2p tests in modules
 def randomhex():  # returns 64 chars long pubkey-like hex string
     chars = string.hexdigits
     return (''.join(random.choice(chars) for i in range(64))).lower()
+
+
+def write_file(filename):
+    lines = 10
+    content = ''
+    for x in range(lines):
+        content += randomhex() + '\n'
+    with open(filename, 'w') as f:
+        f.write(str('filename\n'))
+        f.write(content)
+    return True
+
+
+def get_size(file):
+    if os.path.isfile(file):
+        return os.path.getsize(file)
+    else:
+        raise FileNotFoundError

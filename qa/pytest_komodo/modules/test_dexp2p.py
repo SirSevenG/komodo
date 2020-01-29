@@ -6,11 +6,12 @@
 import pytest
 import time
 # from decimal import *
-# import os
+import os
 import sys
 
 sys.path.append('../')
-from basic.pytest_util import validate_template, randomstring, in_99_range, collect_orderids, randomhex
+from basic.pytest_util import validate_template, randomstring, in_99_range, collect_orderids,\
+                              randomhex, get_size, write_file
 
 
 @pytest.mark.usefixtures("proxy_connection")
@@ -131,30 +132,65 @@ class TestDexP2Prpc:
                 'perfstats': {'type': 'string'},
             }
         }
+        schema_publish_subscribe = {
+            'type': 'object',
+            'properties': {
+                'fname': {'type': 'string'},
+                'result': {'type': 'string'},
+                'id': {'type': 'integer'},
+                'senderpub': {'type': 'string'},
+                'filesize': {'type': 'integer'},
+                'fragments': {'type': 'integer'},
+                'numlocators': {'type': 'integer'},
+                'filehash': {'type': 'string'}
+            }
+        }
         res = rpc1.DEX_stats()
         validate_template(res, schema_stats)
         pubkey = res.get('publishable_pubkey')
+
         # inbox message broadcast
         message = 'testmessage'
         res = rpc1.DEX_broadcast(message, '4', 'inbox', '', pubkey, '', '')
         validate_template(res, schema_broadcast)
+
         # check dexlist
         res = rpc1.DEX_list('', '4', '', '', pubkey)
         validate_template(res, schema_list)
+
         # orderbook broadcast
         res = rpc1.DEX_broadcast(message, '4', 'BASE', 'REL', pubkey, '100', '1')
         order_id = str(res.get('id'))
         validate_template(res, schema_broadcast)
+
+        # check get id
         res = rpc1.DEX_get(order_id)
         validate_template(res, schema_broadcast)  # same response to broadcast
+
         # check orderbook
         res = rpc1.DEX_orderbook('', '0', 'BASE', 'REL')
         validate_template(res, schema_orderbook)
+
         # cancel order
         res = rpc1.DEX_cancel(order_id)
         validate_template(res, schema_broadcast)
         # currently cancel has response similar to broadcast => subject to change
         assert res.get('tagA') == 'cancel'
+
+        # publish file
+        file = 'to_publish.txt'
+        write_file(file)
+        res = rpc1.DEX_publish(file, '0')
+        validate_template(res, schema_publish_subscribe)
+        print(res)
+        assert res.get('result') == 'success'
+
+        # subscribe to published file
+        res = rpc1.DEX_subscribe(file, '0', '0', pubkey)
+        validate_template(res, schema_publish_subscribe)
+        assert res.get('result') == 'success'
+
+        # check setpubkey with random pubkey-like string
         res = rpc1.DEX_setpubkey('01' + randomhex())
         validate_template(res, schema_setpub)
         assert res.get('result') == 'success'
@@ -327,6 +363,7 @@ class TestDexP2Pe2e:
         assert int(res.get('n')) == 14
         res = rpc1.DEX_list(stopat, minpriority[0], taga, tagb, '')
         assert int(res.get('n')) == 20
+
         # check amounts
         res = rpc1.DEX_list(stopat, minpriority[0], taga, tagb, '', amounta[1], amounta[0], amountb[1], amountb[0])
         assert int(res.get('n')) == 20
@@ -336,11 +373,13 @@ class TestDexP2Pe2e:
         assert int(res.get('n')) == 20
         res = rpc1.DEX_list(stopat, minpriority[0], taga, tagb, '', amounta[0], '', '', '')
         assert int(res.get('n')) == 10
+
         # check stopat
         res = rpc1.DEX_list(str(ids[1]), minpriority[0], taga, '', '')
         assert int(res.get('n')) == 0  # ids[1] is last id
         res = rpc1.DEX_list(str(ids[0]), minpriority[0], taga, '', '')
         assert int(res.get('n')) == 16
+
         # check stophash
         res = rpc1.DEX_list(stopat, minpriority[0], taga, '', '', '', '', '', '', hashes[1])
         assert int(res.get('n')) == 0  # hashes[1] is the last orders' hash
@@ -435,6 +474,40 @@ class TestDexP2Pe2e:
         for blob in blobs2:
             res = rpc1.DEX_get(blob)
             assert res.get('cancelled') == cancel
+
+    # not yet ready
+    #def test_file_publish(self, test_params):
+        #rpc1 = test_params.get('node1').get('rpc')
+        #rpc2 = test_params.get('node2').get('rpc')
+        #pubkey = rpc1.DEX_stats().get('publishable_pubkey')
+        #filename1 = 'file_' + randomstring(5)
+        #write_file(filename1)
+        #filename2 = 'file_' + randomstring(5)
+        #write_file(filename2)
+        #size1 = get_size(filename1)
+        #size2 = get_size(filename2)
+#
+        ## publish both files on 1st node
+        #res = rpc1.DEX_publish(filename1, '0')
+        #assert not res  # empty response on success => subject to change
+        #res = rpc1.DEX_publish(filename2, '0')
+        #assert not res
+#
+        ## Both nodes should be able locate file by files tag and locators tag
+        ## os.path.getsize(file_path)
+        #res = rpc1.DEX_list('0', '0', 'files')
+        #print(res)
+        #res = rpc2.DEX_list('0', '0', 'files')
+        #print(res)
+        #res = rpc1.DEX_list('0', '0', filename1, 'locators')
+        #print(res)
+        #res = rpc1.DEX_list('0', '0', filename2, 'locators')
+        #print(res)
+        #res = rpc2.DEX_list('0', '0', filename1, 'locators')
+        #print(res)
+        #res = rpc2.DEX_list('0', '0', filename2, 'locators')
+        #print(res)
+
 
     def test_dex_encryption(self, test_params):
         rpc1 = test_params.get('node1').get('rpc')
