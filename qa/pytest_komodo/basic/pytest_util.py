@@ -3,6 +3,7 @@ import jsonschema
 import os
 import random
 import string
+import hashlib
 try:
     from slickrpc import Proxy
     from slickrpc.exc import RpcException as RPCError
@@ -207,5 +208,15 @@ def write_file(filename):
 def get_size(file):
     if os.path.isfile(file):
         return os.path.getsize(file)
+    else:
+        raise FileNotFoundError
+
+
+def get_filehash(file):
+    if os.path.isfile(file):
+        with open(file, "rb") as f:
+            bytez = f.read()  # read entire file as bytes
+            fhash = hashlib.sha256(bytez).hexdigest()
+        return str(fhash)
     else:
         raise FileNotFoundError
