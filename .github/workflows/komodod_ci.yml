@@ -246,7 +246,6 @@ jobs:
           ./zcutil/fetch-params.sh
           cd qa/pytest_komodo
           ./ci_setup.sh cc_modules/test_heir.py
-          
 
 #  linux-test-dexp2p:
 #    name: Test (Linux/DEXP2P)
@@ -283,8 +282,7 @@ jobs:
 #          ./zcutil/fetch-params.sh
 #          cd qa/pytest_komodo
 #          ./ci_set_dex.sh
-#
-#
+
   windows-build:
 
     name: Win Build
