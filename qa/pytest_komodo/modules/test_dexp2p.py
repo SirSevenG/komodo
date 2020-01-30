@@ -551,7 +551,7 @@ class TestDexP2Pe2e:
         # get file by id
         res = rpc2.DEX_subscribe(filename1, '0', f_id1)
         assert res.get('fname') == filename1
-       assert res.get('result') == 'success'
+        assert res.get('result') == 'success'
         assert res.get('filesize') == size1
         assert res.get('filehash') == fhash1
 
