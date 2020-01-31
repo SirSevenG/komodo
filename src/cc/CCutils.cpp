@@ -1014,7 +1014,7 @@ uint8_t *_SuperNET_decipher(uint8_t nonce[crypto_box_NONCEBYTES],uint8_t *cipher
 
 uint8_t *SuperNET_deciphercalc(uint8_t *senderpub,uint8_t **ptrp,int32_t *msglenp,bits256 privkey,uint8_t *cipher,int32_t cipherlen)
 {
-    bits256 srcpubkey; uint8_t *origptr,*nonce,*message; uint8_t *retptr;
+    bits256 srcpubkey; uint8_t *origptr,*nonce,*message; uint8_t *retptr = 0;
     message = (uint8_t *)calloc(1,cipherlen);
     *ptrp = message;
     origptr = cipher;
@@ -1025,7 +1025,7 @@ uint8_t *SuperNET_deciphercalc(uint8_t *senderpub,uint8_t **ptrp,int32_t *msglen
     nonce = cipher;
     cipher += crypto_box_NONCEBYTES, cipherlen -= crypto_box_NONCEBYTES;
     *msglenp = cipherlen - crypto_box_ZEROBYTES;
-    if ( (retptr= _SuperNET_decipher(nonce,cipher,message,cipherlen,srcpubkey,privkey)) == 0 )
+    if ( *msglenp <= 0 || (retptr= _SuperNET_decipher(nonce,cipher,message,cipherlen,srcpubkey,privkey)) == 0 )
     {
         *msglenp = -1;
         free(*ptrp);
@@ -1086,7 +1086,12 @@ uint8_t *komodo_DEX_encrypt(uint8_t **allocatedp,uint8_t *data,int32_t *datalenp
 uint8_t *komodo_DEX_decrypt(uint8_t *senderpub,uint8_t **allocatedp,uint8_t *data,int32_t *datalenp,bits256 privkey)
 {
     int32_t msglen;
-    msglen = *datalenp;
+    *allocatedp = 0;
+    if ( (msglen= *datalenp) <= crypto_box_NONCEBYTES + crypto_box_ZEROBYTES + sizeof(bits256) )
+    {
+        *datalenp = 0;
+        return(0);
+    }
     if ( (data= SuperNET_deciphercalc(senderpub,allocatedp,&msglen,privkey,data,*datalenp)) == 0 )
     {
         printf("komodo_DEX_decrypt decrytion error\n");

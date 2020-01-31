@@ -37,9 +37,8 @@
 todo:
  detect peer restarted and peerclear
  auto compare sha256
- incremental protocol for subscribe
- https://paste.ubuntu.com/p/gjCq2GYqTs/ crashlog
- 
+ incremental protocol for subscribe, have a publish mode for "append only", update only most recent blocks offset0
+
  the payload is rejected, so it is in the orderbook falsely. i guess i need to check for such wrong senders and not put it in the orderbook, or just reject it completely [wrong sender broadcast]
 
 payments:
@@ -50,7 +49,6 @@ payments:
  
  
 later:
- have a publish mode for "append only", update only most recent blocks offset0
  defend against memory overflow
  defend against pingpong attack with pongbits
  shamirs sharding of data
@@ -96,8 +94,8 @@ int32_t komodo_DEX_request(int32_t priority,uint32_t shorthash,uint32_t timestam
 #define KOMODO_DEX_MAXPACKETSIZE (1 << 20)
 #define KOMODO_DEX_MAXPRIORITY 32 // a millionX should be enough, but can be as high as 64 - KOMODO_DEX_TXPOWBITS
 #define KOMODO_DEX_TXPOWBITS 4    // should be 11 for approx 1 sec per tx
-#define KOMODO_DEX_VIPLEVEL 8   // if all are VIP it will try to 100% sync all nodes
-#define KOMODO_DEX_CMDPRIORITY (KOMODO_DEX_VIPLEVEL + 4) // minimum extra priority for commands
+#define KOMODO_DEX_VIPLEVEL 5   // if all are VIP it will try to 100% sync all nodes
+#define KOMODO_DEX_CMDPRIORITY (KOMODO_DEX_VIPLEVEL + 2) // minimum extra priority for commands
 #define KOMODO_DEX_POLLVIP 30
 
 #define KOMODO_DEX_TXPOWDIVBITS 12 // each doubling of size, increases minpriority
@@ -1594,14 +1592,16 @@ UniValue komodo_DEXbroadcast(uint64_t *locatorp,uint8_t funcid,char *hexstr,int3
         len = 0;
         len = iguana_rwnum(1,&quote[len],sizeof(amountA),&amountA);
         len += iguana_rwnum(1,&quote[len],sizeof(amountB),&amountB);
-        if ( destpub33[0] == 0 )
+        /*if ( destpub33[0] == 0 )
         {
             quote[len++] = 33;
             destpubflag = 1;
             quote[len++] = 0x01;
+            destpub[0] = 0x01;
+            memcpy(&destpub[1],DEX_pubkey.bytes,32);
             memcpy(&quote[len],DEX_pubkey.bytes,32), len += 32;
         }
-        else if ( is_hexstr(destpub33,0) == 66 )
+        else */ if ( is_hexstr(destpub33,0) == 66 )
         {
             decode_hex(destpub,33,destpub33);
             quote[len++] = 33;
@@ -2585,9 +2585,9 @@ UniValue komodo_DEXpublish(char *fname,int32_t priority,int32_t rescan)
         init_hexbytes_noT(hexstr,locators,(int32_t)((numlocators+1) * sizeof(uint64_t)));
         sprintf(volAstr,"%llu.%08llu",(long long)fsize/COIN,(long long)fsize % COIN);
         sprintf(volBstr,"%llu.%08llu",(long long)numlocators/COIN,(long long)numlocators % COIN);
-        komodo_DEXbroadcast(0,'Q',hexstr,priority+KOMODO_DEX_CMDPRIORITY,fname,(char *)"locators",pubkeystr,volAstr,volBstr);
+        komodo_DEXbroadcast(0,'Q',hexstr,priority+KOMODO_DEX_VIPLEVEL,fname,(char *)"locators",pubkeystr,volAstr,volBstr);
         bits256_str(hexstr,filehash);
-        komodo_DEXbroadcast(0,'Q',hexstr,priority+KOMODO_DEX_CMDPRIORITY,(char *)"files",fname,pubkeystr,volAstr,volBstr);
+        komodo_DEXbroadcast(0,'Q',hexstr,priority+KOMODO_DEX_VIPLEVEL,(char *)"files",fname,pubkeystr,volAstr,volBstr);
         free(hexstr);
         fprintf(stderr,"volAstr %s for %ld, num broadcast.%d\n",volAstr,fsize,changed);
     }
