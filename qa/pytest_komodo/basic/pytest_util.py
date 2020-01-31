@@ -182,6 +182,13 @@ def in_99_range(compare, base):
         return False
 
 
+def compare_rough(base, comp, limit=30):
+    if base >= comp - limit:
+        return True
+    else:
+        return False
+
+
 def collect_orderids(rpc_response, dict_key):  # see dexp2p tests in modules
     orderids = []
     for item in rpc_response.get(dict_key):

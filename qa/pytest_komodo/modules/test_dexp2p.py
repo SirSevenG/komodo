@@ -11,7 +11,7 @@ import sys
 
 sys.path.append('../')
 from basic.pytest_util import validate_template, randomstring, in_99_range, collect_orderids,\
-                              randomhex, get_size, write_file, get_filehash
+                              randomhex, get_size, write_file, get_filehash, compare_rough
 
 
 @pytest.mark.usefixtures("proxy_connection")
@@ -473,7 +473,7 @@ class TestDexP2Pe2e:
         cancel = res.get('timestamp')
         for blob in blobs1:
             res = rpc1.DEX_get(blob)
-            assert res.get('cancelled') == cancel
+            assert compare_rough(cancel, res.get('cancelled'))  # should be cancelled in 30s
         for blob in blobs2:  # other pairs must be unaffected
             res = rpc1.DEX_get(blob)
             assert res.get('cancelled') == 0
@@ -483,7 +483,7 @@ class TestDexP2Pe2e:
         cancel = res.get('timestamp')
         for blob in blobs2:
             res = rpc1.DEX_get(blob)
-            assert res.get('cancelled') == cancel
+            assert compare_rough(cancel, res.get('cancelled'))
 
     def test_file_publish(self, test_params):
         rpc1 = test_params.get('node1').get('rpc')
