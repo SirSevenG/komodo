@@ -243,7 +243,8 @@ class TestDexP2Pe2e:
         res = rpc1.DEX_broadcast(message_static, priority, taga_valid, tagb_valid, '', amounta, amountb)
         assert res.get('tagA') == taga_valid
         assert res.get('tagB') == tagb_valid
-        assert not res.get('pubkey')
+        assert res.get(
+            'pubkey') == pubkey  # currently falls back to default DEX_pubkey if not specified, subject to change
         assert float(res.get('amountA')) == float(amounta)
         assert float(res.get('amountB')) == float(amountb)
         assert int(priority) <= int(res.get('priority'))
@@ -251,7 +252,9 @@ class TestDexP2Pe2e:
         res = rpc1.DEX_broadcast(message_static, priority, '', tagb_valid, '', amounta, amountb)
         assert not res.get('tagA')
         assert res.get('tagB') == tagb_valid
-        assert not res.get('pubkey')
+        # assert not res.get('pubkey')
+        assert res.get(
+            'pubkey') == pubkey  # currently falls back to default DEX_pubkey if not specified, subject to change
         assert float(res.get('amountA')) == float(amounta)
         assert float(res.get('amountB')) == float(amountb)
         assert int(priority) <= int(res.get('priority'))
@@ -259,7 +262,9 @@ class TestDexP2Pe2e:
         res = rpc1.DEX_broadcast(message_static, priority, taga_valid, '', '', amounta, amountb)
         assert not res.get('tagB')
         assert res.get('tagA') == taga_valid
-        assert not res.get('pubkey')
+        # assert not res.get('pubkey')
+        assert res.get(
+            'pubkey') == pubkey  # currently falls back to default DEX_pubkey if not specified, subject to change
         assert float(res.get('amountA')) == float(amounta)
         assert float(res.get('amountB')) == float(amountb)
         assert int(priority) <= int(res.get('priority'))
@@ -276,7 +281,10 @@ class TestDexP2Pe2e:
         assert res.get('tagA') == 'general'
         assert not res.get('tagB')
         assert not res.get('destpub')
-        assert res.get('payload') == message_static
+        assert res.get(
+            'pubkey') == pubkey  # currently falls back to default DEX_pubkey if not specified, subject to change
+        # assert res.get('payload') == message_static
+        assert res.get('decrypted') == message_static
         assert int(priority) <= int(res.get('priority'))
 
         # tags are restricted to 15 characters, rpc should fail or return -1
@@ -356,11 +364,11 @@ class TestDexP2Pe2e:
         assert int(res.get('n')) >= 26  # including previous broadcasts with same pubkey, might be more than 26
         # in case when tests are run together
         res = rpc1.DEX_list(stopat, minpriority[0], taga, tagb, pubkey)
-        assert int(res.get('n')) == 8
+        assert int(res.get('n')) == 20  # 8 prev
         res = rpc1.DEX_list(stopat, minpriority[0], taga, '', pubkey)
-        assert int(res.get('n')) == 14
+        assert int(res.get('n')) == 32  # 14 prev
         res = rpc1.DEX_list(stopat, minpriority[0], '', tagb, pubkey)
-        assert int(res.get('n')) == 14
+        assert int(res.get('n')) == 32  # 14 prev, atm should be same as above due to DEX_pubkey changes
         res = rpc1.DEX_list(stopat, minpriority[0], taga, tagb, '')
         assert int(res.get('n')) == 20
 
@@ -430,15 +438,17 @@ class TestDexP2Pe2e:
             if str(blob.get('id')) == order_pubkey_id:
                 assert blob.get('cancelled') > 0
 
-        # orders broadcast without pubkey should not be cancelled
-        res = rpc1.DEX_cancel(order_nopub_id)
-        assert res.get('tagA') == 'cancel'
-        res = rpc1.DEX_orderbook('', '0', base, rel, '')
-        orders = collect_orderids(res, 'asks')
-        assert order_nopub_id in orders
-        res = rpc1.DEX_list('', '', base, '', '')
-        blobs = collect_orderids(res, 'matches')
-        assert order_nopub_id in blobs
+        # not actual atm, will be canceled
+        # TODO: change list check
+        # # orders broadcast without pubkey should not be cancelled
+        # res = rpc1.DEX_cancel(order_nopub_id)
+        # assert res.get('tagA') == 'cancel'
+        # res = rpc1.DEX_orderbook('', '0', base, rel, pubkey)  # no pubkey prev
+        # orders = collect_orderids(res, 'asks')
+        # # assert order_nopub_id in orders
+        # res = rpc1.DEX_list('', '', base, '', '')
+        # blobs = collect_orderids(res, 'matches')
+        # assert order_nopub_id in blobs
 
         # broadcast more orders with different tags to cancel
         unique_pairs = 2
@@ -500,6 +510,7 @@ class TestDexP2Pe2e:
         assert res.get('fname') == filename2
         assert res.get('filesize') == size2
         assert res.get('filehash') == fhash2
+        time.sleep(15)  # time to broadcast files to node1
 
         # Both nodes should be able locate file by files tag and locators tag
         res = rpc1.DEX_list('0', '0', 'files')
@@ -579,10 +590,11 @@ class TestDexP2Pe2e:
         pubkey_res = ''
         for blob in res.get('matches'):
             if blob.get('id') == blob_bc_id:
-                message_res = blob.get('payload')
+                # message_res = blob.get('payload')
+                message_res = blob.get('decrypted')  # subject to change
                 pubkey_res = blob.get('pubkey')
         assert message_res == message
-        assert not pubkey_res
+        # assert not pubkey_res
 
         # case 2
         # blob with pubkey -- message should be encrypted and visible to key owner
