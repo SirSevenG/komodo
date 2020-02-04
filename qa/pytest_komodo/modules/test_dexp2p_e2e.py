@@ -316,11 +316,12 @@ class TestDexP2Pe2e:
         assert res.get('filesize') == size1
         assert res.get('filehash') == fhash1
         res = rpc1.DEX_publish(filename2, '0')
+        f_id2 = str(res.get('id'))
         assert res.get('result') == 'success'
         assert res.get('fname') == filename2
         assert res.get('filesize') == size2
         assert res.get('filehash') == fhash2
-        time.sleep(15)  # time to broadcast files to node1
+        time.sleep(20)  # time to broadcast files to node1
 
         # Both nodes should be able locate file by files tag and locators tag
         res = rpc1.DEX_list('0', '0', 'files')
@@ -369,14 +370,20 @@ class TestDexP2Pe2e:
         assert match_fname == filename2
         assert rsize == size2
 
-        # get file by id
+        # get 1st file
+        # Incorrect locators
+        res = rpc2.DEX_subscribe(filename1, '0', f_id2, pubkey)
+        assert res.get('result') == 'error'
+        # No pubkey
         res = rpc2.DEX_subscribe(filename1, '0', f_id1)
+        assert res.get('result') == 'error'
+        res = rpc2.DEX_subscribe(filename1, '0', '0', pubkey)
         assert res.get('fname') == filename1
         assert res.get('result') == 'success'
         assert res.get('filesize') == size1
         assert res.get('filehash') == fhash1
 
-        # get file with pubkey
+        # get 2nd file
         res = rpc2.DEX_subscribe(filename2, '0', '0', pubkey)
         assert res.get('fname') == filename2
         assert res.get('result') == 'success'
