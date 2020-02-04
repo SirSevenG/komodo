@@ -2315,6 +2315,12 @@ UniValue komodo_DEXsubscribe(int32_t &cmpflag,char *origfname,int32_t priority,u
         result.push_back(Pair((char *)"sliceid",(int64_t)sliceid));
         return(result);
     }
+    if ( publisher == 0 || publisher[0] == 0 || strlen(publisher) > 66 )
+    {
+        result.push_back(Pair((char *)"result",(char *)"error"));
+        result.push_back(Pair((char *)"error",(char *)"need publisher pubkey for sub"));
+        return(result);
+    }
     mult = KOMODO_DEX_FILEBUFSIZE * KOMODO_DEX_STREAMSIZE;
     if ( sliceid > 0 )
     {
@@ -2624,7 +2630,7 @@ UniValue komodo_DEXpublish(char *fname,int32_t priority,int32_t sliceid)
                         sprintf(&bufstr[i<<1],"%02x",buf[i]);
                     bufstr[i<<1] = 0;
                     sprintf(volAstr,"%llu.%08llu",(long long)volA/COIN,(long long)volA % COIN);
-                    komodo_DEXbroadcast(&locator,'Q',bufstr,0,fname,(char *)"data",pubkeystr,volAstr,(char *)"");
+                    komodo_DEXbroadcast(&locator,'Q',bufstr,KOMODO_DEX_VIPLEVEL/2,fname,(char *)"data",pubkeystr,volAstr,(char *)"");
                     iguana_rwnum(1,&locators[volA*sizeof(uint64_t) + sizeof(uint64_t)],sizeof(locator),&locator);
                     changed++;
                     //fprintf(stderr,"broadcast locator.%d of %d: t.%u h.%08x %llx fraglen.%d\n",(int32_t)volA,n,(uint32_t)(locator >> 32) % KOMODO_DEX_PURGETIME,(uint32_t)locator,(long long)*(uint64_t *)&locators[volA*sizeof(uint64_t) + sizeof(uint64_t)],rlen);
@@ -2730,11 +2736,25 @@ UniValue komodo_DEXstream(char *fname,int32_t priority)
 
 UniValue komodo_DEXstreamsub(char *fname,int32_t priority,char *pubkeystr)
 {
+    static char prevfname[512],prevpubkeystr[67]; static int32_t prevsliceid;
     UniValue result(UniValue::VOBJ); FILE *fp=0; uint64_t mult,filesize=0,offset0; char slicefname[512],tagBstr[33]; int32_t sliceid,n,cmpflag; struct DEX_datablob *ptr;
+    if ( pubkeystr == 0 || pubkeystr[0] == 0 || strlen(pubkeystr) > 66 )
+    {
+        result.push_back(Pair((char *)"result",(char *)"error"));
+        result.push_back(Pair((char *)"error",(char *)"need publisher pubkey for sub"));
+        return(result);
+    }
+    if ( strcmp(prevfname,fname) != 0 || strcmp(prevpubkeystr,pubkeystr) != 0 )
+    {
+        strcpy(prevfname,fname);
+        strcpy(prevpubkeystr,pubkeystr);
+        prevsliceid = 1;
+    }
     mult = KOMODO_DEX_FILEBUFSIZE * KOMODO_DEX_STREAMSIZE;
     n = (int32_t)(filesize / mult);
-    for (sliceid=1; sliceid<1000; sliceid++)
+    for (sliceid=prevsliceid; sliceid<1000; sliceid++)
     {
+        prevsliceid = sliceid;
         offset0 = (sliceid - 1) * mult;
         sprintf(slicefname,"%s.%llu.%s",fname,(long long)offset0,pubkeystr);
         if ( (fp=fopen(slicefname,"rb")) == 0 )
