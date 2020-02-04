@@ -675,7 +675,7 @@ int32_t _DEX_updatetips(struct DEX_index *tips[KOMODO_DEX_MAXINDICES],int32_t pr
     memset(tips,0,sizeof(*tips) * KOMODO_DEX_MAXINDICES);
     if ( lenA == 0 && lenB == 0 && plen == 0 )
         return(0);
-    if ( plen != 0 )
+    if ( plen == 33 )
     {
         if ( (tips[ind]= _DEX_indexsearch(ind,priority,ptr,plen,destpub,0,0)) == 0 )
             mask |= (1 << (ind+16));
@@ -2734,6 +2734,28 @@ UniValue komodo_DEXstream(char *fname,int32_t priority)
     return(komodo_DEXpublish(fname,priority,sliceid));
 }
 
+FILE *komodo_DEX_streamwrite(char *destfname,FILE *fp,uint64_t wlen,uint64_t offset0)
+{
+    uint8_t *buf;
+    buf = (uint8_t *)malloc(wlen);
+    rewind(fp);
+    if ( fread(buf,1,wlen,fp) != wlen )
+        fprintf(stderr,"error reading %llu slice for %s\n",(long long)wlen,destfname);
+    fclose(fp);
+    if ( (fp= fopen(destfname,"rb+")) == 0 )
+        fp = fopen(destfname,"wb");
+    if ( fp != 0 )
+    {
+        fseek(fp,offset0,SEEK_SET);
+        if ( fwrite(buf,1,wlen,fp) != wlen )
+            fprintf(stderr,"error writing %llu slice to %s\n",(long long)wlen,destfname);
+        fclose(fp);
+        fp = 0;
+    }
+    free(buf);
+    return(fp);
+}
+
 UniValue komodo_DEXstreamsub(char *fname,int32_t priority,char *pubkeystr)
 {
     static char prevfname[512],prevpubkeystr[67]; static int32_t prevsliceid;
@@ -2764,16 +2786,25 @@ UniValue komodo_DEXstreamsub(char *fname,int32_t priority,char *pubkeystr)
             fseek(fp,0,SEEK_END);
             if ( (filesize= ftell(fp)) < mult )
             {
-                fclose(fp);
+                if ( filesize > 0 )
+                    fp = komodo_DEX_streamwrite(fname,fp,filesize,offset0);
+                if ( fp != 0 )
+                    fclose(fp);
+                fp = 0;
                 break;
             }
-            fclose(fp);
             if ( filesize == mult )
             {
                 result = komodo_DEXsubscribe(cmpflag,fname,priority,0,pubkeystr,sliceid);
                 if ( cmpflag == 0 )
+                {
+                    fclose(fp);
+                    fp = 0;
                     return(result);
+                } else fp = komodo_DEX_streamwrite(fname,fp,filesize,offset0);
             }
+            if ( fp != 0 )
+                fclose(fp);
         }
     }
     return(komodo_DEXsubscribe(cmpflag,fname,priority,0,pubkeystr,sliceid));
