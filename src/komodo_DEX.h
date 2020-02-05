@@ -1504,24 +1504,43 @@ int32_t komodo_DEX_decryptbuf(uint8_t *buf,int32_t maxlen,struct DEX_datablob *p
     return(newlen);
 }
 
-uint8_t *komodo_DEX_anondecode(bits256 *senderpub,uint8_t **allocatedp,uint8_t *data,int32_t *datalenp)
+uint8_t *komodo_DEX_anondecode(bits256 *senderpub,uint8_t **allocatedp,uint8_t **allocated2p,uint8_t *data,int32_t *datalenp)
 {
-    bits256 priv0; uint8_t *decoded; int32_t i,newlen;
+    bits256 priv0; uint8_t *decoded=0,*decoded2=0; int32_t i,newlen,newlen2; bits256 sender; char str[65];
     komodo_DEX_privkey(priv0);
     newlen = *datalenp;
-    if ( (decoded= komodo_DEX_decrypt(senderpub->bytes,allocatedp,data,&newlen,priv0)) != 0 )
+    memset(senderpub,0,sizeof(*senderpub));
+    if ( (decoded= komodo_DEX_decrypt(sender.bytes,allocatedp,data,&newlen,priv0)) != 0 )
     {
-        for (i=0; i<newlen-1; i++)
-            if ( isprint(decoded[i]) == 0 )
-                break;
-        if ( decoded[i] == 0 )
-            *datalenp = i;
-        else *datalenp = -2;
+        if ( memcmp(sender.bytes,&GENESIS_PUBKEY,32) == 0 )
+        {
+            newlen2 = newlen;
+            if ( (decoded2= komodo_DEX_decrypt(senderpub->bytes,allocated2p,decoded,&newlen2,priv0)) != 0 )
+            {
+                for (i=0; i<newlen2; i++)
+                    fprintf(stderr,"%02x",decoded2[i]);
+                fprintf(stderr,"newlen2.%d newlen.%d\n",newlen2,newlen);
+                for (i=0; i<newlen-1; i++)
+                    if ( isprint(decoded2[i]) == 0 )
+                        break;
+                if ( decoded2[i] == 0 )
+                    *datalenp = i;
+                else *datalenp = -2;
+            } else *datalenp = -4;
+        }
+        else
+        {
+            fprintf(stderr,"first encryption not from genesispubkey %s\n",bits256_str(str,sender));
+            *datalenp = -3;
+        }
     } else *datalenp = -1;
     memset(&priv0,0,sizeof(priv0));
     if ( *datalenp < 0 )
+    {
+        fprintf(stderr,"anondecode error.%d\n",*datalenp);
         return(0);
-    return(decoded);
+    }
+    return(decoded2);
 }
 
 uint64_t komodo_DEX_convert64(char *numstr)
@@ -1552,8 +1571,8 @@ UniValue komodo_DEX_dataobj(struct DEX_datablob *ptr)
         komodo_DEX_payloadstr(item,decoded,newlen,1);
         if ( ptr->data[1] == 'A' && strcmp(taga,(char *)"anon") == 0 )
         {
-            uint8_t *anonallocated = 0; int32_t anonlen = newlen; char *anonmsg,senderstr[67]; bits256 senderpub;
-            if ( (anonmsg= (char *)komodo_DEX_anondecode(&senderpub,&anonallocated,decoded,&anonlen)) != 0 )
+            uint8_t *anonallocated = 0,*anonallocated2=0; int32_t anonlen = newlen; char *anonmsg,senderstr[67]; bits256 senderpub;
+            if ( (anonmsg= (char *)komodo_DEX_anondecode(&senderpub,&anonallocated,&anonallocated2,decoded,&anonlen)) != 0 )
             {
                 item.push_back(Pair((char *)"anonmsg",anonmsg));
                 senderstr[0] = '0';
@@ -1563,6 +1582,8 @@ UniValue komodo_DEX_dataobj(struct DEX_datablob *ptr)
             }
             if ( anonallocated != 0 )
                 free(anonallocated);
+            if ( anonallocated2 != 0 )
+                free(anonallocated2);
         }
      }
     if ( newlen < 0 )
