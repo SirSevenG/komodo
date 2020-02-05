@@ -428,3 +428,24 @@ class TestDexP2Pe2e:
         assert message_res != message
         assert decrypt_res == message
         assert pubkey_res == pubkey1
+
+    def test_dex_anonsend(self, test_params):
+        rpc1 = test_params.get('node1').get('rpc')
+        rpc2 = test_params.get('node2').get('rpc')
+        pub = rpc1.DEX_stats().get('publishable_pubkey')
+        destpub = rpc2.DEX_stats().get('publishable_pubkey')
+        message = randomstring(22)
+
+        # send message to 2nd node
+        res = rpc1.DEX_anonsend(message, '4', destpub)
+        msg_id = res.get('id')
+        time.sleep(15)  # time for broadcasting
+
+        # check message on 2nd node
+        res = rpc2.DEX_list('', '', 'anon')
+        assert res.get('result') == 'success'
+        matches = res.get('matches')
+        for match in matches:
+            if match.get('id') == msg_id:
+                assert match.get('anonmsg') == message
+                assert match.get('anonsender') == pub
