@@ -35,7 +35,11 @@
  
  
 todo:
- get close to bitmessage level privacy in realtime
+ permissioned list of pubkeys
+    updatentz argv[1] -> system(getblockhash) -> extract last N heights, compare to DEX_list, post changed, cancel if reorged.
+    notarizer post list of active coins, register 01pubkey to 03pubkey/handle/address, scan from last notarization, sortition select, identify forks
+ 
+ 
 
  the payload is rejected, so it is in the orderbook falsely. i guess i need to check for such wrong senders and not put it in the orderbook, or just reject it completely [wrong sender broadcast]
 
@@ -2977,6 +2981,12 @@ UniValue komodo_DEXanonsend(char *message,int32_t priority,char *destpub33)
     pubkeystr[1] = '1';
     bits256_str(pubkeystr+2,GENESIS_PUBKEY);
     result = komodo_DEXbroadcast(&locator,'A',hexstr,priority + KOMODO_DEX_CMDPRIORITY,(char *)"anon",(char *)"",pubkeystr,(char *)"",(char *)"");
+    return(result);
+}
+
+UniValue komodo_DEX_notarize(char *coin,int32_t height)
+{
+    UniValue result(UniValue::VOBJ);
     return(result);
 }
 
