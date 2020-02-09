@@ -295,12 +295,12 @@ cJSON *get_urljson(char *url,char *fname)
 // start of dapp
 //////////////////////////////////////////////
 
-char *REFCOIN_CLI,DPOW_pubkeystr[67];
+char *REFCOIN_CLI,DPOW_pubkeystr[67],DPOW_secpkeystr[67],DPOW_handle[67];
 
 cJSON *get_komodocli(char *refcoin,char **retstrp,char *acname,char *method,char *arg0,char *arg1,char *arg2,char *arg3,char *arg4)
 {
     long fsize; cJSON *retjson = 0; char cmdstr[32768],*jsonstr,fname[256];
-    sprintf(fname,"/tmp/notarizer.%s.%d",method,(rand() >> 17) % 10000);
+    sprintf(fname,"/tmp/notarizer_%s_%s_%s_%s_%s_%s_%d",method,arg0,arg1,arg2,arg3,arg4,(rand() >> 17) % 10000);
     //if ( (acname == 0 || acname[0] == 0) && strcmp(refcoin,"KMD") != 0 )
     //    acname = refcoin;
     if ( acname[0] != 0 )
@@ -1007,12 +1007,16 @@ int32_t txid_in_vins(char *refcoin,bits256 txid,bits256 cmptxid)
 
 int32_t dpow_pubkey()
 {
-    char *pstr,*retstr; cJSON *retjson; int32_t retval = -1;
+    char *pstr,*retstr,*str; cJSON *retjson; int32_t retval = -1;
     if ( (retjson= get_komodocli((char *)"",&retstr,(char *)"DPOW","DEX_stats","","","","","")) != 0 )
     {
         if ( (pstr= jstr(retjson,"publishable_pubkey")) != 0 && strlen(pstr) == 66 )
         {
             strcpy(DPOW_pubkeystr,pstr);
+            if ( (str= jstr(retjson,"secpkey")) != 0 )
+                strcpy(DPOW_secpkeystr,str);
+            if ( (str= jstr(retjson,"handle")) != 0 )
+                strcpy(DPOW_handle,str);
             retval = 0;
         }
         if ( retval != 0 )
@@ -1033,7 +1037,7 @@ cJSON *dpow_broadcast(int32_t priority,char *hexstr,char *tagA,char *tagB)
     }
     else if ( retstr != 0 )
     {
-        fprintf(stderr,"dpow_broadcast.(%s/%s) error.(%s)\n",tagA,tagB,retstr);
+        fprintf(stderr,"dpow_broadcast.(%s/%s) %s error.(%s)\n",tagA,tagB,hexstr,retstr);
         free(retstr);
     }
     return(0);
@@ -1071,7 +1075,25 @@ bits256 dpow_ntzhash(char *coin,int32_t *prevntzheightp,uint32_t *prevntztimep)
         free_json(retjson);
     }
     return(ntzhash);
+}
 
+void dpow_pubkeyregister(int32_t priority)
+{
+    cJSON *retjson,*array,*item; char *retstr,*pstr=0; int32_t i,n,len;
+    if ( (retjson= get_komodocli((char *)"",&retstr,(char *)"DPOW","DEX_list","0","0",(char *)"handles",DPOW_handle,DPOW_pubkeystr)) != 0 )
+    {
+        if ( (array= jarray(&n,retjson,"matches")) > 0 )
+        {
+            item = jitem(array,0);
+            if ( (pstr= jstr(item,"decrypted")) != 0 )
+            {
+                //fprintf(stderr,"found secpkey.(%s)\n",pstr);
+            }
+        }
+        free_json(retjson);
+    }
+    if ( pstr == 0 )
+        dpow_broadcast(priority,DPOW_secpkeystr,(char *)"handles",DPOW_handle);
 }
 
 // issue ./komodod -ac_name=DPOW -dexp2p=2 -addnode=136.243.58.134 -pubkey=02/03... &
@@ -1084,6 +1106,7 @@ bits256 dpow_ntzhash(char *coin,int32_t *prevntzheightp,uint32_t *prevntztimep)
 int32_t main(int32_t argc,char **argv)
 {
     int32_t i,height,priority=8; char *coin,*kcli,*hashstr,*acname=(char *)""; cJSON *retjson; bits256 blockhash; char checkstr[65],str[65],str2[65];
+    srand((int32_t)time(NULL));
     if ( argc == 4 )
     {
         if ( dpow_pubkey() < 0 )
@@ -1111,6 +1134,7 @@ int32_t main(int32_t argc,char **argv)
         if ( strcmp("BTC",coin) != 0 )
         {
             bits256 prevntzhash,ntzhash; int32_t prevntzheight,ntzheight; uint32_t ntztime,prevntztime; char hexstr[81]; cJSON *retjson2;
+            dpow_pubkeyregister(priority);
             prevntzhash = dpow_ntzhash(coin,&prevntzheight,&prevntztime);
             if ( (retjson= get_getinfo(coin,acname)) != 0 )
             {
