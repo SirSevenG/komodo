@@ -1023,6 +1023,8 @@ int32_t dpow_pubkey()
             printf("DEX_stats.(%s)\n",jprint(retjson,0));
         free_json(retjson);
     }
+    if ( DPOW_secpkeystr[0] == 0 )
+        strcpy(DPOW_secpkeystr,"02deaddeaddeaddeaddeaddeaddeaddeaddeaddeaddeaddeaddeaddeaddeaddead");
     return(retval);
 }
 
@@ -1079,7 +1081,7 @@ bits256 dpow_ntzhash(char *coin,int32_t *prevntzheightp,uint32_t *prevntztimep)
 
 void dpow_pubkeyregister(int32_t priority)
 {
-    cJSON *retjson,*array,*item; char *retstr,*pstr=0; int32_t i,n,len;
+    cJSON *retjson,*array,*item; char *retstr,*pstr=0; int32_t i,n=0,len;
     if ( (retjson= get_komodocli((char *)"",&retstr,(char *)"DPOW","DEX_list","0","0",(char *)"handles",DPOW_handle,DPOW_pubkeystr)) != 0 )
     {
         if ( (array= jarray(&n,retjson,"matches")) > 0 )
