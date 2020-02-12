@@ -36,8 +36,7 @@
  
 todo:
  permissioned list of pubkeys
- bind 01 pubkeys to 02/03 pubkeys and handles
- check for reorgs with each dpow_ntzdata()
+ ignore lagging REQUEST commands (maybe others too)
     updatentz argv[1] -> system(getblockhash) -> extract last N heights, compare to DEX_list, post changed, cancel if reorged.
     notarizer post list of active coins, register 01pubkey to 03pubkey/handle/address, scan from last notarization, sortition select, identify forks
  
@@ -1613,14 +1612,12 @@ UniValue komodo_DEX_dataobj(struct DEX_datablob *ptr)
                 free(anonallocated2);
         }
     }
+    str[0] = '0';
+    str[1] = '1';
+    bits256_str(str+2,senderpub);
+    item.push_back(Pair((char *)"senderpub",str));
     if ( newlen < 0 )
-    {
         item.push_back(Pair((char *)"error","wrong sender"));
-        str[0] = '0';
-        str[1] = '1';
-        bits256_str(str+2,senderpub);
-        item.push_back(Pair((char *)"senderpub",str));
-    }
     if ( allocated != 0 )
         free(allocated), allocated = 0;
     sprintf(str,"%llu.%08llu",(long long)amountA/COIN,(long long)amountA % COIN);
@@ -2139,7 +2136,8 @@ UniValue _komodo_DEXorderbook(int32_t revflag,int32_t maxentries,int32_t minprio
 UniValue komodo_DEX_stats()
 {
     static uint32_t lastadd,lasttime;
-    UniValue result(UniValue::VOBJ); char str[65],pubstr[67],logstr[1024]; int32_t i,total,histo[64]; uint32_t now,totalhash,d;
+    UniValue result(UniValue::VOBJ); char str[65],pubstr[67],logstr[1024],recvaddr[64]; int32_t i,total,histo[64]; uint32_t now,totalhash,d;
+    pubkey2addr(recvaddr,NOTARY_PUBKEY33);
     pthread_mutex_lock(&DEX_globalmutex);
     now = (uint32_t)time(NULL);
     bits256_str(pubstr+2,DEX_pubkey);
@@ -2147,6 +2145,9 @@ UniValue komodo_DEX_stats()
     pubstr[1] = '1';
     result.push_back(Pair((char *)"result",(char *)"success"));
     result.push_back(Pair((char *)"publishable_pubkey",pubstr));
+    result.push_back(Pair((char *)"secpkey",(char *)NOTARY_PUBKEY.c_str()));
+    result.push_back(Pair((char *)"recvaddr",recvaddr));
+    result.push_back(Pair((char *)"recvZaddr",(char *)GetArg("-recvZaddr", "").c_str()));
     result.push_back(Pair((char *)"secpkey",(char *)NOTARY_PUBKEY.c_str()));
     result.push_back(Pair((char *)"handle",(char *)GetArg("-handle", "").c_str()));
     result.push_back(Pair((char *)"txpowbits",(int64_t)KOMODO_DEX_TXPOWBITS));
@@ -3025,7 +3026,8 @@ UniValue komodo_DEXanonsend(char *message,int32_t priority,char *destpub33)
 
 UniValue komodo_DEX_notarize(char *coin,int32_t prevheight)
 {
-    UniValue result(UniValue::VOBJ); uint8_t *decoded,*buf,*allocated=0,data[512]; int32_t height,n,matches,ntzheight,newlen=0,ind=3; char pubkeystr[67],str[65],tagB[16]; uint32_t ntztime; int8_t lenA; struct DEX_index *tips[KOMODO_DEX_MAXINDICES]; struct DEX_datablob *ptr; bits256 senderpub,ntzhash,blkhash,hash;
+    UniValue result(UniValue::VOBJ); uint8_t *decoded,*buf,*allocated=0,data[512]; int32_t height,n,matches,ntzheight,newlen=0,ind=3,lag; uint32_t t,t2; char pubkeystr[67],str[65],tagB[16]; uint32_t ntztime; int8_t lenA; struct DEX_index *tips[KOMODO_DEX_MAXINDICES]; struct DEX_datablob *ptr; bits256 senderpub,ntzhash,blkhash,hash;
+    t = (uint32_t)time(NULL);
     lenA = (int8_t)strlen(coin);
     pubkeystr[0] = '0';
     pubkeystr[1] = '1';
@@ -3056,6 +3058,8 @@ UniValue komodo_DEX_notarize(char *coin,int32_t prevheight)
                         {
                             if ( ptr->cancelled == 0 )
                             {
+                                iguana_rwnum(0,&ptr->data[2],sizeof(t2),&t2);
+                                lag = (t - t2);
                                 if ( _komodo_DEX_decryptdata(data,sizeof(data),ptr) == sizeof(hash) )
                                 {
                                     memcpy(hash.bytes,data,sizeof(hash));
@@ -3075,7 +3079,7 @@ UniValue komodo_DEX_notarize(char *coin,int32_t prevheight)
                     }
                     if ( n == 0 )
                         break;
-                    fprintf(stderr,"%2d: %s ht.%d ntzht.%d matches.%-2d of %2d blockhash %s\n",height-ntzheight,coin,height,ntzheight,matches,n,bits256_str(str,blkhash));
+                    fprintf(stderr,"%2d: %s ht.%d ntzht.%d matches.%-2d of %2d blockhash %s lag.%d\n",height-ntzheight,coin,height,ntzheight,matches,n,bits256_str(str,blkhash),lag);
                 }
             }
             if ( allocated != 0 )
