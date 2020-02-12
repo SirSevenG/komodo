@@ -300,7 +300,7 @@ char *REFCOIN_CLI,DPOW_pubkeystr[67],DPOW_secpkeystr[67],DPOW_handle[67],DPOW_re
 cJSON *get_komodocli(char *refcoin,char **retstrp,char *acname,char *method,char *arg0,char *arg1,char *arg2,char *arg3,char *arg4)
 {
     long fsize; cJSON *retjson = 0; char cmdstr[32768],*jsonstr,fname[32768];
-    sprintf(fname,"/tmp/notarizer_%s_%s_%s_%s_%s_%d",method,arg1,arg2,arg3,arg4,(rand() >> 17) % 10000);
+    sprintf(fname,"/tmp/notarizer_%s_%d",method,(rand() >> 17) % 10000);
     //if ( (acname == 0 || acname[0] == 0) && strcmp(refcoin,"KMD") != 0 )
     //    acname = refcoin;
     if ( acname[0] != 0 )
@@ -326,7 +326,7 @@ cJSON *get_komodocli(char *refcoin,char **retstrp,char *acname,char *method,char
         if ( (jsonstr[0] != '{' && jsonstr[0] != '[') || (retjson= cJSON_Parse(jsonstr)) == 0 )
             *retstrp = jsonstr;
         else free(jsonstr);
-    }
+    } //else fprintf(stderr,"system(%s) -> NULL\n",cmdstr);
     return(retjson);
 }
 
@@ -786,12 +786,12 @@ void importaddress(char *refcoin,char *acname,char *depositaddr)
     }
 }
 
-int32_t z_sendmany(char *opidstr,char *coinstr,char *acname,char *srcaddr,char *destaddr,int64_t amount)
+int32_t z_sendmany(char *opidstr,char *coinstr,char *acname,char *srcaddr,char *destaddr,int64_t amount,char *memostr)
 {
     cJSON *retjson; char *retstr,params[1024],addr[128]; int32_t retval = -1;
     sprintf(params,"'[{\"address\":\"%s\",\"amount\":%.8f}]'",destaddr,dstr(amount));
     sprintf(addr,"\"%s\"",srcaddr);
-    printf("z_sendmany from.(%s) -> %s\n",srcaddr,params);
+    printf("z_sendmany.(%s %s) from.(%s) -> %s\n",coinstr,acname,srcaddr,params);
     if ( (retjson= get_komodocli(coinstr,&retstr,acname,"z_sendmany",addr,params,"","","")) != 0 )
     {
         printf("unexpected json z_sendmany.(%s)\n",jprint(retjson,0));
