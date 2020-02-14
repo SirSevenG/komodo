@@ -69,15 +69,21 @@ def create_configs(asset, node=0):
         confpath = ('./node_' + str(node) + '/' + asset + '.conf')
     else:
         confpath = (os.getcwd() + '\\node_' + str(node) + '\\' + asset + '.conf')
-    if not os.path.isfile(confpath):
-        os.mkdir('node_' + str(node))
-        open(confpath, 'a').close()
-        with open(confpath, 'a') as conf:
-            conf.write("rpcuser=test\n")
-            conf.write("rpcpassword=test\n")
-            conf.write('rpcport=' + str(7000 + node) + '\n')
-            conf.write("rpcbind=0.0.0.0\n")
-            conf.write("rpcallowip=0.0.0.0/0\n")
+    if os.path.isfile(confpath):
+        for root, dirs, files in os.walk('node_' + str(node), topdown=False):
+            for name in files:
+                os.remove(os.path.join(root, name))
+            for name in dirs:
+                os.rmdir(os.path.join(root, name))
+        os.rmdir('node_' + str(node))
+    os.mkdir('node_' + str(node))
+    open(confpath, 'a').close()
+    with open(confpath, 'a') as conf:
+        conf.write("rpcuser=test\n")
+        conf.write("rpcpassword=test\n")
+        conf.write('rpcport=' + str(7000 + node) + '\n')
+        conf.write("rpcbind=0.0.0.0\n")
+        conf.write("rpcallowip=0.0.0.0/0\n")
 
 
 def main():
@@ -85,11 +91,19 @@ def main():
     clients_to_start = env_params.get('clients_to_start')
     aschain = env_params.get('ac_name')
     if env_params.get('is_bootstrap_needed'):  # bootstrap chains
-        if not os.path.isfile('bootstrap.tar.gz'):
-            wget.download(env_params.get('bootstrap_url'), "bootstrap.tar.gz")
+        if os.path.isfile('bootstrap.tar.gz'):
+            os.remove('bootstrap.tar.gz')
+            print("Clean up done")
+        print("Downloading bootstrap")
+        wget.download(env_params.get('bootstrap_url'), "bootstrap.tar.gz")
+    try:
         tf = tarfile.open("bootstrap.tar.gz")
-        for i in range(clients_to_start):
-            create_configs(aschain, i)
+        btrp = True
+    except FileNotFoundError:
+        btrp = False
+    for i in range(clients_to_start):
+        create_configs(aschain, i)
+        if btrp:
             tf.extractall("node_" + str(i))
     mode = env_params.get('chain_start_mode')
     ac_params = load_ac_params(aschain, mode)
@@ -101,7 +115,6 @@ def main():
             confpath = (os.getcwd() + '\\node_' + str(i) + '\\' + aschain + '.conf')
             datapath = (os.getcwd() + '\\node_' + str(i))
         cl_args = [ac_params.get('binary_path'),
-                   '-ac_name=' + aschain,
                    '-conf=' + confpath,
                    '-datadir=' + datapath,
                    # '-pubkey=' + env_params.get('test_pubkey')[i],
@@ -139,8 +152,8 @@ def main():
             'rpc_port': 7000 + i
         }
         rpc_p = create_proxy(node_params)
-        enable_mining(rpc_p)
         validate_proxy(env_params, rpc_p, i)
+        enable_mining(rpc_p)
 
 
 if __name__ == '__main__':
