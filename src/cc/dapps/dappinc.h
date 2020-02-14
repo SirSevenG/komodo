@@ -236,7 +236,7 @@ void *loadfile(char *fname,uint8_t **bufp,long *lenp,long *allocsizep)
         {
             fclose(fp);
             *lenp = 0;
-            printf("loadfile null size.(%s)\n",fname);
+            //printf("loadfile null size.(%s)\n",fname);
             return(0);
         }
         if ( filesize > buflen )
@@ -378,6 +378,47 @@ bits256 sendtoaddress(char *refcoin,char *acname,char *destaddr,int64_t satoshis
     return(txid);
 }
 
+cJSON *get_decodescript(char *refcoin,char *acname,char *script)
+{
+    cJSON *retjson; char *retstr;
+    if ( (retjson= get_komodocli(refcoin,&retstr,acname,"decodescript",script,"","","","")) != 0 )
+    {
+        return(retjson);
+    }
+    else if ( retstr != 0 )
+    {
+        fprintf(stderr,"get_decodescript.(%s) error.(%s)\n",acname,retstr);
+        free(retstr);
+    }
+    return(0);
+}
+
+char *get_createmultisig2(char *refcoin,char *acname,char *msigaddr,char *redeemscript,char *pubkeyA,char *pubkeyB)
+{
+    //char para 2 '["02c3af47b51a506b08b4ededb156cb4c3f9db9e0ac7ad27b8623c08a056fdcc220", "038e61fbface549a850862f12ed99b7cbeef5c2bd2d8f1daddb34809416f0259e1"]'
+    cJSON *retjson; char *retstr,*str,params[256]; int32_t height=0;
+    msigaddr[0] = 0;
+    redeemscript[0] = 0;
+    sprintf(params,"'[\"%s\", \"%s\"]'",pubkeyA,pubkeyB);
+    if ( (retjson= get_komodocli(refcoin,&retstr,acname,"createmultisig","2",params,"","","")) != 0 )
+    {
+        if ( (str= jstr(retjson,"address")) != 0 )
+            strcpy(msigaddr,str);
+        if ( (str= jstr(retjson,"redeemScript")) != 0 )
+            strcpy(redeemscript,str);
+        free_json(retjson);
+        if ( msigaddr[0] != 0 && redeemscript[0] != 0 )
+            return(msigaddr);
+        else return(0);
+    }
+    else if ( retstr != 0 )
+    {
+        fprintf(stderr,"%s get_createmultisig2.(%s) error.(%s)\n",refcoin,acname,retstr);
+        free(retstr);
+    }
+    return(0);
+}
+
 int32_t get_coinheight(char *refcoin,char *acname,bits256 *blockhashp)
 {
     cJSON *retjson; char *retstr; int32_t height=0;
@@ -516,6 +557,21 @@ cJSON *get_rawtransaction(char *refcoin,char *acname,bits256 txid)
     return(0);
 }
 
+cJSON *get_z_viewtransaction(char *refcoin,char *acname,bits256 txid)
+{
+    cJSON *retjson; char *retstr,str[65];
+    if ( (retjson= get_komodocli(refcoin,&retstr,acname,"z_viewtransaction",bits256_str(str,txid),"","","","")) != 0 )
+    {
+        return(retjson);
+    }
+    else if ( retstr != 0 )
+    {
+        fprintf(stderr,"get_z_viewtransaction.(%s) %s error.(%s)\n",refcoin,acname,retstr);
+        free(retstr);
+    }
+    return(0);
+}
+
 cJSON *get_listunspent(char *refcoin,char *acname)
 {
     cJSON *retjson; char *retstr,str[65];
@@ -640,6 +696,26 @@ int32_t z_validateaddress(char *refcoin,char *acname,char *depositaddr, char *co
         free(retstr);
     }
     return (res);
+}
+
+int64_t get_getbalance(char *refcoin,char *acname)
+{
+    cJSON *retjson; char *retstr,cmpstr[64]; int64_t amount=0;
+    if ( (retjson= get_komodocli(refcoin,&retstr,acname,"getbalance","","","","","")) != 0 )
+    {
+        fprintf(stderr,"get_getbalance.(%s) %s returned json!\n",refcoin,acname);
+        free_json(retjson);
+    }
+    else if ( retstr != 0 )
+    {
+        amount = atof(retstr) * SATOSHIDEN;
+        sprintf(cmpstr,"%.8f",dstr(amount));
+        if ( strcmp(retstr,cmpstr) != 0 )
+            amount++;
+        //printf("retstr %s -> %.8f\n",retstr,dstr(amount));
+        free(retstr);
+    }
+    return (amount);
 }
 
 int64_t z_getbalance(char *refcoin,char *acname,char *coinaddr)
@@ -789,7 +865,7 @@ void importaddress(char *refcoin,char *acname,char *depositaddr)
 int32_t z_sendmany(char *opidstr,char *coinstr,char *acname,char *srcaddr,char *destaddr,int64_t amount,char *memostr)
 {
     cJSON *retjson; char *retstr,params[1024],addr[128]; int32_t retval = -1;
-    sprintf(params,"'[{\"address\":\"%s\",\"amount\":%.8f}]'",destaddr,dstr(amount));
+    sprintf(params,"'[{\"address\":\"%s\",\"amount\":%.8f,\"memo\":\"%s\"}]'",destaddr,dstr(amount),memostr);
     sprintf(addr,"\"%s\"",srcaddr);
     printf("z_sendmany.(%s %s) from.(%s) -> %s\n",coinstr,acname,srcaddr,params);
     if ( (retjson= get_komodocli(coinstr,&retstr,acname,"z_sendmany",addr,params,"","","")) != 0 )
@@ -1149,7 +1225,7 @@ bits256 dpow_ntzhash(char *coin,int32_t *prevntzheightp,uint32_t *prevntztimep)
     return(ntzhash);
 }
 
-void dpow_pubkeyregister(int32_t priority)
+int32_t dpow_pubkeyregister(int32_t priority)
 {
     cJSON *retjson,*array,*item; char *retstr,*pstr=0; int32_t i,n=0,len;
     if ( (retjson= get_komodocli((char *)"",&retstr,DEXP2P_CHAIN,"DEX_list","0","0",(char *)"handles",DPOW_handle,DPOW_pubkeystr)) != 0 )
@@ -1165,7 +1241,35 @@ void dpow_pubkeyregister(int32_t priority)
         free_json(retjson);
     }
     if ( pstr == 0 )
+    {
         dpow_broadcast(priority,DPOW_secpkeystr,(char *)"handles",DPOW_handle,DPOW_pubkeystr);
+        return(1);
+    }
+    return(0);
+}
+
+int32_t dpow_tokenregister(int32_t priority,char *token_name,char *tokenid)
+{
+    cJSON *retjson,*array,*item; char *retstr,*pstr=0; int32_t i,n=0,len;
+    if ( (retjson= get_komodocli((char *)"",&retstr,DEXP2P_CHAIN,"DEX_list","0","0",(char *)"tokens",token_name,DPOW_pubkeystr)) != 0 )
+    {
+        if ( (array= jarray(&n,retjson,"matches")) != 0 )
+        {
+            item = jitem(array,0);
+            if ( (pstr= jstr(item,"decrypted")) != 0 )
+            {
+                fprintf(stderr,"found %s.tokenid (%s)\n",token_name,pstr);
+            }
+        }
+        free_json(retjson);
+    }
+    if ( pstr == 0 )
+    {
+        fprintf(stderr,"broadcast tokens %s/%s\n",token_name,tokenid);
+        dpow_broadcast(priority,tokenid,(char *)"tokens",token_name,DPOW_pubkeystr);
+        return(1);
+    }
+    return(0);
 }
 
 bits256 dpow_blockhash(char *coin,int32_t height)
