@@ -319,12 +319,32 @@ cJSON *get_komodocli(char *refcoin,char **retstrp,char *acname,char *method,char
         sprintf(cmdstr,"komodo-cli -ac_name=%s %s %s %s %s %s %s %s %s > %s\n",acname,method,arg0,arg1,arg2,arg3,arg4,arg5,arg6,fname);
     }
     else if ( strcmp(refcoin,"KMD") == 0 )
-        sprintf(cmdstr,"komodo-cli %s %s %s %s %s %s > %s\n",method,arg0,arg1,arg2,arg3,arg4,fname);
+        sprintf(cmdstr,"komodo-cli %s %s %s %s %s %s %s %s > %s\n",method,arg0,arg1,arg2,arg3,arg4,arg5,arg6,fname);
     else if ( REFCOIN_CLI != 0 && REFCOIN_CLI[0] != 0 )
     {
-        sprintf(cmdstr,"%s %s %s %s %s %s %s > %s\n",REFCOIN_CLI,method,arg0,arg1,arg2,arg3,arg4,fname);
+        sprintf(cmdstr,"%s %s %s %s %s %s %s %s %s > %s\n",REFCOIN_CLI,method,arg0,arg1,arg2,arg3,arg4,arg5,arg6,fname);
         //printf("ref.(%s) REFCOIN_CLI (%s)\n",refcoin,cmdstr);
     }
+//fprintf(stderr,"system(%s)\n",cmdstr);
+    system(cmdstr);
+    *retstrp = 0;
+    if ( (jsonstr= filestr(&fsize,fname)) != 0 )
+    {
+        jsonstr[strlen(jsonstr)-1]='\0';
+        //fprintf(stderr,"%s -> jsonstr.(%s)\n",cmdstr,jsonstr);
+        if ( (jsonstr[0] != '{' && jsonstr[0] != '[') || (retjson= cJSON_Parse(jsonstr)) == 0 )
+            *retstrp = jsonstr;
+        else free(jsonstr);
+        md_unlink(fname);
+    } //else fprintf(stderr,"system(%s) -> NULL\n",cmdstr);
+    return(retjson);
+}
+
+cJSON *subatomic_cli(char *clistr,char **retstrp,char *method,char *arg0,char *arg1,char *arg2,char *arg3,char *arg4,char *arg5,char *arg6)
+{
+    long fsize; cJSON *retjson = 0; char cmdstr[32768],*jsonstr,fname[32768];
+    sprintf(fname,"/tmp/subatomic_%s_%d",method,(rand() >> 17) % 10000);
+    sprintf(cmdstr,"%s %s %s %s %s %s %s %s %s > %s\n",clistr,method,arg0,arg1,arg2,arg3,arg4,arg5,arg6,fname);
 //fprintf(stderr,"system(%s)\n",cmdstr);
     system(cmdstr);
     *retstrp = 0;
@@ -1242,19 +1262,19 @@ cJSON *dpow_notarize(char *coin,int32_t height)
     return(0);
 }
 
-cJSON *dpow_broadcast(int32_t priority,char *hexstr,char *tagA,char *tagB,char *pubkey)
+cJSON *dpow_broadcast(int32_t priority,char *hexstr,char *tagA,char *tagB,char *pubkey,char *volA,char *volB)
 {
     cJSON *retjson; char *retstr,numstr[32];
     sprintf(numstr,"%u",priority);
-    //fprintf(stderr,"broadcast (%s) (%s) (%s) (%s) (%s)\n",hexstr,numstr,tagA,tagB,pubkey);
-    if ( (retjson= get_komodocli((char *)"",&retstr,DEXP2P_CHAIN,"DEX_broadcast",hexstr,numstr,tagA,tagB,pubkey,"","")) != 0 )
+    //fprintf(stderr,"broadcast (%s) (%s) (%s) (%s) (%s) [%s %s]\n",hexstr,numstr,tagA,tagB,pubkey,volA,volB);
+    if ( (retjson= get_komodocli((char *)"",&retstr,DEXP2P_CHAIN,"DEX_broadcast",hexstr,numstr,tagA,tagB,pubkey,volA,volB)) != 0 )
     {
-        //fprintf(stderr,"DEX_broadcast.(%s)\n",jprint(retjson,0));
+        fprintf(stderr,"DEX_broadcast.(%s)\n",jprint(retjson,0));
         return(retjson);
     }
     else if ( retstr != 0 )
     {
-        fprintf(stderr,"dpow_broadcast.(%s/%s) %s error.(%s)\n",tagA,tagB,hexstr,retstr);
+        fprintf(stderr,"dpow_broadcast.(%s/%s) [%s %s] %s error.(%s)\n",tagA,tagB,volA,volB,hexstr,retstr);
         free(retstr);
     }
     return(0);
@@ -1265,7 +1285,7 @@ cJSON *dpow_ntzdata(char *coin,int32_t priority,int32_t height,bits256 blockhash
     char hexstr[256],heightstr[32];
     bits256_str(hexstr,blockhash);
     sprintf(heightstr,"%u",height);
-    return(dpow_broadcast(priority,hexstr,coin,heightstr,DPOW_pubkeystr));
+    return(dpow_broadcast(priority,hexstr,coin,heightstr,DPOW_pubkeystr,"",""));
 }
 
 bits256 dpow_ntzhash(char *coin,int32_t *prevntzheightp,uint32_t *prevntztimep)
@@ -1311,7 +1331,7 @@ int32_t dpow_pubkeyregister(int32_t priority)
     }
     if ( pstr == 0 )
     {
-        dpow_broadcast(priority,DPOW_secpkeystr,(char *)"handles",DPOW_handle,DPOW_pubkeystr);
+        dpow_broadcast(priority,DPOW_secpkeystr,(char *)"handles",DPOW_handle,DPOW_pubkeystr,"","");
         return(1);
     }
     return(0);
@@ -1341,7 +1361,63 @@ int32_t dpow_tokenregister(char *existing,int32_t priority,char *token_name,char
     if ( pstr == 0 && tokenid != 0 )
     {
         fprintf(stderr,"broadcast tokens %s/%s\n",token_name,tokenid);
-        dpow_broadcast(priority,tokenid,(char *)"tokens",token_name,DPOW_pubkeystr);
+        dpow_broadcast(priority,tokenid,(char *)"tokens",token_name,DPOW_pubkeystr,"","");
+        return(1);
+    }
+    return(0);
+}
+
+/*bits256 komodo_DEX_filehash(FILE *fp,uint64_t offset0,uint64_t rlen,char *fname)
+{
+    bits256 filehash; uint8_t *data = (uint8_t *)calloc(1,rlen);
+    fseek(fp,offset0,SEEK_SET);
+    memset(filehash.bytes,0,sizeof(filehash));
+    if ( fread(data,1,rlen,fp) == rlen )
+        vcalc_sha256(0,filehash.bytes,data,rlen);
+    else fprintf(stderr," reading %lld bytes from %s.%llu\n",(long long)rlen,fname,(long long)offset0);
+    free(data);
+    return(filehash);
+}*/
+
+int32_t dpow_fileregister(char *existing,int32_t priority,char *fname,char *coin,int64_t price)
+{
+    FILE *fp; cJSON *retjson,*array,*item; bits256 existinghash,filehash; char tagA[16],pricestr[32],str[65],*retstr,*pstr=0; int32_t i,n=0,len;
+    existing[0] = 0;
+    sprintf(pricestr,"%.8f",dstr(price));
+    //fprintf(stderr,"filereg (%s) (%s) (%s)\n",fname,coin,pricestr);
+    memset(&filehash,0,sizeof(filehash));
+    if ( (fp= fopen(fname,"rb")) != 0 ) // better to use hash of file
+    {
+        fseek(fp,0,SEEK_END);
+        filehash.ulongs[0] = (uint64_t)ftell(fp);
+        fclose(fp);
+    } else return(-1);
+    sprintf(tagA,"'#%s'",fname);
+    if ( (retjson= get_komodocli((char *)"",&retstr,DEXP2P_CHAIN,"DEX_list","0","0",tagA,coin,DPOW_pubkeystr,"","")) != 0 )
+    {
+        if ( (array= jarray(&n,retjson,"matches")) != 0 )
+        {
+            item = jitem(array,0);
+            if ( juint(item,"cancelled") == 0 && (pstr= jstr(item,"decrypted")) != 0 )
+            {
+                strcpy(existing,pstr);
+                if ( is_hexstr(existing,0) == sizeof(existinghash)*2 )
+                {
+                    decode_hex(existinghash.bytes,sizeof(existinghash),existing);
+                    if ( memcmp(&filehash,&existinghash,sizeof(filehash)) != 0 )
+                    {
+                        fprintf(stderr,"found mismatched %s vs %s: %s (%s %s)\n",existing,bits256_str(str,filehash),fname,coin,pricestr);
+                        pstr = 0;
+                    } //else fprintf(stderr,"found matching %s\n",jprint(item,0));
+                }
+            }
+        }
+        free_json(retjson);
+    }
+    if ( pstr == 0 )
+    {
+        fprintf(stderr,"broadcast %s %s (%s %s)\n",bits256_str(str,filehash),fname,coin,pricestr);
+        dpow_broadcast(priority,bits256_str(str,filehash),tagA,coin,DPOW_pubkeystr,"1",pricestr);
         return(1);
     }
     return(0);
