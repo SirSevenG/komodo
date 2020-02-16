@@ -206,7 +206,7 @@ std::string CRPCTable::help(const std::string& strCommand) const
             UniValue params;
             rpcfn_type pfn = pcmd->actor;
             if (setDone.insert(pfn).second)
-                (*pfn)(params, true);
+                (*pfn)(params, true, CPubKey());
         }
         catch (const std::exception& e)
         {
@@ -236,7 +236,7 @@ std::string CRPCTable::help(const std::string& strCommand) const
     return strRet;
 }
 
-UniValue help(const UniValue& params, bool fHelp)
+UniValue help(const UniValue& params, bool fHelp, const CPubKey& mypk)
 {
     if (fHelp || params.size() > 1)
         throw runtime_error(
@@ -264,7 +264,7 @@ void GenerateBitcoins(bool b, CWallet *pw);
 #endif
 
 
-UniValue stop(const UniValue& params, bool fHelp)
+UniValue stop(const UniValue& params, bool fHelp, const CPubKey& mypk)
 {
     char buf[66+128];
    // Accept the deprecated and ignored 'detach' boolean argument
@@ -362,16 +362,17 @@ static const CRPCCommand vRPCCommands[] =
     { "crosschain",         "selfimport", &selfimport, true  },
     { "crosschain",         "importdual", &importdual, true  },
     //ImportGateway
-    { "crosschain",       "importgatewayddress",     &importgatewayaddress,      true },
+    { "crosschain",       "importgatewayaddress",     &importgatewayaddress,      true },
     { "crosschain",       "importgatewayinfo", &importgatewayinfo, true  },
     { "crosschain",       "importgatewaybind", &importgatewaybind, true  },
     { "crosschain",       "importgatewaydeposit", &importgatewaydeposit, true  },
     { "crosschain",       "importgatewaywithdraw",  &importgatewaywithdraw,     true },
-    { "crosschain",       "importgatewaypartialsign",  &importgatewaypartialsign,     true },
-    { "crosschain",       "importgatewaycompletesigning",  &importgatewaycompletesigning,     true },
+    { "crosschain",       "importgatewaywithdrawsign",  &importgatewaywithdrawsign,     true },
     { "crosschain",       "importgatewaymarkdone",  &importgatewaymarkdone,     true },
-    { "crosschain",       "importgatewaypendingwithdraws",   &importgatewaypendingwithdraws,      true },
-    { "crosschain",       "importgatewayprocessed",   &importgatewayprocessed,  true },
+    { "crosschain",       "importgatewaypendingsignwithdraws",   &importgatewaypendingsignwithdraws,      true },
+    { "crosschain",       "importgatewaysignedwithdraws",   &importgatewaysignedwithdraws,  true },
+    { "crosschain",       "importgatewayexternaladdress",   &importgatewayexternaladdress,      true },
+    { "crosschain",       "importgatewaydumpprivkey",   &importgatewaydumpprivkey,  true },
 
 
 
@@ -384,6 +385,7 @@ static const CRPCCommand vRPCCommands[] =
     { "mining",             "prioritisetransaction",  &prioritisetransaction,  true  },
     { "mining",             "submitblock",            &submitblock,            true  },
     { "mining",             "getblocksubsidy",        &getblocksubsidy,        true  },
+    { "mining",             "genminingCSV",           &genminingCSV,           true  },
 
 #ifdef ENABLE_MINING
     /* Coin generation */
@@ -415,6 +417,21 @@ static const CRPCCommand vRPCCommands[] =
     { "FSM",   "FSMlist",      &FSMlist,    true },
     { "FSM",   "FSMinfo",      &FSMinfo,    true },
 
+    // DEX
+    { "DEX",   "DEX_broadcast",         &DEX_broadcast, true },
+    { "DEX",   "DEX_anonsend",          &DEX_anonsend, true },
+    { "DEX",   "DEX_list",              &DEX_list, true },
+    { "DEX",   "DEX_get",               &DEX_get, true },
+    { "DEX",   "DEX_stats",             &DEX_stats, true },
+    { "DEX",   "DEX_orderbook",         &DEX_orderbook, true },
+    { "DEX",   "DEX_cancel",            &DEX_cancel, true },
+    { "DEX",   "DEX_setpubkey",         &DEX_setpubkey, true },
+    { "DEX",   "DEX_publish",           &DEX_publish, true },
+    { "DEX",   "DEX_subscribe",         &DEX_subscribe, true },
+    { "DEX",   "DEX_stream",            &DEX_stream, true },
+    { "DEX",   "DEX_streamsub",         &DEX_streamsub, true },
+    { "DEX",   "DEX_notarize",          &DEX_notarize, true },
+
     // fsm
     { "nSPV",   "nspv_getinfo",         &nspv_getinfo, true },
     { "nSPV",   "nspv_login",           &nspv_login, true },
@@ -428,6 +445,7 @@ static const CRPCCommand vRPCCommands[] =
     { "nSPV",   "nspv_spend",           &nspv_spend,    true },
     { "nSPV",   "nspv_broadcast",       &nspv_broadcast,    true },
     { "nSPV",   "nspv_logout",          &nspv_logout,    true },
+    { "nSPV",   "nspv_listccmoduleunspent",     &nspv_listccmoduleunspent,  true },
 
     // rewards
     { "rewards",       "rewardslist",       &rewardslist,     true },
@@ -493,17 +511,6 @@ static const CRPCCommand vRPCCommands[] =
     // Pegs
     { "pegs",       "pegsaddress",   &pegsaddress,      true },
 
-    // Marmara
-    { "marmara",       "marmaraaddress",   &marmaraaddress,      true },
-    { "marmara",       "marmarapoolpayout",   &marmara_poolpayout,      true },
-    { "marmara",       "marmarareceive",   &marmara_receive,      true },
-    { "marmara",       "marmaraissue",   &marmara_issue,      true },
-    { "marmara",       "marmaratransfer",   &marmara_transfer,      true },
-    { "marmara",       "marmarainfo",   &marmara_info,      true },
-    { "marmara",       "marmaracreditloop",   &marmara_creditloop,      true },
-    { "marmara",       "marmarasettlement",   &marmara_settlement,      true },
-    { "marmara",       "marmaralock",   &marmara_lock,      true },
-
     // Payments
     { "payments",       "paymentsaddress",   &paymentsaddress,       true },
     { "payments",       "paymentstxidopret", &payments_txidopret,    true },
@@ -530,12 +537,12 @@ static const CRPCCommand vRPCCommands[] =
     { "gateways",       "gatewaysdeposit",   &gatewaysdeposit,      true },
     { "gateways",       "gatewaysclaim",     &gatewaysclaim,        true },
     { "gateways",       "gatewayswithdraw",  &gatewayswithdraw,     true },
-    { "gateways",       "gatewayspartialsign",  &gatewayspartialsign,     true },
-    { "gateways",       "gatewayscompletesigning",  &gatewayscompletesigning,     true },
+    { "gateways",       "gatewayswithdrawsign",  &gatewayswithdrawsign,     true },
     { "gateways",       "gatewaysmarkdone",  &gatewaysmarkdone,     true },
     { "gateways",       "gatewayspendingdeposits",   &gatewayspendingdeposits,      true },
-    { "gateways",       "gatewayspendingwithdraws",   &gatewayspendingwithdraws,      true },
-    { "gateways",       "gatewaysprocessed",   &gatewaysprocessed,  true },
+    { "gateways",       "gatewayspendingsignwithdraws",   &gatewayspendingsignwithdraws,      true },
+    { "gateways",       "gatewayssignedwithdraws",   &gatewayssignedwithdraws,      true },
+
 
     // dice
     { "dice",       "dicelist",      &dicelist,         true },
@@ -650,6 +657,7 @@ static const CRPCCommand vRPCCommands[] =
     { "wallet",             "sendtoaddress",          &sendtoaddress,          false },
     { "wallet",             "setaccount",             &setaccount,             true  },
     { "wallet",             "setpubkey",              &setpubkey,              true  },
+    { "wallet",             "setstakingsplit",        &setstakingsplit,        true  },
     { "wallet",             "settxfee",               &settxfee,               true  },
     { "wallet",             "signmessage",            &signmessage,            true  },
     { "wallet",             "walletlock",             &walletlock,             true  },
@@ -870,7 +878,7 @@ UniValue CRPCTable::execute(const std::string &strMethod, const UniValue &params
     try
     {
         // Execute
-        return pcmd->actor(params, false);
+        return pcmd->actor(params, false, CPubKey());
     }
     catch (const std::exception& e)
     {

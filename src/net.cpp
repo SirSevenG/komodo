@@ -444,7 +444,14 @@ void CNode::CloseSocketDisconnect()
         vRecvMsg.clear();
 }
 
-extern int32_t KOMODO_NSPV;
+extern int32_t KOMODO_NSPV,KOMODO_DEX_P2P;
+#ifndef KOMODO_NSPV_FULLNODE
+#define KOMODO_NSPV_FULLNODE (KOMODO_NSPV <= 0)
+#endif // !KOMODO_NSPV_FULLNODE
+
+#ifndef KOMODO_NSPV_SUPERLITE
+#define KOMODO_NSPV_SUPERLITE (KOMODO_NSPV > 0)
+#endif // !KOMODO_NSPV_SUPERLITE
 
 void CNode::PushVersion()
 {
@@ -1389,7 +1396,7 @@ void ThreadOpenConnections()
             static bool done = false;
             if (!done) {
                 // skip DNS seeds for staked chains.
-                if ( is_STAKED(ASSETCHAINS_SYMBOL) == 0 ) {
+                if ( is_STAKED(ASSETCHAINS_SYMBOL) == 0 && KOMODO_DEX_P2P == 0 ) {
                     //LogPrintf("Adding fixed seed nodes as DNS doesn't seem to be available.\n");
                     LogPrintf("Adding fixed seed nodes.\n");
                     addrman.Add(convertSeed6(Params().FixedSeeds()), CNetAddr("127.0.0.1"));
@@ -1843,7 +1850,7 @@ bool StopNode()
         for (int i=0; i<MAX_OUTBOUND_CONNECTIONS; i++)
             semOutbound->post();
 
-    if (KOMODO_NSPV <= 0 && fAddressesInitialized)
+    if (KOMODO_NSPV_FULLNODE && fAddressesInitialized)
     {
         DumpAddresses();
         fAddressesInitialized = false;
