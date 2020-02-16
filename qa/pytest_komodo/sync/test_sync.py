@@ -30,10 +30,7 @@ class TestChainSync:
                 assert values.get('blocks') == values.get('longestchain')
                 if check_notarizations:
                     assert check_notarized(values.get('notarized'), values.get('longestchain'), rpc, blocktime)
-                print(values.get('blocks'))
-                print(values.get('longestchain'))
-                print(values.get('notarized'))
-                print(rpc.getinfo())
+                    print("Notarization check passed")
                 break
             print('Waiting synchronization...')
             time.sleep(blocktime)
@@ -43,6 +40,6 @@ class TestChainSync:
                 warnings = 0
             except AssertionError as e:
                 warnings += 1
-                raise RuntimeWarning("Synchronization might be stuck, error: ", e)
+                print("Synchronization might be stuck ", e)
             if warnings >= 5:
                 raise TimeoutError("Synchronization stuck on block: ", current_blocks)

@@ -19,7 +19,7 @@ def proxy_connection():
             proxy = Proxy("http://%s:%s@%s:%d" % (node_params_dictionary["rpc_user"],
                                                   node_params_dictionary["rpc_password"],
                                                   node_params_dictionary["rpc_ip"],
-                                                  node_params_dictionary["rpc_port"]), timeout=120)
+                                                  node_params_dictionary["rpc_port"]), timeout=360)
             proxy_connected.append(proxy)
         except (ConnectionAbortedError, pycurl.error) as e:
             raise Exception("Connection error! Probably no daemon on selected port. Error: ", e)

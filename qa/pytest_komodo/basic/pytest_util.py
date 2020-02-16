@@ -35,7 +35,7 @@ def validate_proxy(env_params_dictionary, proxy, node=0):
         except Exception as e:
             print("Coennction failed, error: ", e, "\nRetrying")
             attempts += 1
-            time.sleep(2)
+            time.sleep(10)
         if attempts > 15:
             raise ChildProcessError("Node ", node, " does not respond")
     print("IMPORTING PRIVKEYS")

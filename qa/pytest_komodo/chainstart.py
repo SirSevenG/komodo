@@ -69,13 +69,14 @@ def create_configs(asset, node=0):
         confpath = ('./node_' + str(node) + '/' + asset + '.conf')
     else:
         confpath = (os.getcwd() + '\\node_' + str(node) + '\\' + asset + '.conf')
-    if os.path.isfile(confpath):
+    if os.path.isfile(confpath) or os.path.isdir(os.getcwd() + '/node_' + str(node)):
         for root, dirs, files in os.walk('node_' + str(node), topdown=False):
             for name in files:
                 os.remove(os.path.join(root, name))
             for name in dirs:
                 os.rmdir(os.path.join(root, name))
         os.rmdir('node_' + str(node))
+    print("Clean up done")
     os.mkdir('node_' + str(node))
     open(confpath, 'a').close()
     with open(confpath, 'a') as conf:
@@ -90,16 +91,17 @@ def main():
     env_params = load_env_config()
     clients_to_start = env_params.get('clients_to_start')
     aschain = env_params.get('ac_name')
+    if os.path.isfile('bootstrap.tar.gz'):
+        os.remove('bootstrap.tar.gz')
+        pass
     if env_params.get('is_bootstrap_needed'):  # bootstrap chains
-        if os.path.isfile('bootstrap.tar.gz'):
-            os.remove('bootstrap.tar.gz')
-            print("Clean up done")
         print("Downloading bootstrap")
         wget.download(env_params.get('bootstrap_url'), "bootstrap.tar.gz")
     try:
         tf = tarfile.open("bootstrap.tar.gz")
         btrp = True
     except FileNotFoundError:
+        tf = ""
         btrp = False
     for i in range(clients_to_start):
         create_configs(aschain, i)
@@ -116,8 +118,7 @@ def main():
             datapath = (os.getcwd() + '\\node_' + str(i))
         cl_args = [ac_params.get('binary_path'),
                    '-conf=' + confpath,
-                   '-datadir=' + datapath,
-                   # '-pubkey=' + env_params.get('test_pubkey')[i],
+                   '-datadir=' + datapath
                    ]
         try:
             pubkey = env_params.get('test_pubkey')[i]

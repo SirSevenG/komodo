@@ -10,7 +10,7 @@ export TEST_PUBKEY0="02f0ec2d3da51b09e4fc8d9ba334c275b02b3ab6f22ce7be0ea5059cbcc
 export CHAIN_MODE="REGULAR"
 export IS_BOOTSTRAP_NEEDED=$2
 export BOOTSTRAP_URL=$3
-export NOTARIZATIONS="False"
+export NOTARIZATIONS="True"
 export BLOCKTIME_AVR=60
 
 # starting the chains
