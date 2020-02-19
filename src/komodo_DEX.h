@@ -257,20 +257,23 @@ uint16_t _komodo_DEXpeerpos(uint32_t timestamp,int32_t peerid)
 {
     // this needs to maintain the bitposition from epoch to epoch, to preserve the accuracy of the GETBIT()
     int32_t epoch,*peermap; uint16_t i;
-    epoch = ((timestamp % SECONDS_IN_DAY) / KOMODO_DEX_PEERPERIOD);
-    peermap = G->DEX_peermaps[epoch];
-    for (i=1; i<KOMODO_DEX_MAXPEERID; i++)
+    if ( G != 0 )
     {
-        if ( peermap[i] == 0 )
+        epoch = ((timestamp % SECONDS_IN_DAY) / KOMODO_DEX_PEERPERIOD);
+        peermap = G->DEX_peermaps[epoch];
+        for (i=1; i<KOMODO_DEX_MAXPEERID; i++)
         {
-            peermap[i] = peerid;
-            //fprintf(stderr,"epoch.%d [%d] <- peerid.%d\n",epoch,i,peerid);
-            return(i);
+            if ( peermap[i] == 0 )
+            {
+                peermap[i] = peerid;
+                //fprintf(stderr,"epoch.%d [%d] <- peerid.%d\n",epoch,i,peerid);
+                return(i);
+            }
+            else if ( peermap[i] == peerid )
+                return(i);
         }
-        else if ( peermap[i] == peerid )
-            return(i);
+        fprintf(stderr,"DEX_peerpos t.%u peerid.%d has no space left, seems a sybil attack underway. wait 5 minutes\n",timestamp,peerid);
     }
-    fprintf(stderr,"DEX_peerpos t.%u peerid.%d has no space left, seems a sybil attack underway. wait 5 minutes\n",timestamp,peerid);
     return(0xffff);
 }
 
@@ -938,13 +941,12 @@ int32_t komodo_DEXgenquote(uint8_t funcid,int32_t priority,bits256 &hash,uint32_
 int32_t komodo_DEXpacketsend(CNode *peer,uint8_t peerpos,struct DEX_datablob *ptr,uint8_t resp0)
 {
     std::vector<uint8_t> packet; int32_t i;
-    //fprintf(stderr,"packet send %p datalen.%d\n",ptr,ptr->datalen);
+    //fprintf(stderr,"%d packet send %p datalen.%d\n",peer->id,ptr,ptr->datalen);
     if ( ptr->datalen < KOMODO_DEX_ROUTESIZE || ptr->datalen > KOMODO_DEX_MAXPACKETSIZE )
     {
         fprintf(stderr,"illegal datalen.%d\n",ptr->datalen);
         return(-1);
     }
-    //SETBIT(ptr->peermask,peerpos); // pretty sure this will get there -> mark present
     packet.resize(ptr->datalen);
     memcpy(&packet[0],ptr->data,ptr->datalen);
     packet[0] = resp0;
