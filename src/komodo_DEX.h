@@ -2410,7 +2410,7 @@ UniValue komodo_DEXsubscribe(int32_t &cmpflag,char *origfname,int32_t priority,u
         result.push_back(Pair((char *)"sliceid",(int64_t)sliceid));
         return(result);
     }
-    if ( publisher == 0 || publisher[0] == 0 || strlen(publisher) > 66 )
+    if ( publisher == 0 || publisher[0] == 0 || strlen(publisher) != 66 )
     {
         result.push_back(Pair((char *)"result",(char *)"error"));
         result.push_back(Pair((char *)"error",(char *)"need publisher pubkey for sub"));
@@ -2421,7 +2421,13 @@ UniValue komodo_DEXsubscribe(int32_t &cmpflag,char *origfname,int32_t priority,u
     {
         offset0 = ((uint64_t)sliceid - 1) * mult;
         sprintf(fname,"%s.%llu",origfname,(long long)offset0);
-    } else strcpy(fname,origfname);
+        sprintf(tagBstr,"%llu",(long long)offset0);
+    }
+    else
+    {
+        strcpy(fname,origfname);
+        sprintf(tagBstr,"locators");
+    }
     {
         pthread_mutex_lock(&DEX_globalmutex);
         memset(checkhash.bytes,0,sizeof(checkhash));
@@ -2439,9 +2445,9 @@ UniValue komodo_DEXsubscribe(int32_t &cmpflag,char *origfname,int32_t priority,u
         }
         if ( shorthash == 0 )
         {
-            if ( sliceid == 0 )
-                sprintf(tagBstr,"locators");
-            else sprintf(tagBstr,"%llu",(long long)offset0);
+            //if ( sliceid == 0 )
+            //    sprintf(tagBstr,"locators");
+            //else sprintf(tagBstr,"%llu",(long long)offset0);
             if ( (ptr= _komodo_DEX_latestptr(origfname,tagBstr,publisher,0)) != 0 )
                 shorthash = ptr->shorthash;
             //fprintf(stderr,"fname.%s auto search %s %s %s shorthash.%08x sliceid.%d\n",fname,origfname,tagBstr,publisher,shorthash,sliceid);
@@ -2478,6 +2484,7 @@ UniValue komodo_DEXsubscribe(int32_t &cmpflag,char *origfname,int32_t priority,u
         result.push_back(Pair((char *)"tagA",(char *)tagA));
         result.push_back(Pair((char *)"filename",origfname));
         result.push_back(Pair((char *)"tagB",(char *)tagB));
+        result.push_back(Pair((char *)"tagBstr",(char *)tagBstr));
         result.push_back(Pair((char *)"sliceid",(int64_t)sliceid));
         return(result);
     }
@@ -2727,7 +2734,7 @@ UniValue komodo_DEXpublish(char *fname,int32_t priority,int32_t sliceid)
                         sprintf(&bufstr[i<<1],"%02x",buf[i]);
                     bufstr[i<<1] = 0;
                     sprintf(volAstr,"%llu.%08llu",(long long)volA/COIN,(long long)volA % COIN);
-                    komodo_DEXbroadcast(&locator,'Q',bufstr,0*KOMODO_DEX_VIPLEVEL/2,fname,(char *)"data",pubkeystr,volAstr,(char *)"");
+                    komodo_DEXbroadcast(&locator,'Q',bufstr,priority,fname,(char *)"data",pubkeystr,volAstr,(char *)"");
                     //fprintf(stderr,".");
                     iguana_rwnum(1,&locators[volA*sizeof(uint64_t) + sizeof(uint64_t)],sizeof(locator),&locator);
                     changed++;
