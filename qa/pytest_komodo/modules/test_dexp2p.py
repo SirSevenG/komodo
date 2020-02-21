@@ -6,25 +6,34 @@
 import pytest
 # from decimal import *
 import sys
+import os
+import time
 
 sys.path.append('../')
-from basic.pytest_util import validate_template, randomhex, write_file
+from basic.pytest_util import validate_template, randomhex, write_file, write_empty_file
 
 
 @pytest.mark.usefixtures("proxy_connection")
 class TestDexP2Prpc:
 
     def test_dexrpc_stats(self, test_params):
-        rpc1 = test_params.get('node1').get('rpc')
-
         schema_stats = {
             'type': 'object',
             'properties': {
                 'publishable_pubkey': {'type': 'string'},
-                'perfstats': {'type': 'string'}
+                'perfstats': {'type': 'string'},
+                'result': {'type': 'string'},
+                'secpkey': {'type': 'string'},
+                'recvaddr': {'type': 'string'},
+                'recvZaddr': {'type': 'string'},
+                'handle': {'type': 'string'},
+                'txpowbits': {'type': 'integer'},
+                'vip': {'type': 'integer'},
+                'cmdpriority': {'type': 'integer'}
             }
         }
 
+        rpc1 = test_params.get('node1').get('rpc')
         res = rpc1.DEX_stats()
         validate_template(res, schema_stats)
 
@@ -129,6 +138,38 @@ class TestDexP2Prpc:
         message = randomhex()
         res = rpc1.DEX_broadcast(message, '4', 'BASE', 'REL', pubkey, '100', '1')
         validate_template(res, schema_broadcast)
+
+    def test_dexrpc_anonsend(self, test_params):
+        # send anon message
+        schema_anon = {
+            'type': 'object',
+            'properties': {
+                'timestamp': {'type': 'integer'},
+                'id': {'type': 'integer'},
+                'hash': {'type': 'string'},
+                'tagA': {'type': 'string'},
+                'tagB': {'type': 'string'},
+                'pubkey': {'type': 'string'},
+                'payload': {'type': 'string'},
+                'hex': {'type': 'integer'},
+                'decrypted': {'type': 'string'},
+                'decryptedhex': {'type': 'integer'},
+                'anonmsg': {'type': 'string'},
+                'anonsender': {'type': 'string'},
+                'amountA': {'type': 'string'},
+                'amountB': {'type': 'string'},
+                'priority': {'type': 'integer'},
+                'recvtime': {'type': 'integer'},
+                'cancelled': {'type': 'integer'}
+            }
+        }
+
+        rpc1 = test_params.get('node1').get('rpc')
+        rpc2 = test_params.get('node2').get('rpc')
+        destpub = rpc2.DEX_stats().get('publishable_pubkey')
+        message = 'testanonmessage'
+        res = rpc1.DEX_anonsend(message, '4', destpub)
+        validate_template(res, schema_anon)
 
     def test_dexrpc_get(self, test_params):
         # check get id
@@ -300,9 +341,16 @@ class TestDexP2Prpc:
         schema_setpub = {
             'type': 'object',
             'properties': {
-                'result': {'type': 'string'},
                 'publishable_pubkey': {'type': 'string'},
                 'perfstats': {'type': 'string'},
+                'result': {'type': 'string'},
+                'secpkey': {'type': 'string'},
+                'recvaddr': {'type': 'string'},
+                'recvZaddr': {'type': 'string'},
+                'handle': {'type': 'string'},
+                'txpowbits': {'type': 'integer'},
+                'vip': {'type': 'integer'},
+                'cmdpriority': {'type': 'integer'}
             }
         }
 
@@ -310,3 +358,61 @@ class TestDexP2Prpc:
         res = rpc1.DEX_setpubkey('01' + randomhex())
         validate_template(res, schema_setpub)
         assert res.get('result') == 'success'
+
+    def test_dexrpc_stream(self, test_params):
+        # stream file, single iteration
+        schema_stream = {
+            'type': 'object',
+            'properties': {
+                'fname': {'type': 'string'},
+                'senderpub': {'type': 'string'},
+                'filehash': {'type': 'string'},
+                'checkhash': {'type': 'string'},
+                'result': {'type': 'string'},
+                'id': {'type': 'integer'},
+                'filesize': {'type': 'integer'},
+                'fragments': {'type': 'integer'},
+                'numlocators': {'type': 'integer'}
+            }
+        }
+
+        rpc1 = test_params.get('node1').get('rpc')
+        filename = 'file_to_stream'
+        write_empty_file(filename, 1)
+        res = rpc1.DEX_stream(filename, '6')
+        validate_template(res, schema_stream)
+        assert res.get('result') == 'success'
+        if os.path.isfile(filename):
+            os.remove(filename)
+
+    def test_dexrpc_streamsub(self, test_params):
+        # subscribe to streamed file, single iteration
+        schema_streamsub = {
+            'type': 'object',
+            'properties': {
+                'fname': {'type': 'string'},
+                'senderpub': {'type': 'string'},
+                'filehash': {'type': 'string'},
+                'checkhash': {'type': 'string'},
+                'result': {'type': 'string'},
+                'id': {'type': 'integer'},
+                'filesize': {'type': 'integer'},
+                'fragments': {'type': 'integer'},
+                'numlocators': {'type': 'integer'}
+            }
+        }
+
+        rpc1 = test_params.get('node1').get('rpc')
+        rpc2 = test_params.get('node2').get('rpc')
+        filename = 'file_to_stream'
+        pubkey = rpc1.DEX_stats().get('publishable_pubkey')
+        write_empty_file(filename, 1)
+        res = rpc1.DEX_stream(filename, '6')
+        assert res.get('result') == 'success'
+        time.sleep(15)  # time to broadcast
+        res = rpc2.DEX_streamsub(filename, '0', pubkey)
+        assert res.get('result') == 'error'  # will always fail with current test setup
+        print(res)
+        validate_template(res, schema_streamsub)
+        if os.path.isfile(filename):
+            os.remove(filename)

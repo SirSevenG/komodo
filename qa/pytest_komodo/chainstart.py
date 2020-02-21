@@ -69,43 +69,27 @@ def create_configs(asset, node=0):
         confpath = ('./node_' + str(node) + '/' + asset + '.conf')
     else:
         confpath = (os.getcwd() + '\\node_' + str(node) + '\\' + asset + '.conf')
-    if os.path.isfile(confpath) or os.path.isdir(os.getcwd() + '/node_' + str(node)):
-        for root, dirs, files in os.walk('node_' + str(node), topdown=False):
-            for name in files:
-                os.remove(os.path.join(root, name))
-            for name in dirs:
-                os.rmdir(os.path.join(root, name))
-        os.rmdir('node_' + str(node))
-    print("Clean up done")
-    os.mkdir('node_' + str(node))
-    open(confpath, 'a').close()
-    with open(confpath, 'a') as conf:
-        conf.write("rpcuser=test\n")
-        conf.write("rpcpassword=test\n")
-        conf.write('rpcport=' + str(7000 + node) + '\n')
-        conf.write("rpcbind=0.0.0.0\n")
-        conf.write("rpcallowip=0.0.0.0/0\n")
+    if not os.path.isfile(confpath):
+        os.mkdir('node_' + str(node))
+        open(confpath, 'a').close()
+        with open(confpath, 'a') as conf:
+            conf.write("rpcuser=test\n")
+            conf.write("rpcpassword=test\n")
+            conf.write('rpcport=' + str(7000 + node) + '\n')
+            conf.write("rpcbind=0.0.0.0\n")
+            conf.write("rpcallowip=0.0.0.0/0\n")
 
 
 def main():
     env_params = load_env_config()
     clients_to_start = env_params.get('clients_to_start')
     aschain = env_params.get('ac_name')
-    if os.path.isfile('bootstrap.tar.gz'):
-        os.remove('bootstrap.tar.gz')
-        pass
     if env_params.get('is_bootstrap_needed'):  # bootstrap chains
-        print("Downloading bootstrap")
-        wget.download(env_params.get('bootstrap_url'), "bootstrap.tar.gz")
-    try:
+        if not os.path.isfile('bootstrap.tar.gz'):
+            wget.download(env_params.get('bootstrap_url'), "bootstrap.tar.gz")
         tf = tarfile.open("bootstrap.tar.gz")
-        btrp = True
-    except FileNotFoundError:
-        tf = ""
-        btrp = False
-    for i in range(clients_to_start):
-        create_configs(aschain, i)
-        if btrp:
+        for i in range(clients_to_start):
+            create_configs(aschain, i)
             tf.extractall("node_" + str(i))
     mode = env_params.get('chain_start_mode')
     ac_params = load_ac_params(aschain, mode)
@@ -117,6 +101,7 @@ def main():
             confpath = (os.getcwd() + '\\node_' + str(i) + '\\' + aschain + '.conf')
             datapath = (os.getcwd() + '\\node_' + str(i))
         cl_args = [ac_params.get('binary_path'),
+                   '-ac_name=' + aschain,
                    '-conf=' + confpath,
                    '-datadir=' + datapath
                    ]
