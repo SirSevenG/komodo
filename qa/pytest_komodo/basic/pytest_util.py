@@ -201,7 +201,7 @@ def randomhex():  # returns 64 chars long pubkey-like hex string
     return (''.join(random.choice(chars) for i in range(64))).lower()
 
 
-def write_file(filename):
+def write_file(filename):  # creates text file
     lines = 10
     content = ''
     for x in range(lines):
@@ -210,6 +210,14 @@ def write_file(filename):
         f.write(str('filename\n'))
         f.write(content)
     return True
+
+
+def write_empty_file(filename: str, size: int):  # creates empty file slightly bigger than size in mb
+    if os.path.isfile(filename):
+        os.remove(filename)
+    with open(filename, 'wb') as f:
+        f.seek((size * 1024 * 1025) - 1)
+        f.write(b'\0')
 
 
 def get_size(file):

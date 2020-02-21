@@ -449,3 +449,30 @@ class TestDexP2Pe2e:
             if match.get('id') == msg_id:
                 assert match.get('anonmsg') == message
                 assert match.get('anonsender') == pub
+
+    def test_dex_zero_broadcast(self, test_params):  # zero length payload
+        rpc1 = test_params.get('node1').get('rpc')
+        rpc2 = test_params.get('node1').get('rpc')
+        payload = ''
+        taga = randomstring(15)
+        tagb = randomstring(15)
+        priority = '1'
+        pubkey = rpc1.DEX_stats().get('publishable_pubkey')
+
+        res = rpc1.DEX_broadcast(payload, priority, taga, tagb, pubkey)
+        assert not res  # should have empty response
+        res = rpc1.DEX_broadcast(payload, priority, '', '', '')
+        assert not res
+        res = rpc1.DEX_broadcast(payload, priority, taga, '', '')
+        assert not res
+        time.sleep(15)
+
+        # no messages should be listed
+        res = rpc1.DEX_list('', '1', taga, tagb, '')
+        assert not res.get('matches')
+        res = rpc1.DEX_list('', '1', taga, '', '')
+        assert not res.get('matches')
+        res = rpc2.DEX_list('', '1', taga, tagb, '')
+        assert not res.get('matches')
+        res = rpc2.DEX_list('', '1', taga, '', '')
+        assert not res.get('matches')
