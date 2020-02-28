@@ -14,7 +14,7 @@ class TestChainSync:
     def test_base_sync(self, test_params):
         rpc = test_params.get('node1').get('rpc')
         # Get ENV test params
-        coin = env_get('CHAIN')
+        coin = env_get('CHAIN', 'KMD')
         sync_timeout = env_get('TIMEOUT', 86400)
         blocktime = int(env_get('BLOCKTIME_AVR', 60))
         check_notarizations = env_get('NOTARIZATIONS', False)

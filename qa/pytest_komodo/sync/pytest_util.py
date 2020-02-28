@@ -51,6 +51,3 @@ def check_notarized(proxy, notarystats, coin, blocktime=60):
         assert daemon_stats['notarizedhash'] != '0000000000000000000000000000000000000000000000000000000000000000'
         assert daemon_stats['notarizedtxid'] != '0000000000000000000000000000000000000000000000000000000000000000'
         return True
-
-
-
