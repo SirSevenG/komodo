@@ -30,10 +30,9 @@ def get_notary_stats():
     return data
 
 
-def check_notarized(proxy, notarystats, coin, blocktime=60):
+def check_notarized(proxy, api_stats, coin, blocktime=60):
     maxblocksdiff = round(1500 / blocktime)
     daemon_stats = proxy.getinfo()
-    api_stats = json.load(notarystats)
     notarizations = {}
     for item in api_stats:
         if item.get('ac_name') == coin:
