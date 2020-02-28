@@ -5,7 +5,8 @@
 
 import pytest
 import time
-from pytest_util import env_get, get_chainstate, check_notarized
+import json
+from pytest_util import env_get, get_chainstate, check_notarized, get_notary_stats
 
 
 @pytest.mark.usefixtures("proxy_connection")
@@ -14,6 +15,7 @@ class TestChainSync:
     def test_base_sync(self, test_params):
         rpc = test_params.get('node1').get('rpc')
         # Get ENV test params
+        coin = env_get('CHAIN')
         sync_timeout = env_get('TIMEOUT', 86400)
         blocktime = int(env_get('BLOCKTIME_AVR', 60))
         check_notarizations = env_get('NOTARIZATIONS', False)
@@ -29,7 +31,8 @@ class TestChainSync:
                 print('Chain synced')
                 assert values.get('blocks') == values.get('longestchain')
                 if check_notarizations:
-                    assert check_notarized(values.get('notarized'), values.get('longestchain'), rpc, blocktime)
+                    notarystats = get_notary_stats()
+                    assert check_notarized(rpc, notarystats, coin, blocktime)
                     print("Notarization check passed")
                 break
             print('Waiting synchronization...')

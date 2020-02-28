@@ -1,5 +1,6 @@
-import time
 import os
+import requests
+import json
 
 
 def env_get(var, default):
@@ -20,31 +21,36 @@ def get_chainstate(proxy):
     return vals
 
 
-def check_notarized(notarized, longestchain, proxy, blocktime=60):
-    # Assuming chain should get notarization in 2 BTC blocks
-    allowed_diff = round(1500 / blocktime)  # COIN rough blocks amount in 2,5 average BTC blocktime
-    if os.environ['IS_BOOTSTRAP_NEEDED']:  # Bootstraped node may appear 'in sync' without any peers connected
-        peers_connected = 0
-        ltime = time.time()
-        timeout = time.time() + 5 * blocktime
-        while peers_connected < 4 and ltime < timeout:
-            ltime = time.time()
-            peers_connected = len(proxy.getpeerinfo())
-            proxy.ping()
-            print(proxy.getpeerinfo())
-            print("Waiting more peers to connect")
-            time.sleep(10)
-    if notarized == 0:
-        print("Waiting chain to get notarizations data")
-        ltime = time.time()
-        timeout = time.time() + 1500
-        while notarized == 0 and ltime <= timeout:
-            time.sleep(blocktime * 1.5)
-            notarized = proxy.getinfo().get('notarized')
-            ltime = time.time()
-            print("Waiting notarization")
-            print(notarized)
-    if notarized >= longestchain - allowed_diff:
+def get_notary_stats():
+    api = "https://komodostats.com/api/notary/summary.json"
+    local = "notary.json"
+    data = requests.get(api).json()
+    with open(local, 'w') as lf:
+        lf.write(str(data))
+    return data
+
+
+def check_notarized(proxy, notarystats, coin, blocktime=60):
+    maxblocksdiff = round(1500 / blocktime)
+    daemon_stats = proxy.getinfo()
+    api_stats = json.load(notarystats)
+    notarizations = {}
+    for item in api_stats:
+        if item.get('ac_name') == coin:
+            notarizations = item
+    if not notarizations:
+        raise BaseException("Chain notary data not found")
+    if daemon_stats['notarized'] == notarizations['notarized']:
+        assert daemon_stats['notarizedhash'] == notarizations['notarizedhash']
+        assert daemon_stats['notarizedtxid'] == notarizations['notarizedtxid']
         return True
-    else:
+    elif abs(daemon_stats['notarazied'] - notarizations['notarized']) >= maxblocksdiff:
         return False
+    else:
+        assert daemon_stats['notarized']
+        assert daemon_stats['notarizedhash'] != '0000000000000000000000000000000000000000000000000000000000000000'
+        assert daemon_stats['notarizedtxid'] != '0000000000000000000000000000000000000000000000000000000000000000'
+        return True
+
+
+
