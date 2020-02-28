@@ -5,7 +5,6 @@
 
 import pytest
 import time
-import json
 from pytest_util import env_get, get_chainstate, check_notarized, get_notary_stats
 
 
