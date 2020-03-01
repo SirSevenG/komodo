@@ -405,6 +405,7 @@ class TestDexP2Pe2e:
         assert res.get('filehash') == fhash2
 
         # test file upload from dexp2p share directory
+        fallbackpath = ''
         if os.name == 'posix':
             dex_path = '/usr/local/dexp2p/'
             if not os.path.isdir(dex_path) or os.stat(dex_path).st_uid != os.getuid():
@@ -413,25 +414,49 @@ class TestDexP2Pe2e:
             appdatadir = os.environ['APPDATA']
             dex_path = appdatadir + '\\Roaming\\dexp2p\\'
             if not os.path.isdir(dex_path):
-                os.mkdir(dex_path)
-            fallbackpath = ''
+                raise NotADirectoryError("Directory does not exists or not owned by current user: ", dex_path)
+            fallbackpath = os.environ['HOMEDRIVE'] + '\\tmp\\dexp2p\\'
         pubkey = rpc1.DEX_stats().get('publishable_pubkey')
         file_shortname3 = 'file_' + randomstring(5)
         file_fullname3 = dex_path + file_shortname3
         write_empty_file(file_fullname3, 10)
-        size3 = get_size(file_fullname3)
-        fhash3 = get_filehash(file_fullname3)
+        size = get_size(file_fullname3)
+        fhash = get_filehash(file_fullname3)
         res = rpc1.DEX_publish(file_shortname3, '0')
         assert res.get('result') == 'success'
         assert res.get('fname') == file_shortname3
-        assert res.get('filesize') == size3
-        assert res.get('filehash') == fhash3
+        assert res.get('filesize') == size
+        assert res.get('filehash') == fhash
         time.sleep(20)
         res = rpc2.DEX_subscribe(file_shortname3, '0', '0', pubkey)
         assert res.get('result') == 'success'
         assert res.get('fname') == file_shortname3
-        assert res.get('filesize') == size3
-        assert res.get('filehash') == fhash3
+        assert res.get('filesize') == size
+        assert res.get('filehash') == fhash
+
+        # Check fallback to tmp dir on Windows
+        if os.name != 'posix':
+            for root, dirs, files in os.walk(dex_path, topdown=False):
+                for name in files:
+                    os.remove(os.path.join(root, name))
+                for name in dirs:
+                    os.rmdir(os.path.join(root, name))
+            file_shortname4 = 'file_' + randomstring(5)
+            file_fullname4 = fallbackpath + file_shortname4
+            write_empty_file(file_fullname4, 10)
+            size = get_size(file_fullname4)
+            fhash = get_filehash(file_fullname4)
+            res = rpc1.DEX_publish(file_shortname4, '0')
+            assert res.get('result') == 'success'
+            assert res.get('fname') == file_shortname4
+            assert res.get('filesize') == size
+            assert res.get('filehash') == fhash
+            time.sleep(20)
+            res = rpc2.DEX_subscribe(file_shortname4, '0', '0', pubkey)
+            assert res.get('result') == 'success'
+            assert res.get('fname') == file_shortname4
+            assert res.get('filesize') == size
+            assert res.get('filehash') == fhash
 
     def test_dex_encryption(self, test_params):
         rpc1 = test_params.get('node1').get('rpc')
