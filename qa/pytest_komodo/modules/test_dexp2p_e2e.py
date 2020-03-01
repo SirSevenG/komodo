@@ -7,10 +7,11 @@ import pytest
 import time
 # from decimal import *
 import sys
+import os
 
 sys.path.append('../')
 from basic.pytest_util import randomstring, in_99_range, collect_orderids,\
-                              get_size, write_file, get_filehash, compare_rough
+                              get_size, write_file, get_filehash, compare_rough, write_empty_file
 
 
 @pytest.mark.usefixtures("proxy_connection")
@@ -299,6 +300,7 @@ class TestDexP2Pe2e:
         rpc1 = test_params.get('node1').get('rpc')
         rpc2 = test_params.get('node2').get('rpc')
         pubkey = rpc1.DEX_stats().get('publishable_pubkey')
+        filename_err = 'file_' + randomstring(15)
         filename1 = 'file_' + randomstring(5)
         write_file(filename1)
         filename2 = 'file_' + randomstring(5)
@@ -307,6 +309,13 @@ class TestDexP2Pe2e:
         size2 = get_size(filename2)
         fhash1 = get_filehash(filename1)
         fhash2 = get_filehash(filename2)
+
+        # check error filename_too_long
+        res = rpc1.DEX_publish(filename_err, '0')
+        assert res.get('result') == 'error'
+        assert res.get('error') == "filename longer than 15 chars"
+
+        # check error file not exist
 
         # publish both files on 1st node
         res = rpc1.DEX_publish(filename1, '0')
@@ -389,6 +398,36 @@ class TestDexP2Pe2e:
         assert res.get('result') == 'success'
         assert res.get('filesize') == size2
         assert res.get('filehash') == fhash2
+
+        # test file upload from dexp2p share directory
+        if os.name == 'posix':
+            dex_path = '/usr/local/dexp2p'
+            if not os.path.isdir(dex_path) or os.stat(dex_path).st_uid != os.getuid():
+                raise NotADirectoryError("Directory does not exists or not owned by current user: ", dex_path)
+        else:
+            appdatadir = os.environ['APPDATA']
+            dex_path = appdatadir + '\\Roaming\\dexp2p'
+            if not os.path.isdir(dex_path):
+                os.mkdir(dex_path)
+            fallbackpath = ''
+        pubkey = rpc1.DEX_stats().get('publishable_pubkey')
+        file_shortname3 = 'file_' + randomstring(5)
+        file_fullname3 = dex_path + file_shortname3
+        write_empty_file(file_fullname3, 1000)
+        size3 = get_size(file_fullname3)
+        fhash3 = get_filehash(file_fullname3)
+        res = rpc1.DEX_publish(file_fullname3, '0')
+        f_id3 = str(res.get('id'))
+        assert res.get('result') == 'success'
+        assert res.get('fname') == file_shortname3
+        assert res.get('filesize') == size3
+        assert res.get('filehash') == fhash3
+        time.sleep(20)
+        res = rpc2.DEX_subscribe(f_id3, '0', '0', pubkey)
+        assert res.get('fname') == file_shortname3
+        assert res.get('result') == 'success'
+        assert res.get('filesize') == size3
+        assert res.get('filehash') == fhash3
 
     def test_dex_encryption(self, test_params):
         rpc1 = test_params.get('node1').get('rpc')
