@@ -11,6 +11,7 @@ jobs:
       - uses: actions/checkout@v1
 
       - name: Install deps (Linux)
+
         env:
           DEBIAN_FRONTEND: noninteractive
         if: runner.os == 'Linux'
@@ -30,14 +31,12 @@ jobs:
           python3 -m pip install setuptools wheel
           python3 -m pip install slick-bitcoinrpc pytest wget jsonschema
           ./zcutil/fetch-params.sh
-
       - name: Build (Linux)
         if: runner.os == 'Linux'
         run: |
           # flag for some CC tests transactions - so DO NOT USE THIS CI ARTIFACTS IN PRODUCTION!!!
           CONFIGURE_FLAGS='CPPFLAGS=-DTESTMODE' ./zcutil/build.sh -j$(nproc)
           tar -czvf komodo-linux.tar.gz src/komodod src/komodo-cli
-
       - name: Upload komodo-linux.tar.gz as artifact
         uses: actions/upload-artifact@v1
         with:
@@ -70,6 +69,7 @@ jobs:
 
 
   linux-test-dice-token-reards-faucet-cc:
+
     name: Test (Linux/Dice, Token, Faucet, Rewards)
     runs-on: ubuntu-latest
     needs: linux-build
@@ -90,7 +90,6 @@ jobs:
                  libssl-dev -y
           python3 -m pip install setuptools wheel
           python3 -m pip install slick-bitcoinrpc pytest wget jsonschema
-
       - name: Download komodo-linux.tar.gz
         uses: actions/download-artifact@v1
         with:
@@ -106,6 +105,7 @@ jobs:
           ./ci_setup.sh "cc_modules/test_dice.py cc_modules/test_faucet.py cc_modules/test_token.py cc_modules/test_rewards.py"
 
   linux-test-oracles:
+
     name: Test (Linux/OraclesCC)
     runs-on: ubuntu-latest
     needs: linux-build
@@ -126,7 +126,6 @@ jobs:
                  libssl-dev -y
           python3 -m pip install setuptools wheel
           python3 -m pip install slick-bitcoinrpc pytest wget jsonschema
-
       - name: Download komodo-linux.tar.gz
         uses: actions/download-artifact@v1
         with:
@@ -142,6 +141,7 @@ jobs:
           ./ci_setup.sh cc_modules/test_oracles.py
 
   linux-test-baserpc:
+
     name: Test (Linux/BasicRPC)
     runs-on: ubuntu-latest
     needs: linux-build
@@ -162,7 +162,6 @@ jobs:
                  libssl-dev -y
           python3 -m pip install setuptools wheel
           python3 -m pip install slick-bitcoinrpc pytest wget jsonschema
-
       - name: Download komodo-linux.tar.gz
         uses: actions/download-artifact@v1
         with:
@@ -178,6 +177,7 @@ jobs:
           ./ci_setup.sh basic
 
   linux-test-channels:
+
     name: Test (Linux/ChannelsCC)
     runs-on: ubuntu-latest
     needs: linux-build
@@ -198,7 +198,6 @@ jobs:
                  libssl-dev -y
           python3 -m pip install setuptools wheel
           python3 -m pip install slick-bitcoinrpc pytest wget jsonschema
-
       - name: Download komodo-linux.tar.gz
         uses: actions/download-artifact@v1
         with:
@@ -214,6 +213,7 @@ jobs:
           ./ci_setup.sh cc_modules/test_channels.py
 
   linux-test-heir:
+
     name: Test (Linux/HeirCC)
     runs-on: ubuntu-latest
     needs: linux-build
@@ -234,7 +234,6 @@ jobs:
                  libssl-dev -y
           python3 -m pip install setuptools wheel
           python3 -m pip install slick-bitcoinrpc pytest wget jsonschema
-
       - name: Download komodo-linux.tar.gz
         uses: actions/download-artifact@v1
         with:
@@ -250,6 +249,7 @@ jobs:
           ./ci_setup.sh cc_modules/test_heir.py
 
   linux-test-dexp2p:
+
     name: Test (Linux/DEXP2P)
     runs-on: ubuntu-latest
     needs: linux-build
@@ -270,7 +270,6 @@ jobs:
                  libssl-dev -y
           python3 -m pip install setuptools wheel
           python3 -m pip install slick-bitcoinrpc pytest wget jsonschema
-
       - name: Download komodo-linux.tar.gz
         uses: actions/download-artifact@v1
         with:
@@ -294,7 +293,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v1
-    - name: Build Win on Unix
+    - name: Install deps(mingw)
       env:
         DEBIAN_FRONTEND: noninteractive
       if: runner.os == 'Linux'
@@ -302,17 +301,247 @@ jobs:
         sudo apt-get remove php5.6-fpm php7.0-fpm php7.1-fpm php7.2-fpm php7.3-fpm php7.4-fpm php7.3-common
         sudo apt-get update
         sudo ACCEPT_EULA=Y apt-get upgrade -y
-        sudo apt-get install build-essential pkg-config libc6-dev m4 g++-multilib autoconf libtool libncurses-dev unzip git python zlib1g-dev wget bsdmainutils automake libboost-all-dev libssl-dev libprotobuf-dev protobuf-compiler libqrencode-dev libdb++-dev ntp ntpdate nano software-properties-common curl libevent-dev libcurl4-gnutls-dev cmake clang libsodium-dev -y
-        sudo apt-get install build-essential pkg-config libc6-dev m4 g++-multilib autoconf libtool ncurses-dev unzip git python python-zmq zlib1g-dev wget libcurl4-gnutls-dev bsdmainutils automake curl cmake mingw-w64 -y
+        sudo apt-get install build-essential \
+                             pkg-config \
+                             libc6-dev \
+                             m4 \
+                             g++-multilib \
+                             autoconf libtool \
+                             libncurses-dev \
+                             unzip  \
+                             git \
+                             python \
+                             zlib1g-dev \
+                             wget \
+                             bsdmainutils \
+                             automake \
+                             libboost-all-dev \
+                             libssl-dev \
+                             libprotobuf-dev \
+                             protobuf-compiler \
+                             libqrencode-dev \
+                             libdb++-dev \
+                             ntp \
+                             ntpdate \
+                             nano \
+                             software-properties-common \
+                             curl \
+                             libevent-dev \
+                             libcurl4-gnutls-dev \
+                             cmake \
+                             clang \
+                             libsodium-dev \
+                             python-zmq \
+                             mingw-w64 -y
         curl https://sh.rustup.rs -sSf | sh -s -- -y
         source $HOME/.cargo/env
         rustup target add x86_64-pc-windows-gnu
         sudo update-alternatives --set x86_64-w64-mingw32-gcc /usr/bin/x86_64-w64-mingw32-gcc-posix
         sudo update-alternatives --set x86_64-w64-mingw32-g++ /usr/bin/x86_64-w64-mingw32-g++-posix
-        CONFIGURE_FLAGS='CPPFLAGS=-DTESTMODE' ./zcutil/build-win.sh -j$(nproc)
-        zip --junk-paths komodod_win src/komodod.exe
+
+    - name: Build Win (mingw)
+      run: |
+        # flag for some CC tests transactions - so DO NOT USE THIS CI ARTIFACTS IN PRODUCTION!!!
+        export CONFIGURE_FLAGS='CPPFLAGS=-DTESTMODE'
+        ./zcutil/build-win.sh -j$(nproc)
+        zip --junk-paths komodod_win src/komodod.exe src/komodo-cli.exe
+
     - name: Upload komodod.exe as artifact
       uses: actions/upload-artifact@v1
       with:
         name: komodod_win
         path: ./komodod_win.zip
+
+  windows-test-dexp2p:
+
+    name: Test (Win/DEXP2P)
+    runs-on: windows-latest
+    needs: windows-build
+
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Download komodo_win.zip
+        uses: actions/download-artifact@v1
+        with:
+          name: komodod_win
+
+      - name: Install deps (DEXP2P)
+        shell: cmd
+        run: |
+          move komodod_win\komodod_win.zip
+          7z e komodod_win.zip
+          move komodod.exe src\
+          python.exe -m pip install --upgrade setuptools
+          python.exe -m pip install --upgrade pip
+          python.exe -m pip install pycurl pytest wget jsonschema
+          python.exe -m pip install slick-bitcoinrpc
+          zcutil\fetch-params.bat
+
+      - name: DEXP2P Test (Linux)
+        shell: cmd
+        run: |
+          cd qa\pytest_komodo
+          md %APPDATA%\dexp2p
+          md %HOMEDRIVE%\tmp\dexp2p
+          start_set_dex.bat
+
+  windows-test-baserpc:
+
+    name: Test (Win/BasicRPC)
+    needs: windows-build
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Download komodo_win.zip
+        uses: actions/download-artifact@v1
+        with:
+          name: komodod_win
+
+      - name: Install deps (Base)
+        shell: cmd
+        run: |
+          move komodod_win\komodod_win.zip
+          7z e komodod_win.zip
+          move komodod.exe src\
+          python.exe -m pip install --upgrade setuptools
+          python.exe -m pip install --upgrade pip
+          python.exe -m pip install pycurl pytest wget jsonschema
+          python.exe -m pip install slick-bitcoinrpc
+          zcutil\fetch-params.bat
+
+      - name: Base RPC Test (Windows)
+        shell: cmd
+        run: |
+          cd qa\pytest_komodo
+          start_ci.bat basic
+
+  windows-test-dice-faucet-tok-rewCC:
+
+    name: Test (Win/Dice Faucet Token Rewards)
+    runs-on: windows-latest
+    needs: windows-build
+
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Download komodo_win.zip
+        uses: actions/download-artifact@v1
+        with:
+          name: komodod_win
+
+      - name: Install deps (MainCC)
+        shell: cmd
+        run: |
+          move komodod_win\komodod_win.zip
+          7z e komodod_win.zip
+          move komodod.exe src\
+          python.exe -m pip install --upgrade setuptools
+          python.exe -m pip install --upgrade pip
+          python.exe -m pip install pycurl pytest wget jsonschema
+          python.exe -m pip install slick-bitcoinrpc
+
+          zcutil\fetch-params.bat
+      - name: CC Dice Faucet Tokens Rewards (Windows)
+        shell: cmd
+        run: |
+          cd qa\pytest_komodo
+          start_ci.bat cc_modules\test_dice.py cc_modules\test_faucet.py cc_modules\test_token.py cc_modules\test_rewards.py
+
+  windows-test-oracles-cc:
+
+    name: Test (Win/OraclesCC)
+    runs-on: windows-latest
+    needs: windows-build
+
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Download komodo_win.zip
+        uses: actions/download-artifact@v1
+        with:
+          name: komodod_win
+
+      - name: Install deps (OraclesCC)
+        shell: cmd
+        run: |
+          move komodod_win\komodod_win.zip
+          7z e komodod_win.zip
+          move komodod.exe src\
+          python.exe -m pip install --upgrade setuptools
+          python.exe -m pip install --upgrade pip
+          python.exe -m pip install pycurl pytest wget jsonschema
+          python.exe -m pip install slick-bitcoinrpc
+
+          zcutil\fetch-params.bat
+      - name: CC Oracles (Windows)
+        shell: cmd
+        run: |
+          cd qa\pytest_komodo
+          start_ci.bat cc_modules\test_oracles.py
+
+  windows-test-heir-cc:
+
+    name: Test (Win/HeirCC)
+    runs-on: windows-latest
+    needs: windows-build
+
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Download komodo_win.zip
+        uses: actions/download-artifact@v1
+        with:
+          name: komodod_win
+
+      - name: Install deps (CC Heir)
+        shell: cmd
+        run: |
+          move komodod_win\komodod_win.zip
+          7z e komodod_win.zip
+          move komodod.exe src\
+          python.exe -m pip install --upgrade setuptools
+          python.exe -m pip install --upgrade pip
+          python.exe -m pip install pycurl pytest wget jsonschema
+          python.exe -m pip install slick-bitcoinrpc
+
+          zcutil\fetch-params.bat
+      - name: CC Heir (Windows)
+        shell: cmd
+        run: |
+          cd qa\pytest_komodo
+          start_ci.bat cc_modules\test_heir.py
+
+  windows-test-channels-cc:
+
+    name: Test (Win/ChannelsCC)
+    runs-on: windows-latest
+    needs: windows-build
+
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Download komodo_win.zip
+        uses: actions/download-artifact@v1
+        with:
+          name: komodod_win
+
+      - name: Install deps (ChannelsCC)
+        shell: cmd
+        run: |
+          move komodod_win\komodod_win.zip
+          7z e komodod_win.zip
+          move komodod.exe src\
+          python.exe -m pip install --upgrade setuptools
+          python.exe -m pip install --upgrade pip
+          python.exe -m pip install pycurl pytest wget jsonschema
+          python.exe -m pip install slick-bitcoinrpc
+
+          zcutil\fetch-params.bat
+      - name: ChannelsCC (Windows)
+        shell: cmd
+        run: |
+          cd qa\pytest_komodo
+          start_ci.bat cc_modules\test_channels.py
