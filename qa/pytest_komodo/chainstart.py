@@ -63,7 +63,6 @@ def load_ac_params(asset, chain_mode='default'):
     return ac
 
 
-# TODO: add coins file compatibility with create_configs func
 def create_configs(asset, node=0):
     if os.name == 'posix':
         confpath = ('./node_' + str(node) + '/' + asset + '.conf')
