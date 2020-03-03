@@ -407,9 +407,11 @@ class TestDexP2Pe2e:
         # test file upload from dexp2p share directory
         fallbackpath = ''
         if os.name == 'posix':
-            dex_path = '/usr/local/dexp2p/'
-            if not os.path.isdir(dex_path) or os.stat(dex_path).st_uid != os.getuid():
-                raise NotADirectoryError("Directory does not exists or not owned by current user: ", dex_path)
+            dex_path = os.environ['HOME'] + '/dexp2p/'
+            if not os.path.isdir(dex_path):
+                os.mkdir(dex_path)
+            if os.stat(dex_path).st_uid != os.getuid():
+                raise NotADirectoryError("Directory not owned by current user: ", dex_path)
         else:
             appdatadir = os.environ['APPDATA']
             dex_path = appdatadir + '\\dexp2p\\'
