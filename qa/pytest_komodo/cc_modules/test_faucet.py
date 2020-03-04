@@ -6,7 +6,7 @@
 import pytest
 import json
 
-from util import assert_success, assert_error, check_if_mined, send_and_mine, rpc_connect
+from util import assert_success, assert_error, mine_and_waitconfirms, send_and_mine, rpc_connect
 
 
 @pytest.mark.usefixtures("proxy_connection")
@@ -76,7 +76,7 @@ def test_faucet(test_params):
         txid = result
         assert txid, "found txid"
         # we need the tx above to be confirmed in the next block
-        check_if_mined(rpc, txid)
+        mine_and_waitconfirms(txid, rpc)
 
         result = rpc.getwalletinfo()
         balance2 = result['balance']
