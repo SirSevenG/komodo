@@ -4,11 +4,12 @@ import os
 import random
 import string
 import hashlib
+import re
 try:
     from slickrpc import Proxy
     from slickrpc.exc import RpcException as RPCError
     from pycurl import error as HttpError
-except ImportError:
+except ImportError:  # fallback to bitcoinrpc
     from bitcoinrpc.authproxy import AuthServiceProxy as Proxy
     from bitcoinrpc.authproxy import JSONRPCException as RPCError
     from http.client import HTTPException as HttpError
@@ -72,13 +73,18 @@ def enable_mining(proxy):
             raise ChildProcessError("Node did not start correctly, aborting\n")
 
 
-def mine_and_waitconfirms(txid, proxy):  # should be used after tx is send
+def mine_and_waitconfirms(txid, proxy, confs_req=2):  # should be used after tx is send
     # we need the tx above to be confirmed in the next block
     attempts = 0
     while True:
         try:
             confirmations_amount = proxy.getrawtransaction(txid, 1)['confirmations']
-            break
+            if confirmations_amount < confs_req:
+                print("\ntx is not confirmed yet! Let's wait a little more")
+                time.sleep(5)
+            else:
+                print("\ntx confirmed")
+                return True
         except KeyError as e:
             print("\ntx is in mempool still probably, let's wait a little bit more\nError: ", e)
             time.sleep(5)
@@ -88,13 +94,6 @@ def mine_and_waitconfirms(txid, proxy):  # should be used after tx is send
             else:
                 print("\nwaited too long - probably tx stuck by some reason")
                 return False
-    if confirmations_amount < 2:
-        print("\ntx is not confirmed yet! Let's wait a little more")
-        time.sleep(5)
-        return True
-    else:
-        print("\ntx confirmed")
-        return True
 
 
 def validate_transaction(proxy, txid, conf_req):
@@ -235,3 +234,13 @@ def get_filehash(file):
         return str(fhash)
     else:
         raise FileNotFoundError
+
+
+def validate_tx_pattern(txid):
+    if not isinstance(txid, str):
+        return False
+    pattern = re.compile('[0-9a-f]{64}')
+    if pattern.match(txid):
+        return True
+    else:
+        return False
