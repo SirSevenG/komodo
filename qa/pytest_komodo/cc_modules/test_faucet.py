@@ -38,7 +38,7 @@ class TestFaucetCCBase:
         }
 
         rpc1 = test_params.get('node1').get('rpc')
-        res = rpc1.faucettfund('10')
+        res = rpc1.faucetfund('10')
         print(res)
         validate_template(res, faucetfund_schema)
         txid = rpc1.sendrawtransaction(res.get('hex'))
@@ -73,7 +73,8 @@ class TestFaucetCCBase:
             'type': 'object',
             'properties': {
                 'result': {'type': 'string'},
-                'hex': {'type': 'string'}
+                'hex': {'type': 'string'},
+                'error': {'type': 'string'}
             }
         }
 
@@ -81,12 +82,16 @@ class TestFaucetCCBase:
         node_addr = test_params.get('node1').get('address')
         res = rpc1.faucetget()
         print(res)
+        # should return error if faucetget have already been used by pubkey
         validate_template(res, faucetget_schema)
-        fhex = res.get('hex')
-        res = rpc1.decoderawtransaction(fhex)
-        vout_fauc = res.get('vout')[1]
-        assert node_addr in vout_fauc.get('scriptPubKey').get('address')
-        assert vout_fauc.get('valueSat') == pow(10, 8) * vout_fauc.get('value')
+        try:
+            fhex = res.get('hex')
+            res = rpc1.decoderawtransaction(fhex)
+            vout_fauc = res.get('vout')[1]
+            assert node_addr in vout_fauc.get('scriptPubKey').get('address')
+            assert vout_fauc.get('valueSat') == pow(10, 8) * vout_fauc.get('value')
+        except KeyError:
+            assert res.get('response') == 'error'
 
 
 @pytest.mark.usefixtures("proxy_connection")
@@ -97,28 +102,31 @@ class TestFaucetCCe2e:
         rpc1 = test_params.get('node1').get('rpc')
         pubkey = test_params.get('node1').get('pubkey')
         # addr = test_params.get('node1').get('address')
-        address_pattern = re.compile(r"R[a-zA-Z0-9]{33}\Z")
+        address_pattern = re.compile(r"R[a-zA-Z0-9]{33}\Z")  # normal R-addr
 
         res = rpc1.faucetaddress()
         print(res)
-        for each in res.keys():
-            if each.find('ddress'):
-                assert address_pattern.match(res[each])
+        for key in res.keys():
+            if key.find('ddress'):
+                assert address_pattern.match(res.get(key))
 
         res = rpc1.faucetaddress(pubkey)
         print(res)
-        for each in res.keys():
-            if each.find('ddress'):
-                assert address_pattern.match(res[each])
+        for key in res.keys():
+            if key.find('ddress'):
+                assert address_pattern.match(res.get(key))
 
     def test_faucet_badvalues(self, test_params):
         rpc1 = test_params.get('node1').get('rpc')
-        res = rpc1.faucettfund('')
+        res = rpc1.faucetfund('')
         print(res)
         assert res.get('result') == 'error'
-        res = rpc1.faucettfund('0')
+        res = rpc1.faucetfund('asdfqwe')
         print(res)
         assert res.get('result') == 'error'
-        res = rpc1.faucettfund('-1')
+        res = rpc1.faucetfund('0')
+        print(res)
+        assert res.get('result') == 'error'
+        res = rpc1.faucetfund('-1')
         print(res)
         assert res.get('result') == 'error'
