@@ -32,11 +32,13 @@ class TestRawTransactions:
         txid = res[0].get('txid')
         vout = res[0].get('vout')
         base_amount = res[0].get('amount')
+        # python float() is double precision floating point number,
+        # where sendmany expects regural float (8 digits) value
+        # "{0:.8f}".format(value)) returns number string with 8 digit precision and float() corrects the type
         if isinstance(base_amount, Decimal):
-            amount = float(base_amount) * 0.9
-            print(amount)
+            amount = float("{0:.8f}".format(float(base_amount) * 0.9))
         else:
-            amount = base_amount * 0.9
+            amount = float("{0:.8f}".format(base_amount * 0.9))
         address = rpc.getnewaddress()
         ins = [{'txid': txid, 'vout': vout}]
         outs = {address: amount}
