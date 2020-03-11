@@ -5,7 +5,7 @@ on: [push, pull_request]
 jobs:
   linux-build:
     name: Linux Build
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     
     steps:
       - uses: actions/checkout@v1
@@ -289,7 +289,7 @@ jobs:
   windows-build:
 
     name: Win Build
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     steps:
     - uses: actions/checkout@v1
