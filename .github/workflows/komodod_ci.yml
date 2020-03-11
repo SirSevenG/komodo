@@ -16,9 +16,9 @@ jobs:
           DEBIAN_FRONTEND: noninteractive
         if: runner.os == 'Linux'
         run: |
-          sudo apt-get remove php7.1-fpm php7.2-fpm php7.3-fpm php7.4-fpm php7.3-common php7.4-common
+          # sudo apt-get remove php7.1-fpm php7.2-fpm php7.3-fpm php7.4-fpm php7.3-common php7.4-common
           sudo apt-get update
-          sudo ACCEPT_EULA=Y apt-get upgrade -y
+          sudo apt-get upgrade -y # ACCEPT_EULA=Y
           sudo apt-get update
           sudo apt-get install -q \
                  curl \
@@ -298,9 +298,9 @@ jobs:
         DEBIAN_FRONTEND: noninteractive
       if: runner.os == 'Linux'
       run: |
-        sudo apt-get remove php5.6-fpm php7.0-fpm php7.1-fpm php7.2-fpm php7.3-fpm php7.4-fpm php7.3-common
+        # sudo apt-get remove php5.6-fpm php7.0-fpm php7.1-fpm php7.2-fpm php7.3-fpm php7.4-fpm php7.3-common
         sudo apt-get update
-        sudo ACCEPT_EULA=Y apt-get upgrade -y
+        sudo apt-get upgrade -y # ACCEPT_EULA=Y apt-get upgrade -y
         sudo apt-get install build-essential \
                              pkg-config \
                              libc6-dev \
