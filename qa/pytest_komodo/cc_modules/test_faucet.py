@@ -87,7 +87,7 @@ class TestFaucetCCBase:
             res = rpc1.decoderawtransaction(fhex)
             vout_fauc = res.get('vout')[1]
             # assert node_addr in vout_fauc.get('scriptPubKey').get('addresses')
-            assert vout_fauc.get('valueSat') == pow(10, 8) * vout_fauc.get('value')
+            assert vout_fauc.get('valueZat') == pow(10, 8) * vout_fauc.get('value')
         except (KeyError, TypeError, exc.RpcTypeError):
             assert res.get('result') == 'error'
 
