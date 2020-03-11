@@ -281,8 +281,7 @@ jobs:
           mkdir -p src
           tar xzvf komodo-linux.tar.gz
           ./zcutil/fetch-params.sh
-          sudo mkdir -p /usr/local/dexp2p
-          sudo chown $USER:$USER /usr/local/dexp2p
+          mkdir -p ~/dexp2p
           cd qa/pytest_komodo
           ./ci_set_dex.sh
 
