@@ -9,6 +9,11 @@ import json
 from util import assert_success, assert_error, mine_and_waitconfirms, send_and_mine,\
     rpc_connect, wait_some_blocks, generate_random_string, komodo_teardown
 
+## # creating dice plan
+##         dicefundtx = rpc.dicefund(dicename, "1000", "1", "800", "10", "5")
+## >       diceid = send_and_mine(dicefundtx['hex'], rpc)
+##
+## cc_modules\test_dice.py:67:
 
 @pytest.mark.usefixtures("proxy_connection")
 def test_dice(test_params):
