@@ -93,7 +93,7 @@ class TestHeirCCcalls:
         amount = '100'
         try:
             fundid = rpc1.heirlist()[0]
-            res = rpc1.heiadd(amount, fundid)
+            res = rpc1.heiradd(amount, fundid)
             validate_template(res, hieradd_schema)
             assert res.get('result') == 'success'
             txid = rpc1.sendrawtransaction(res.get('hex'))
@@ -108,7 +108,7 @@ class TestHeirCCcalls:
             txid = rpc1.sendrawtransaction(res.get('hex'))
             mine_and_waitconfirms(txid, rpc1)
             fundid = rpc1.heirlist()[0]
-            res = rpc1.heiadd(amount, fundid)
+            res = rpc1.heiradd(amount, fundid)
             validate_template(res, hieradd_schema)
             assert res.get('result') == 'success'
             txid = rpc1.sendrawtransaction(res.get('hex'))
@@ -153,6 +153,20 @@ class TestHeirCCcalls:
             res = rpc1.heirinfo(fundid)
             validate_template(res, heirinfo_schema)
             assert res.get('result') == 'success'
+
+    def test_heirclaim(self, test_params):
+        heirclaim_schema = {
+            'type': 'object',
+            'properties': {
+                'result': {'type': 'string'},
+                'hex': {'type': 'string'},
+                'error': {'type': 'string'}
+            },
+            'required': ['result']
+        }
+
+        rpc1 = test_params.get('node1').get('rpc')
+        #
 
 
 #@pytest.mark.usefixtures("proxy_connection")
