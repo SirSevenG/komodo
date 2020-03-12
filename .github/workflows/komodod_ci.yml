@@ -282,6 +282,8 @@ jobs:
           tar xzvf komodo-linux.tar.gz
           ./zcutil/fetch-params.sh
           mkdir -p ~/dexp2p
+          sudo mkdir -p /usr/local/dexp2p
+          sudo chown -R $USER:$USER /usr/local/dexp2p
           cd qa/pytest_komodo
           ./ci_set_dex.sh
 
@@ -297,9 +299,10 @@ jobs:
         DEBIAN_FRONTEND: noninteractive
       if: runner.os == 'Linux'
       run: |
-        sudo apt-get remove php5.6-fpm php7.0-fpm php7.1-fpm php7.2-fpm php7.3-fpm php7.4-fpm php7.3-common
+        sudo apt-get remove php7.1-fpm php7.2-fpm php7.3-fpm php7.4-fpm php7.3-common php7.4-common
         sudo apt-get update
         sudo ACCEPT_EULA=Y apt-get upgrade -y
+        sudo apt-get update
         sudo apt-get install build-essential \
                              pkg-config \
                              libc6-dev \
@@ -342,7 +345,7 @@ jobs:
       run: |
         # flag for some CC tests transactions - so DO NOT USE THIS CI ARTIFACTS IN PRODUCTION!!!
         export CONFIGURE_FLAGS='CPPFLAGS=-DTESTMODE'
-        ./zcutil/build-win.sh -j$(nproc)
+        ./zcutil/build-win-dtest.sh -j$(nproc)
         zip --junk-paths komodod_win src/komodod.exe src/komodo-cli.exe
 
     - name: Upload komodod.exe as artifact
@@ -544,3 +547,4 @@ jobs:
         run: |
           cd qa\pytest_komodo
           start_ci.bat cc_modules\test_channels.py
+
