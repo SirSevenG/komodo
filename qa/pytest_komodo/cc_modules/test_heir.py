@@ -166,7 +166,21 @@ class TestHeirCCcalls:
         }
 
         rpc1 = test_params.get('node1').get('rpc')
-        #
+        # create heir plan to claim
+        pubkey1 = test_params.get('node1').get('pubkey')
+        amount = '100'
+        name = 'heir' + randomstring(5)
+        inactivitytime = '20'
+        res = rpc1.heirfund(amount, name, pubkey1, inactivitytime, 'testMemo')
+        fundtxid = rpc1.sendrawtransaction(res.get('hex'))
+        mine_and_waitconfirms(fundtxid, rpc1)
+
+        # Wait inactivitytime and claim funds
+        time.sleep(int(inactivitytime))
+        res = rpc1.heirclaim(amount, fundtxid)
+        validate_template(res, heirclaim_schema)
+        claimtxid = rpc1.sendrawtransaction(res.get('hex'))
+        mine_and_waitconfirms(claimtxid, rpc1)
 
 
 #@pytest.mark.usefixtures("proxy_connection")
