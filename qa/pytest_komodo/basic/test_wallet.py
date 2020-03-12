@@ -4,8 +4,6 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 import pytest
-import os
-import time
 from decimal import *
 from pytest_util import validate_template, mine_and_waitconfirms
 
