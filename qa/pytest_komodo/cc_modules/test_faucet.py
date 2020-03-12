@@ -7,6 +7,7 @@ import pytest
 import sys
 import re
 from slickrpc import exc
+import warnings
 sys.path.append('../')
 from basic.pytest_util import validate_template, mine_and_waitconfirms
 
@@ -86,7 +87,7 @@ class TestFaucetCCBase:
             isinstance(fhex, str)
             res = rpc1.decoderawtransaction(fhex)
             vout_fauc = res.get('vout')[1]
-            # assert node_addr in vout_fauc.get('scriptPubKey').get('addresses')
+            assert node_addr in vout_fauc.get('scriptPubKey').get('addresses')
             assert vout_fauc.get('valueZat') == pow(10, 8) * vout_fauc.get('value')
         except (KeyError, TypeError, exc.RpcTypeError):
             assert res.get('result') == 'error'
@@ -122,11 +123,12 @@ class TestFaucetCCe2e:
         res = rpc1.faucetfund('-1.99')
         assert res.get('result') == 'error'
 
-    #def test_faucetget_mine(self, test_params):
-    #    if test_params['is_fresh_chain']:
-    #        rpc1 = test_params.get('node1').get('rpc')
-    #        fauhex = rpc1.faucetget().get('hex')
-    #        txid = rpc1.sendrawtransaction(fauhex)
-    #        mine_and_waitconfirms(txid, rpc1)
-    #    else:
-    #        return True
+    def test_faucetget_mine(self, test_params):
+        rpc1 = test_params.get('node1').get('rpc')
+        res = rpc1.faucetget()
+        try:
+            fhex = res.get('hex')
+            txid = rpc1.sendrawtransaction(fhex)
+            mine_and_waitconfirms(txid, rpc1)
+        except exc.RpcVerifyRejected:  # excepts scenario when pubkey already received faucet funds
+            warnings.warn(RuntimeWarning('Faucet funds were already claimed by pubkey'))
