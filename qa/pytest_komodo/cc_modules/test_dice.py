@@ -22,10 +22,6 @@ def test_dice(test_params):
 
     is_fresh_chain = test_params.get("is_fresh_chain")
 
-
-    global proxy
-    proxy = [rpc, rpc1]
-
     # second node should have some balance to place bets
     result = rpc1.getbalance()
     assert result > 99

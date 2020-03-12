@@ -22,9 +22,6 @@ def test_oracles(test_params):
 
     is_fresh_chain = test_params.get("is_fresh_chain")
 
-    global proxy
-    proxy = [rpc, rpc1]
-
     result = rpc.oraclesaddress()
     assert_success(result)
 

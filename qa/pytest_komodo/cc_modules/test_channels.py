@@ -24,8 +24,6 @@ def test_channels(test_params):
 
     is_fresh_chain = test_params.get("is_fresh_chain")
 
-    global proxy
-    proxy = [rpc, rpc1]
     """!!! for testing needed test daemon which built with custom flag
     export CONFIGURE_FLAGS='CPPFLAGS=-DTESTMODE'
     since in usual mode 101 confirmations are needed for payment/refund

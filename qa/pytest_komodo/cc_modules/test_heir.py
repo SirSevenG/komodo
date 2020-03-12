@@ -23,9 +23,6 @@ def test_heir(test_params):
 
     is_fresh_chain = test_params.get("is_fresh_chain")
 
-    global proxy
-    proxy = [rpc, rpc1]
-
     result = rpc.heiraddress('')
     assert_success(result)
 
