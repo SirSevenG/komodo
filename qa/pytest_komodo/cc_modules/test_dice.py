@@ -12,12 +12,6 @@ from basic.pytest_util import validate_template, mine_and_waitconfirms, randomst
 from util import assert_success, assert_error, mine_and_waitconfirms, send_and_mine,\
     rpc_connect, wait_some_blocks, generate_random_string, komodo_teardown
 
-## # creating dice plan
-##         dicefundtx = rpc.dicefund(dicename, "1000", "1", "800", "10", "5")
-## >       diceid = send_and_mine(dicefundtx['hex'], rpc)
-##
-## cc_modules\test_dice.py:67:
-
 
 @pytest.mark.usefixtures("proxy_connection")
 class TestDiceCCBase:
@@ -187,16 +181,25 @@ class TestDiceCCBase:
         assert res.get('result') == 'success'
 
     @staticmethod
+    def dicefinsish_maincheck(proxy, casino, bettx, schema):
+        res = proxy.dicefinish(casino.get('name'), casino.get('fundingtxid'), bettx)
+        print('\n', res)
+        validate_template(res, schema)
+        assert res.get('result') == 'success'
+
+    @staticmethod
     def create_entropy(proxy, casino):
-        amount = '10'
-        for i in range(10):
-            fhex = proxy.diceaddfunds(casino.get('name'), casino.get('fundingtxid'), amount).get('hex')
+        amount = '1'
+        for i in range(100):
+            res = proxy.diceaddfunds(casino.get('name'), casino.get('fundingtxid'), amount)
+            print(i, '   ', res)
+            fhex = res.get('hex')
             proxy.sendrawtransaction(fhex)
         checkhex = proxy.diceaddfunds(casino.get('name'), casino.get('fundingtxid'), amount).get('hex')
         tx = proxy.sendrawtransaction(checkhex)
         mine_and_waitconfirms(tx, proxy)
 
-    def test_dicebet_dicestatus(self, test_params):
+    def test_dicebet_dicestatus_dicefinish(self, test_params):
         dicebet_schema = {
             'type': 'object',
             'properties': {
@@ -215,16 +218,24 @@ class TestDiceCCBase:
             },
             'required': ['result']
         }
+        dicefinish_schema = {
+            'type': 'object',
+            'properties': {
+                'result': {'type': 'string'},
+                'hex': {'type': 'string'},
+                'error': {'type': 'string'}
+            },
+            'required': ['result']
+        }
 
         rpc1 = test_params.get('node1').get('rpc')
         rpc2 = test_params.get('node2').get('rpc')
-        casino = self.new_casino(rpc1)
-        self.create_entropy(rpc1, casino)
-        bettxid = self.dicebet_maincheck(rpc2, casino, dicebet_schema)
-        self.dicestatus_maincheck(rpc2, casino, bettxid, dicestatus_schema)
-
-    def test_dicefinish(self, test_params):
-        pass
+        casino = self.new_casino(rpc2)
+        self.create_entropy(rpc2, casino)
+        bettxid = self.dicebet_maincheck(rpc1, casino, dicebet_schema)
+        self.dicestatus_maincheck(rpc1, casino, bettxid, dicestatus_schema)
+        wait_blocks(rpc1, 5)
+        self.dicefinsish_maincheck(rpc1, casino, bettxid, dicefinish_schema)
 
 
 #@pytest.mark.usefixtures("proxy_connection")
