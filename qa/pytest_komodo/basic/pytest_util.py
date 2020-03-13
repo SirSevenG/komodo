@@ -244,3 +244,15 @@ def validate_tx_pattern(txid):
         return True
     else:
         return False
+
+
+def wait_blocks(rpc_connection, blocks_to_wait):
+    init_height = int(rpc_connection.getinfo()["blocks"])
+    while True:
+        current_height = int(rpc_connection.getinfo()["blocks"])
+        height_difference = current_height - init_height
+        if height_difference < blocks_to_wait:
+            print("Waiting for more blocks")
+            time.sleep(5)
+        else:
+            return True
