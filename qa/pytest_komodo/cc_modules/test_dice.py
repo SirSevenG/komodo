@@ -38,13 +38,10 @@ class TestDiceCCBase:
         rpc1 = test_params.get('node1').get('rpc')
         pubkey1 = test_params.get('node1').get('pubkey')
         res = rpc1.diceaddress()
-        print('\n', res)
         validate_template(res, diceaddress_schema)
         res = rpc1.diceaddress('')
-        print('\n', res)
         validate_template(res, diceaddress_schema)
         res = rpc1.diceaddress(pubkey1)
-        print('\n', res)
         validate_template(res, diceaddress_schema)
 
     @staticmethod
@@ -57,7 +54,6 @@ class TestDiceCCBase:
         maxodds = '10'
         timeoutblocks = '5'
         res = rpc1.dicefund(name, funds, minbet, maxbet, maxodds, timeoutblocks)
-        print('\n', res)
         if schema:
             validate_template(res, schema)
         assert res.get('result') == 'success'
@@ -95,13 +91,11 @@ class TestDiceCCBase:
 
         rpc1 = test_params.get('node1').get('rpc')
         res = rpc1.dicelist()
-        print('\n', res)
         validate_template(res, dicelist_schema)
 
     @staticmethod
     def diceinfo_maincheck(proxy, fundtxid, schema):
         res = proxy.diceinfo(fundtxid)
-        print('\n', res)
         validate_template(res, schema)
         assert res.get('result') == 'success'
 
@@ -136,7 +130,6 @@ class TestDiceCCBase:
     def diceaddfunds_maincheck(proxy, amount, fundtxid, schema):
         name = proxy.diceinfo(fundtxid).get('name')
         res = proxy.diceaddfunds(name, fundtxid, amount)
-        print('\n', res)
         validate_template(res, schema)
         assert res.get('result') == 'success'
         addtxid = proxy.sendrawtransaction(res.get('hex'))
@@ -159,14 +152,12 @@ class TestDiceCCBase:
             fundtxid = rpc1.dicelist()[0]
             self.diceaddfunds_maincheck(rpc1, amount, fundtxid, diceaddfunds_schema)
         except IndexError:
-            print('\nNo Dice CC available on chain')
             fundtxid = self.new_casino(rpc1).get('fundingtxid')
             self.diceaddfunds_maincheck(rpc1, amount, fundtxid, diceaddfunds_schema)
 
     @staticmethod
     def dicebet_maincheck(proxy, casino, schema):
         res = proxy.dicebet(casino.get('name'), casino.get('fundingtxid'), casino.get('minbet'), casino.get('maxodds'))
-        print('\n', res)
         validate_template(res, schema)
         assert res.get('result') == 'success'
         bettxid = proxy.sendrawtransaction(res.get('hex'))
@@ -176,14 +167,12 @@ class TestDiceCCBase:
     @staticmethod
     def dicestatus_maincheck(proxy, casino, bettx, schema):
         res = proxy.dicestatus(casino.get('name'), casino.get('fundingtxid'), bettx)
-        print('\n', res)
         validate_template(res, schema)
         assert res.get('result') == 'success'
 
     @staticmethod
     def dicefinsish_maincheck(proxy, casino, bettx, schema):
         res = proxy.dicefinish(casino.get('name'), casino.get('fundingtxid'), bettx)
-        print('\n', res)
         validate_template(res, schema)
         assert res.get('result') == 'success'
 
@@ -192,7 +181,6 @@ class TestDiceCCBase:
         amount = '1'
         for i in range(100):
             res = proxy.diceaddfunds(casino.get('name'), casino.get('fundingtxid'), amount)
-            print(i, '   ', res)
             fhex = res.get('hex')
             proxy.sendrawtransaction(fhex)
         checkhex = proxy.diceaddfunds(casino.get('name'), casino.get('fundingtxid'), amount).get('hex')
@@ -234,7 +222,7 @@ class TestDiceCCBase:
         self.create_entropy(rpc2, casino)
         bettxid = self.dicebet_maincheck(rpc1, casino, dicebet_schema)
         self.dicestatus_maincheck(rpc1, casino, bettxid, dicestatus_schema)
-        wait_blocks(rpc1, 5)
+        wait_blocks(rpc1, 5)  # 5 here is casino's block timeout
         self.dicefinsish_maincheck(rpc1, casino, bettxid, dicefinish_schema)
 
 
