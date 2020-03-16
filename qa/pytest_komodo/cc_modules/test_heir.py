@@ -240,7 +240,8 @@ class TestHeirFunc:
         # Check Heir spending allowed after inactivity time
         print("\n Sleeping for inactivity time")
         time.sleep(inactivitytime + 1)
-        wait_blocks(rpc1, 1)  # prevents issues when inactivity time < block time
+        wait_blocks(rpc1, 2)
+        check_synced(rpc1, rpc2)  # prevents issues when inactivity time =< block time
         res = rpc1.heirinfo(fundtx)
         assert res['lifetime'] == str(amount) + '.00000000'
         assert res['available'] == str(amount) + '.00000000'
@@ -254,7 +255,7 @@ class TestHeirFunc:
         time.sleep(5)
         # Check claim success
         # Wait sync
-        wait_blocks(rpc1, 1)
+        wait_blocks(rpc1, 2)
         check_synced(rpc1, rpc2)
         res = rpc1.heirinfo(fundtx)
         assert res['lifetime'] == str(amount) + '.00000000'
