@@ -547,4 +547,3 @@ jobs:
         run: |
           cd qa\pytest_komodo
           start_ci.bat cc_modules\test_channels.py
-
