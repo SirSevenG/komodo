@@ -14,8 +14,10 @@ if [ "x$*" = 'x--help' ]
 then
     cat <<EOF
 Usage:
+
 $0 --help
   Show this help message and exit.
+
 $0 [ --enable-lcov ] [ MAKEARGS... ]
   Build Zcash and most of its transitive dependencies from
   source. MAKEARGS are applied to both dependencies and Zcash itself. If
