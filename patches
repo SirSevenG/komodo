@@ -9065,7 +9065,7 @@ diff -crB ./zcutil/fetch-params.sh ../../komodo-jl777/zcutil/fetch-params.sh
 *** 104,107 ****
 --- 105,109 ----
   }
-  
+ 
   main
 + rm -f /tmp/fetch_params.lock
   exit 0
