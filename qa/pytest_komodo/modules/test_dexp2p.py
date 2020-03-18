@@ -17,6 +17,8 @@ from basic.pytest_util import validate_template, randomhex, write_file, write_em
 class TestDexP2Prpc:
 
     def test_dexrpc_stats(self, test_params):
+        rpc1 = test_params.get('node1').get('rpc')
+
         schema_stats = {
             'type': 'object',
             'properties': {
@@ -33,7 +35,6 @@ class TestDexP2Prpc:
             }
         }
 
-        rpc1 = test_params.get('node1').get('rpc')
         res = rpc1.DEX_stats()
         validate_template(res, schema_stats)
 

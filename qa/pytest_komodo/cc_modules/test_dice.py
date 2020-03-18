@@ -11,6 +11,8 @@ from basic.pytest_util import validate_template, mine_and_waitconfirms, randomst
 from decimal import *
 
 
+
+
 @pytest.mark.usefixtures("proxy_connection")
 class TestDiceCCBase:
 
@@ -337,3 +339,4 @@ class TestDiceCC:
             casino = TestDiceCCBase.new_casino(rpc1)
             fundtxid = casino.get('fundingtxid')
             self.badbets_check(rpc2, fundtxid)
+
