@@ -37,4 +37,4 @@ You can find an example of this script usage in `ci_setup.sh`. Don't forget to c
 
 On Windows machines use `start_ci.bat` instead of `ci_setup.sh`
 
-Also there is bootstrap downloading functionality in `start_chains.py` what should be quite useful for automated testing setups
+Also there is bootstrap downloading functionality in `start_chains.py` what should be quite useful for automated testing setups.
