@@ -244,7 +244,7 @@ jobs:
 #                 python3-pip \
 #                 libcurl4-openssl-dev \
 #                 libssl-dev -y
-#         python3 -m pip install setuptools wheel
+#          python3 -m pip install setuptools wheel
 #          python3 -m pip install slick-bitcoinrpc pytest wget jsonschema
 #      - name: Download komodo-linux.tar.gz
 #        uses: actions/download-artifact@v1
