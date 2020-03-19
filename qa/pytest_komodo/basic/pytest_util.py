@@ -244,3 +244,25 @@ def validate_tx_pattern(txid):
         return True
     else:
         return False
+
+
+def validate_raddr_pattern(addr):
+    if not isinstance(addr, str):
+        return False
+    address_pattern = re.compile(r"R[a-zA-Z0-9]{33}\Z")
+    if address_pattern.match(addr):
+        return True
+    else:
+        return False
+
+
+def wait_blocks(rpc_connection, blocks_to_wait):
+    init_height = int(rpc_connection.getinfo()["blocks"])
+    while True:
+        current_height = int(rpc_connection.getinfo()["blocks"])
+        height_difference = current_height - init_height
+        if height_difference < blocks_to_wait:
+            print("Waiting for more blocks")
+            time.sleep(5)
+        else:
+            return True

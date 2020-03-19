@@ -21,9 +21,6 @@ def test_rewards(test_params):
 
     is_fresh_chain = test_params.get("is_fresh_chain")
 
-    global proxy
-    proxy = [rpc, rpc1]
-
     result = rpc.rewardsaddress()
     for x in result.keys():
         if x.find('ddress') > 0:

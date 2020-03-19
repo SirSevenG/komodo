@@ -65,7 +65,7 @@ def wait_some_blocks(rpc_connection, blocks_to_wait):
             print("Waiting for more blocks")
             time.sleep(5)
         else:
-            break
+            return True
 
 
 def generate_random_string(length):
