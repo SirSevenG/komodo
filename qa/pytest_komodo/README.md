@@ -33,7 +33,7 @@ In `~/komodo/qa/rpc-tests/pytest_rpc` directory:
 You still can run specific test via script `ci_test.sh basic/test_utils.py`
 
 The `start_chains.py` script can spin needed amount of nodes and start the test chain.
-You can find an example of this script usage in `ci_setup.sh`. Don't forget to change `test_config.json` accordingly to the chain params.
+You can find an example of this script usage in `ci_setup.sh`. Don't forget to change `test_config.json` accordingly to the chain params. 
 
 On Windows machines use `start_ci.bat` instead of `ci_setup.sh`
 
