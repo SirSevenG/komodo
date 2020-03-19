@@ -97,36 +97,37 @@ bool makeCCopret(CScript &opret, std::vector<std::vector<unsigned char>> &vData)
     return true;
 }
 
-CTxOut MakeCC1vout(uint8_t evalcode,CAmount nValue, CPubKey pk, std::vector<std::vector<unsigned char>>* vData)
+CTxOut MakeCC1vout(uint8_t evalcode, CAmount nValue, CPubKey pk, std::vector<std::vector<unsigned char>>* vData)
 {
     CTxOut vout;
-    CC *payoutCond = MakeCCcond1(evalcode,pk);
-    vout = CTxOut(nValue,CCPubKey(payoutCond));
-    if ( vData )
+    CC *payoutCond = MakeCCcond1(evalcode, pk);
+    vout = CTxOut(nValue, CCPubKey(payoutCond));
+    if (vData)
     {
         //std::vector<std::vector<unsigned char>> vtmpData = std::vector<std::vector<unsigned char>>(vData->begin(), vData->end());
         std::vector<CPubKey> vPubKeys = std::vector<CPubKey>();
-        //vPubKeys.push_back(pk);
-        COptCCParams ccp = COptCCParams(COptCCParams::VERSION, evalcode, 1, 1, vPubKeys, ( * vData));
+        //vPubKeys.push_back(pk);   // Warning: if add a pubkey here, the Solver function will add it to vSolutions and ExtractDestination might use it to get the spk address (such result might not be expected)
+        COptCCParams ccp = COptCCParams(COptCCParams::VERSION, evalcode, 1, 1, vPubKeys, (*vData));
         vout.scriptPubKey << ccp.AsVector() << OP_DROP;
     }
     cc_free(payoutCond);
     return(vout);
 }
 
-CTxOut MakeCC1of2vout(uint8_t evalcode,CAmount nValue,CPubKey pk1,CPubKey pk2, std::vector<std::vector<unsigned char>>* vData)
+CTxOut MakeCC1of2vout(uint8_t evalcode, CAmount nValue, CPubKey pk1, CPubKey pk2, std::vector<std::vector<unsigned char>>* vData)
 {
     CTxOut vout;
-    CC *payoutCond = MakeCCcond1of2(evalcode,pk1,pk2);
-    vout = CTxOut(nValue,CCPubKey(payoutCond));
-    if ( vData )
+    CC *payoutCond = MakeCCcond1of2(evalcode, pk1, pk2);
+    vout = CTxOut(nValue, CCPubKey(payoutCond));
+    if (vData)
     {
         //std::vector<std::vector<unsigned char>> vtmpData = std::vector<std::vector<unsigned char>>(vData->begin(), vData->end());
         std::vector<CPubKey> vPubKeys = std::vector<CPubKey>();
-         // skip pubkeys. These need to maybe be optional and we need some way to get them out that is easy!
-        //vPubKeys.push_back(pk1);
+        // skip pubkeys. These need to maybe be optional and we need some way to get them out that is easy!
+        // this is for multisig
+        //vPubKeys.push_back(pk1);  // Warning: if add a pubkey here, the Solver function will add it to vSolutions and ExtractDestination might use it to get the spk address (such result might not be expected)
         //vPubKeys.push_back(pk2);
-        COptCCParams ccp = COptCCParams(COptCCParams::VERSION, evalcode, 1, 2, vPubKeys, ( * vData));
+        COptCCParams ccp = COptCCParams(COptCCParams::VERSION, evalcode, 1, 2, vPubKeys, (*vData));
         vout.scriptPubKey << ccp.AsVector() << OP_DROP;
     }
     cc_free(payoutCond);
@@ -139,8 +140,10 @@ CC* GetCryptoCondition(CScript const& scriptSig)
     opcodetype opcode;
     std::vector<unsigned char> ffbin;
     if (scriptSig.GetOp(pc, opcode, ffbin))
-        return cc_readFulfillmentBinary((uint8_t*)ffbin.data(), ffbin.size()-1);
-    else return(0);
+        if (ffbin.data() != NULL)  // could return NULL if called for coinbase
+            return cc_readFulfillmentBinary((uint8_t*)ffbin.data(), ffbin.size()-1);
+    
+    return(NULL);
 }
 
 bool IsCCInput(CScript const& scriptSig)
@@ -292,8 +295,40 @@ CPubKey CCtxidaddr(char *txidaddr,uint256 txid)
     buf33[0] = 0x02;
     endiancpy(&buf33[1],(uint8_t *)&txid,32);
     pk = buf2pk(buf33);
-    Getscriptaddress(txidaddr,CScript() << ParseHex(HexStr(pk)) << OP_CHECKSIG);
+    if (txidaddr != NULL)
+        Getscriptaddress(txidaddr,CScript() << ParseHex(HexStr(pk)) << OP_CHECKSIG);
     return(pk);
+}
+
+// CCtxidaddr version that makes valid pubkey by tweaking it
+CPubKey CCtxidaddr_tweak(char *txidaddr, uint256 txid)
+{
+    uint8_t buf33[33]; 
+    CPubKey pk;
+    
+    buf33[0] = 0x02;
+    endiancpy(&buf33[1], (uint8_t *)&txid, 32);
+
+    // tweak last byte
+    // NOTE: this algorithm should not be changed, it should remain compatible with existing in chains txid-pubkeys
+    int maxtweaks = 256;
+    while (maxtweaks--) {
+        pk = buf2pk(buf33);
+        if (pk.IsFullyValid())
+            break;
+        buf33[sizeof(buf33)-1]++;
+    }
+
+    if (pk.IsFullyValid()) {
+        if (txidaddr != NULL)
+            Getscriptaddress(txidaddr, CScript() << ParseHex(HexStr(pk)) << OP_CHECKSIG);
+        return(pk);
+    }
+    else    {
+        if (txidaddr != NULL)
+            strcpy(txidaddr, "");
+        return CPubKey();
+    }
 }
 
 CPubKey CCCustomtxidaddr(char *txidaddr,uint256 txid,uint8_t taddr,uint8_t prefix,uint8_t prefix2)
@@ -453,20 +488,23 @@ bool Myprivkey(uint8_t myprivkey[])
     char coinaddr[64],checkaddr[64]; std::string strAddress; char *dest; int32_t i,n; CBitcoinAddress address; CKeyID keyID; CKey vchSecret; uint8_t buf33[33];
     if ( KOMODO_NSPV_SUPERLITE )
     {
-        if ( NSPV_logintime == 0 || time(NULL) > NSPV_logintime+NSPV_AUTOLOGOUT )
+        if ( NSPV_logintime != 0 && time(NULL) <= NSPV_logintime+NSPV_AUTOLOGOUT )
+        {
+            vchSecret = DecodeSecret(NSPV_wifstr);
+            memcpy(myprivkey,vchSecret.begin(),32);
+            //for (i=0; i<32; i++)
+            //    fprintf(stderr,"%02x",myprivkey[i]);
+            //fprintf(stderr," myprivkey %s\n",NSPV_wifstr);
+            memset((uint8_t *)vchSecret.begin(),0,32);
+            return true;
+        }
+        else if ( KOMODO_DEX_P2P == 0 )
         {
             fprintf(stderr,"need to be logged in to get myprivkey\n");
             return false;
         }
-        vchSecret = DecodeSecret(NSPV_wifstr);
-        memcpy(myprivkey,vchSecret.begin(),32);
-        //for (i=0; i<32; i++)
-        //    fprintf(stderr,"%02x",myprivkey[i]);
-        //fprintf(stderr," myprivkey %s\n",NSPV_wifstr);
-        memset((uint8_t *)vchSecret.begin(),0,32);
-        return true;
     }
-    if ( Getscriptaddress(coinaddr,CScript() << Mypubkey() << OP_CHECKSIG) != 0 )
+    if ( pwalletMain != 0 && Getscriptaddress(coinaddr,CScript() << Mypubkey() << OP_CHECKSIG) != 0 )
     {
         n = (int32_t)strlen(coinaddr);
         strAddress.resize(n+1);
@@ -494,9 +532,9 @@ bool Myprivkey(uint8_t myprivkey[])
                     else printf("mismatched privkey -> addr %s vs %s\n",checkaddr,coinaddr);
                 }
                 return(false);
-            }
+            } else fprintf(stderr,"(%p) cant find (%s) privkey\n",pwalletMain,coinaddr);
 #endif
-        }
+        } else fprintf(stderr,"cant find (%s) in wallet\n",coinaddr);
     }
     if ( KOMODO_DEX_P2P != 0 )
     {
@@ -557,6 +595,46 @@ int64_t CCduration(int32_t &numblocks,uint256 txid)
     duration = (pindex->nTime - txtime);
     //fprintf(stderr,"duration %d (%u - %u) numblocks %d (%d - %d)\n",(int32_t)duration,(uint32_t)pindex->nTime,txtime,numblocks,pindex->GetHeight(),txheight);
     return(duration);
+}
+
+bool CCExactAmounts(Eval* eval, const CTransaction &tx, uint64_t txfee)
+{
+    CTransaction vinTx; uint256 hashBlock; int32_t i,numvins,numvouts; int64_t inputs=0,outputs=0;
+
+    if (GetLatestTimestamp(eval->GetCurrentHeight())<MAY2020_NNELECTION_HARDFORK) return (true);
+    numvins = tx.vin.size();
+    numvouts = tx.vout.size();
+    for (i=0; i<numvins; i++)
+    {
+        if ( myGetTransaction(tx.vin[i].prevout.hash,vinTx,hashBlock) == 0 )
+            return eval->Invalid("CCExactAmounts - cannot find tx for vin."+std::to_string(i));
+        inputs += vinTx.vout[tx.vin[i].prevout.n].nValue;
+    }
+    for (i=0; i<numvouts; i++) outputs+=tx.vout[i].nValue;
+    if ( inputs != outputs+txfee ) return eval->Invalid("invalid total amounts - inputs != outputs + txfee!");
+    return (true);
+}
+
+//no_burn - every OP_RETURN vout must not have >0 nValue, 
+//no_multi - transaction cannot have multiple OP_RETURN vouts, 
+//last_vout - no OP_RETURN vout is valid anywhere except vout[-1]
+bool CCOpretCheck(Eval* eval, const CTransaction &tx, bool no_burn, bool no_multi, bool last_vout)
+{ 
+    int count=0,i=0;
+    int numvouts = tx.vout.size() - 1;
+
+    if (GetLatestTimestamp(eval->GetCurrentHeight())<MAY2020_NNELECTION_HARDFORK) return (true);   
+    for (i=0;i<numvouts;i++)
+    {
+        if ( tx.vout[i].scriptPubKey[0] == OP_RETURN )
+        {
+            count++;
+            if ( no_burn && tx.vout[i].nValue != 0 ) return eval->Invalid("invalid OP_RETURN vout, its value must be 0!");
+            if ( last_vout && i != numvouts ) return eval->Invalid("invalid OP_RETURN vout, it must be the last vout in tx!");  
+        } 
+    }
+    if ( no_multi && count > 1) return eval->Invalid("multiple OP_RETURN vouts are not allowed in single tx!");  
+    return true;
 }
 
 uint256 CCOraclesReverseScan(char const *logcategory,uint256 &txid,int32_t height,uint256 reforacletxid,uint256 batontxid)
@@ -747,15 +825,16 @@ int32_t komodo_get_current_height()
     else return chainActive.LastTip()->GetHeight();
 }
 
-bool komodo_txnotarizedconfirmed(uint256 txid)
+bool komodo_txnotarizedconfirmed(uint256 txid, int32_t minconfirms)
 {
     char str[65];
-    int32_t confirms,notarized=0,txheight=0,currentheight=0;;
+    int32_t confirms,minimumconfirms,notarized=0,txheight=0,currentheight=0;;
     CTransaction tx;
     uint256 hashBlock;
     CBlockIndex *pindex;    
     char symbol[KOMODO_ASSETCHAIN_MAXLEN],dest[KOMODO_ASSETCHAIN_MAXLEN]; struct komodo_state *sp;
 
+    if (minconfirms==0) return (true);
     if ( KOMODO_NSPV_SUPERLITE )
     {
         if ( NSPV_myGetTransaction(txid,tx,hashBlock,txheight,currentheight) == 0 )
@@ -799,14 +878,15 @@ bool komodo_txnotarizedconfirmed(uint256 txid)
         }    
         confirms=1 + pindex->GetHeight() - txheight;
     }
-
+    if (minconfirms>1) minimumconfirms=minconfirms;
+    else minimumconfirms=MIN_NON_NOTARIZED_CONFIRMS;
     if ((sp= komodo_stateptr(symbol,dest)) != 0 && (notarized=sp->NOTARIZED_HEIGHT) > 0 && txheight > sp->NOTARIZED_HEIGHT)  notarized=0;            
 #ifdef TESTMODE           
     notarized=0;
 #endif //TESTMODE
     if (notarized>0 && confirms > 1)
         return (true);
-    else if (notarized==0 && confirms >= MIN_NON_NOTARIZED_CONFIRMS)
+    else if (notarized==0 && confirms >= minimumconfirms)
         return (true);
     return (false);
 }
@@ -1122,4 +1202,21 @@ void komodo_DEX_pubkey(bits256 &pubkey)
     }*/
     pubkey = curve25519(privkey,curve25519_basepoint9());
     memset(privkey.bytes,0,sizeof(privkey));
+}
+
+// add probe vintx conditions for making CCSig in FinalizeCCTx
+void CCAddVintxCond(struct CCcontract_info *cp, CC *cond, const uint8_t *priv)
+{
+    struct CCVintxProbe ccprobe;
+
+    if (cp == NULL) return;
+    if (cond == NULL) return;
+    
+    ccprobe.CCwrapped.setCC(cond);
+    if( priv != NULL )
+        memcpy(ccprobe.CCpriv, priv, sizeof(ccprobe.CCpriv) / sizeof(ccprobe.CCpriv[0]));
+    else
+        memset(ccprobe.CCpriv, '\0', sizeof(ccprobe.CCpriv) / sizeof(ccprobe.CCpriv[0]));
+
+    cp->CCvintxprobes.push_back(ccprobe);
 }

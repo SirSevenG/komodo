@@ -2265,7 +2265,8 @@ bool myGetTransaction(const uint256 &hash, CTransaction &txOut, uint256 &hashBlo
             }
             hashBlock = header.GetHash();
             if (txOut.GetHash() != hash)
-                return error("%s: txid mismatch", __func__);
+                //return error("%s: txid mismatch", __func__);
+                return error("%s: txid mismatch on disk=%s param=%s", __func__, txOut.GetHash().GetHex().c_str(), hash.GetHex().c_str());   //dimxy added
             //fprintf(stderr,"found on disk %s\n",hash.GetHex().c_str());
             return true;
         }
@@ -2321,7 +2322,8 @@ bool GetTransaction(const uint256 &hash, CTransaction &txOut, uint256 &hashBlock
             }
             hashBlock = header.GetHash();
             if (txOut.GetHash() != hash)
-                return error("%s: txid mismatch", __func__);
+                //return error("%s: txid mismatch", __func__);
+                return error("%s: txid mismatch on disk=%s param=%s", __func__, txOut.GetHash().GetHex().c_str(), hash.GetHex().c_str());   //dimxy added
             return true;
         }
     }
@@ -7337,6 +7339,11 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
             if ( (pfrom->nServices & NODE_NSPV) == 0 )
             {
                 // fprintf(stderr,"invalid nServices.%llx nSPV peer.%d\n",(long long)pfrom->nServices,pfrom->id);
+                pfrom->fDisconnect = true;
+                return false;
+            }
+            if ( KOMODO_DEX_P2P != 0 && (pfrom->nServices & NODE_DEXP2P) == 0 )
+            {
                 pfrom->fDisconnect = true;
                 return false;
             }

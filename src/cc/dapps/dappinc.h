@@ -18,8 +18,34 @@
 #include <unistd.h>
 #include <memory.h>
 #include "cJSON.c"
+#include <curl/curl.h>
+#include "subatomic_utils.h"
 
 bits256 zeroid;
+
+int32_t unstringbits(char *buf,uint64_t bits)
+{
+    int32_t i;
+    for (i=0; i<8; i++,bits>>=8)
+        if ( (buf[i]= (char)(bits & 0xff)) == 0 )
+            break;
+    buf[i] = 0;
+    return(i);
+}
+
+uint64_t stringbits(char *str)
+{
+    uint64_t bits = 0;
+    if ( str == 0 )
+        return(0);
+    int32_t i,n = (int32_t)strlen(str);
+    if ( n > 8 )
+        n = 8;
+    for (i=n-1; i>=0; i--)
+        bits = (bits << 8) | (str[i] & 0xff);
+    //printf("(%s) -> %llx %llu\n",str,(long long)bits,(long long)bits);
+    return(bits);
+}
 
 char hexbyte(int32_t c)
 {
@@ -236,7 +262,7 @@ void *loadfile(char *fname,uint8_t **bufp,long *lenp,long *allocsizep)
         {
             fclose(fp);
             *lenp = 0;
-            printf("loadfile null size.(%s)\n",fname);
+            //printf("loadfile null size.(%s)\n",fname);
             return(0);
         }
         if ( filesize > buflen )
@@ -294,28 +320,38 @@ cJSON *get_urljson(char *url,char *fname)
 //////////////////////////////////////////////
 // start of dapp
 //////////////////////////////////////////////
-
-char *REFCOIN_CLI,DPOW_pubkeystr[67],DPOW_secpkeystr[67],DPOW_handle[67];
-
-cJSON *get_komodocli(char *refcoin,char **retstrp,char *acname,char *method,char *arg0,char *arg1,char *arg2,char *arg3,char *arg4)
+int md_unlink(char *file)
 {
-    long fsize; cJSON *retjson = 0; char cmdstr[32768],*jsonstr,fname[256];
-    sprintf(fname,"/tmp/notarizer_%s_%s_%s_%s_%s_%s_%d",method,arg0,arg1,arg2,arg3,arg4,(rand() >> 17) % 10000);
+#ifdef _WIN32
+    _chmod(file, 0600);
+    return( _unlink(file) );
+#else
+    return(unlink(file));
+#endif
+}
+
+char *REFCOIN_CLI,DPOW_pubkeystr[67],DPOW_secpkeystr[67],DPOW_handle[67],DPOW_recvaddr[64],DPOW_recvZaddr[128];
+
+cJSON *get_komodocli(char *refcoin,char **retstrp,char *acname,char *method,char *arg0,char *arg1,char *arg2,char *arg3,char *arg4,char *arg5,char *arg6)
+{
+    long fsize; cJSON *retjson = 0; char cmdstr[32768],*jsonstr,fname[32768];
+    sprintf(fname,"/tmp/notarizer_%s_%d",method,(rand() >> 17) % 10000);
     //if ( (acname == 0 || acname[0] == 0) && strcmp(refcoin,"KMD") != 0 )
     //    acname = refcoin;
     if ( acname[0] != 0 )
     {
         if ( refcoin[0] != 0 && strcmp(refcoin,"KMD") != 0 && strcmp(refcoin,acname) != 0 )
             printf("unexpected: refcoin.(%s) acname.(%s)\n",refcoin,acname);
-        sprintf(cmdstr,"komodo-cli -ac_name=%s %s %s %s %s %s %s > %s\n",acname,method,arg0,arg1,arg2,arg3,arg4,fname);
+        sprintf(cmdstr,"komodo-cli -ac_name=%s %s %s %s %s %s %s %s %s > %s\n",acname,method,arg0,arg1,arg2,arg3,arg4,arg5,arg6,fname);
     }
     else if ( strcmp(refcoin,"KMD") == 0 )
-        sprintf(cmdstr,"komodo-cli %s %s %s %s %s %s > %s\n",method,arg0,arg1,arg2,arg3,arg4,fname);
+        sprintf(cmdstr,"komodo-cli %s %s %s %s %s %s %s %s > %s\n",method,arg0,arg1,arg2,arg3,arg4,arg5,arg6,fname);
     else if ( REFCOIN_CLI != 0 && REFCOIN_CLI[0] != 0 )
     {
-        sprintf(cmdstr,"%s %s %s %s %s %s %s > %s\n",REFCOIN_CLI,method,arg0,arg1,arg2,arg3,arg4,fname);
+        sprintf(cmdstr,"%s %s %s %s %s %s %s %s %s > %s\n",REFCOIN_CLI,method,arg0,arg1,arg2,arg3,arg4,arg5,arg6,fname);
         //printf("ref.(%s) REFCOIN_CLI (%s)\n",refcoin,cmdstr);
     }
+//fprintf(stderr,"system(%s)\n",cmdstr);
     system(cmdstr);
     *retstrp = 0;
     if ( (jsonstr= filestr(&fsize,fname)) != 0 )
@@ -325,7 +361,106 @@ cJSON *get_komodocli(char *refcoin,char **retstrp,char *acname,char *method,char
         if ( (jsonstr[0] != '{' && jsonstr[0] != '[') || (retjson= cJSON_Parse(jsonstr)) == 0 )
             *retstrp = jsonstr;
         else free(jsonstr);
+        md_unlink(fname);
+    } //else fprintf(stderr,"system(%s) -> NULL\n",cmdstr);
+    return(retjson);
+}
+
+// TODO @Milerius port subatomic_cli to use curl instead of system() for rpc interface call invocations
+// task resources:
+// https://curl.haxx.se/libcurl/c/post-callback.html
+// https://en.bitcoin.it/wiki/API_reference_(JSON-RPC)#C
+// fetch rpc auth data and rpc port from conf files - src: 
+// https://github.com/KomodoPlatform/komodo/blob/DEX/src/util.cpp
+// https://github.com/KomodoPlatform/komodo/blob/DEX/src/komodo_utils.h
+struct curl_string {
+  char *ptr;
+  size_t len;
+};
+
+void init_string(struct curl_string *s) {
+  s->len = 0;
+  s->ptr = malloc(s->len+1);
+  if (s->ptr == NULL) {
+    fprintf(stderr, "malloc() failed\n");
+    exit(EXIT_FAILURE);
+  }
+  s->ptr[0] = '\0';
+}
+
+size_t writefunc(void *ptr, size_t size, size_t nmemb, struct curl_string *s)
+{
+  size_t new_len = s->len + size*nmemb;
+  s->ptr = realloc(s->ptr, new_len+1);
+  if (s->ptr == NULL) {
+    fprintf(stderr, "realloc() failed\n");
+    exit(EXIT_FAILURE);
+  }
+  memcpy(s->ptr+s->len, ptr, size*nmemb);
+  s->ptr[new_len] = '\0';
+  s->len = new_len;
+  return size*nmemb;
+}
+
+cJSON *subatomic_cli(char *coin,char **retstrp,char *method,char *arg0,char *arg1,char *arg2,char *arg3,char *arg4,char *arg5,char *arg6)
+{
+    if (!is_komodo_config_filled()) {
+      fill_config();
     }
+    
+    CURL *curl = curl_easy_init();
+    cJSON* retjson = NULL;
+    char* jsonstr = NULL;
+    struct curl_slist *headers = NULL;
+    struct curl_string s;
+    char* full_url = NULL;
+    //! Init curl string
+    init_string(&s);
+
+    //! Headers
+    headers = curl_slist_append(headers, "Accept: application/json");
+    headers = curl_slist_append(headers, "Content-Type: application/json");
+    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+
+
+    const char* port = get_rpcport(coin);
+    full_url = concatenate("http://127.0.0.1:", get_rpcport(coin));
+    curl_easy_setopt(curl, CURLOPT_URL, full_url);
+
+    //! credentials
+    const char* user = get_rpcuser(coin);
+    const char* password = get_rpcpassword(coin);
+    const char* tmp = concatenate(user, ":");
+    const char* credentials = concatenate(tmp, password);
+
+    printf("credentials: %s\n", credentials);
+    free(tmp);
+    curl_easy_setopt(curl, CURLOPT_USERPWD,  credentials);
+
+    //! Post contents and Size
+    jsonstr = construct_json(method, 7, arg0, arg1, arg2, arg3, arg4, arg5, arg6);
+    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, jsonstr);
+    curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, (long)strlen(jsonstr));
+
+    //! Setting callback
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writefunc);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &s);
+
+    //! Perform
+    CURLcode res = curl_easy_perform(curl);
+    printf("%s\n", curl_easy_strerror(res));
+
+    printf("answer: %s\n", s.ptr);
+
+    //! Copy answer to cJSON
+    retjson = cJSON_Parse(s.ptr);
+    
+    //! Release data
+    curl_easy_cleanup(curl);
+    curl_slist_free_all(headers);
+    free(full_url);
+    free(credentials);
+    free(jsonstr);
     return(retjson);
 }
 
@@ -335,7 +470,7 @@ bits256 komodobroadcast(char *refcoin,char *acname,cJSON *hexjson)
     memset(txid.bytes,0,sizeof(txid));
     if ( (hexstr= jstr(hexjson,"hex")) != 0 )
     {
-        if ( (retjson= get_komodocli(refcoin,&retstr,acname,"sendrawtransaction",hexstr,"","","","")) != 0 )
+        if ( (retjson= get_komodocli(refcoin,&retstr,acname,"sendrawtransaction",hexstr,"","","","","","")) != 0 )
         {
             //fprintf(stderr,"broadcast.(%s)\n",jprint(retjson,0));
             free_json(retjson);
@@ -354,12 +489,12 @@ bits256 komodobroadcast(char *refcoin,char *acname,cJSON *hexjson)
     return(txid);
 }
 
-bits256 sendtoaddress(char *refcoin,char *acname,char *destaddr,int64_t satoshis)
+bits256 sendtoaddress(char *refcoin,char *acname,char *destaddr,int64_t satoshis,char *oprethexstr)
 {
     char numstr[32],*retstr,str[65]; cJSON *retjson; bits256 txid;
     memset(txid.bytes,0,sizeof(txid));
     sprintf(numstr,"%.8f",(double)satoshis/SATOSHIDEN);
-    if ( (retjson= get_komodocli(refcoin,&retstr,acname,"sendtoaddress",destaddr,numstr,"","","")) != 0 )
+    if ( (retjson= get_komodocli(refcoin,&retstr,acname,"sendtoaddress",destaddr,numstr,"false","","",oprethexstr,"")) != 0 )
     {
         fprintf(stderr,"unexpected sendrawtransaction json.(%s)\n",jprint(retjson,0));
         free_json(retjson);
@@ -377,10 +512,110 @@ bits256 sendtoaddress(char *refcoin,char *acname,char *destaddr,int64_t satoshis
     return(txid);
 }
 
+bits256 tokentransfer(char *refcoin,char *acname,char *tokenid,char *destpub,int64_t units)
+{
+    char numstr[32],*retstr,str[65]; cJSON *retjson; bits256 txid;
+    memset(txid.bytes,0,sizeof(txid));
+    sprintf(numstr,"%llu",(long long)units);
+    if ( (retjson= get_komodocli(refcoin,&retstr,acname,"tokentransfer",tokenid,destpub,numstr,"","","","")) != 0 )
+    {
+        txid = komodobroadcast(refcoin,acname,retjson);
+        fprintf(stderr,"tokentransfer returned (%s)\n",jprint(retjson,0));
+        free_json(retjson);
+    }
+    else if ( retstr != 0 )
+    {
+        fprintf(stderr,"tokentransfer.(%s) error.(%s)\n",acname,retstr);
+        free(retstr);
+    }
+    return(txid);
+}
+
+char *get_tokenaddress(char *refcoin,char *acname,char *tokenaddr)
+{
+    char *retstr,*str; cJSON *retjson;
+    tokenaddr[0] = 0;
+    if ( (retjson= get_komodocli(refcoin,&retstr,acname,"tokenaddress","","","","","","","")) != 0 )
+    {
+        if ( (str= jstr(retjson,"myCCAddress(Tokens)")) != 0 )
+        {
+            strcpy(tokenaddr,str);
+            fprintf(stderr,"tokenaddress returned (%s)\n",tokenaddr);
+            free_json(retjson);
+            return(tokenaddr);
+        }
+        free_json(retjson);
+    }
+    else if ( retstr != 0 )
+    {
+        //fprintf(stderr,"tokentransfer.(%s) error.(%s)\n",acname,retstr);
+        free(retstr);
+    }
+    return(0);
+}
+
+int64_t get_tokenbalance(char *refcoin,char *acname,char *tokenid)
+{
+    cJSON *retjson; char *retstr,cmpstr[64]; int64_t amount=0;
+    if ( (retjson= get_komodocli(refcoin,&retstr,acname,"tokenbalance",tokenid,"","","","","","")) != 0 )
+    {
+        amount = j64bits(retjson,"balance");
+        fprintf(stderr,"tokenbalance %llu\n",(long long)amount);
+        free_json(retjson);
+    }
+    else if ( retstr != 0 )
+    {
+        //printf("retstr %s -> %.8f\n",retstr,dstr(amount));
+        free(retstr);
+    }
+    return (amount);
+}
+
+cJSON *get_decodescript(char *refcoin,char *acname,char *script)
+{
+    cJSON *retjson; char *retstr;
+    if ( (retjson= get_komodocli(refcoin,&retstr,acname,"decodescript",script,"","","","","","")) != 0 )
+    {
+        return(retjson);
+    }
+    else if ( retstr != 0 )
+    {
+        fprintf(stderr,"get_decodescript.(%s) error.(%s)\n",acname,retstr);
+        free(retstr);
+    }
+    return(0);
+}
+
+char *get_createmultisig2(char *refcoin,char *acname,char *msigaddr,char *redeemscript,char *pubkeyA,char *pubkeyB)
+{
+    //char para 2 '["02c3af47b51a506b08b4ededb156cb4c3f9db9e0ac7ad27b8623c08a056fdcc220", "038e61fbface549a850862f12ed99b7cbeef5c2bd2d8f1daddb34809416f0259e1"]'
+    cJSON *retjson; char *retstr,*str,params[256]; int32_t height=0;
+    msigaddr[0] = 0;
+    redeemscript[0] = 0;
+    sprintf(params,"'[\"%s\", \"%s\"]'",pubkeyA,pubkeyB);
+    if ( (retjson= get_komodocli(refcoin,&retstr,acname,"createmultisig","2",params,"","","","","")) != 0 )
+    {
+        if ( (str= jstr(retjson,"address")) != 0 )
+            strcpy(msigaddr,str);
+        if ( (str= jstr(retjson,"redeemScript")) != 0 )
+            strcpy(redeemscript,str);
+        free_json(retjson);
+        if ( msigaddr[0] != 0 && redeemscript[0] != 0 )
+            return(msigaddr);
+        else return(0);
+    }
+    else if ( retstr != 0 )
+    {
+        fprintf(stderr,"%s get_createmultisig2.(%s) error.(%s)\n",refcoin,acname,retstr);
+        free(retstr);
+    }
+    return(0);
+}
+
 int32_t get_coinheight(char *refcoin,char *acname,bits256 *blockhashp)
 {
     cJSON *retjson; char *retstr; int32_t height=0;
-    if ( (retjson= get_komodocli(refcoin,&retstr,acname,"getblockchaininfo","","","","","")) != 0 )
+    if ( (retjson= get_komodocli(refcoin,&retstr,acname,"getblockchaininfo","","","","","","","")) != 0 )
     {
         height = jint(retjson,"blocks");
         *blockhashp = jbits256(retjson,"bestblockhash");
@@ -399,7 +634,7 @@ bits256 get_coinblockhash(char *refcoin,char *acname,int32_t height)
     cJSON *retjson; char *retstr,heightstr[32]; bits256 hash;
     memset(hash.bytes,0,sizeof(hash));
     sprintf(heightstr,"%d",height);
-    if ( (retjson= get_komodocli(refcoin,&retstr,acname,"getblockhash",heightstr,"","","","")) != 0 )
+    if ( (retjson= get_komodocli(refcoin,&retstr,acname,"getblockhash",heightstr,"","","","","","")) != 0 )
     {
         fprintf(stderr,"unexpected blockhash json.(%s)\n",jprint(retjson,0));
         free_json(retjson);
@@ -421,7 +656,7 @@ bits256 get_coinmerkleroot(char *refcoin,char *acname,bits256 blockhash,uint32_t
     cJSON *retjson; char *retstr,str[65]; bits256 merkleroot;
     memset(merkleroot.bytes,0,sizeof(merkleroot));
     *blocktimep = 0;
-    if ( (retjson= get_komodocli(refcoin,&retstr,acname,"getblockheader",bits256_str(str,blockhash),"","","","")) != 0 )
+    if ( (retjson= get_komodocli(refcoin,&retstr,acname,"getblockheader",bits256_str(str,blockhash),"","","","","","")) != 0 )
     {
         merkleroot = jbits256(retjson,"merkleroot");
         *blocktimep = juint(retjson,"time");
@@ -434,6 +669,14 @@ bits256 get_coinmerkleroot(char *refcoin,char *acname,bits256 blockhash,uint32_t
         free(retstr);
     }
     return(merkleroot);
+}
+
+uint32_t get_heighttime(char *refcoin,char *acname,int32_t height)
+{
+    bits256 blockhash; uint32_t blocktime;
+    blockhash = get_coinblockhash(refcoin,acname,height);
+    get_coinmerkleroot(refcoin,acname,blockhash,&blocktime);
+    return(blocktime);
 }
 
 int32_t get_coinheader(char *refcoin,char *acname,bits256 *blockhashp,bits256 *merklerootp,int32_t prevheight)
@@ -460,7 +703,7 @@ int32_t get_coinheader(char *refcoin,char *acname,bits256 *blockhashp,bits256 *m
 cJSON *get_rawmempool(char *refcoin,char *acname)
 {
     cJSON *retjson; char *retstr;
-    if ( (retjson= get_komodocli(refcoin,&retstr,acname,"getrawmempool","","","","","")) != 0 )
+    if ( (retjson= get_komodocli(refcoin,&retstr,acname,"getrawmempool","","","","","","","")) != 0 )
     {
         //printf("mempool.(%s)\n",jprint(retjson,0));
         return(retjson);
@@ -479,7 +722,7 @@ cJSON *get_addressutxos(char *refcoin,char *acname,char *coinaddr)
     if ( refcoin[0] != 0 && strcmp(refcoin,"KMD") != 0 )
         printf("warning: assumes %s has addressindex enabled\n",refcoin);
     sprintf(jsonbuf,"{\\\"addresses\\\":[\\\"%s\\\"]}",coinaddr);
-    if ( (retjson= get_komodocli(refcoin,&retstr,acname,"getaddressutxos",jsonbuf,"","","","")) != 0 )
+    if ( (retjson= get_komodocli(refcoin,&retstr,acname,"getaddressutxos",jsonbuf,"","","","","","")) != 0 )
     {
         //printf("addressutxos.(%s)\n",jprint(retjson,0));
         return(retjson);
@@ -495,7 +738,7 @@ cJSON *get_addressutxos(char *refcoin,char *acname,char *coinaddr)
 cJSON *get_rawtransaction(char *refcoin,char *acname,bits256 txid)
 {
     cJSON *retjson; char *retstr,str[65];
-    if ( (retjson= get_komodocli(refcoin,&retstr,acname,"getrawtransaction",bits256_str(str,txid),"1","","","")) != 0 )
+    if ( (retjson= get_komodocli(refcoin,&retstr,acname,"getrawtransaction",bits256_str(str,txid),"1","","","","","")) != 0 )
     {
         return(retjson);
     }
@@ -507,10 +750,25 @@ cJSON *get_rawtransaction(char *refcoin,char *acname,bits256 txid)
     return(0);
 }
 
+cJSON *get_z_viewtransaction(char *refcoin,char *acname,bits256 txid)
+{
+    cJSON *retjson; char *retstr,str[65];
+    if ( (retjson= get_komodocli(refcoin,&retstr,acname,"z_viewtransaction",bits256_str(str,txid),"","","","","","")) != 0 )
+    {
+        return(retjson);
+    }
+    else if ( retstr != 0 )
+    {
+        fprintf(stderr,"get_z_viewtransaction.(%s) %s error.(%s)\n",refcoin,acname,retstr);
+        free(retstr);
+    }
+    return(0);
+}
+
 cJSON *get_listunspent(char *refcoin,char *acname)
 {
     cJSON *retjson; char *retstr,str[65];
-    if ( (retjson= get_komodocli(refcoin,&retstr,acname,"listunspent","","","","","")) != 0 )
+    if ( (retjson= get_komodocli(refcoin,&retstr,acname,"listunspent","","","","","","","")) != 0 )
     {
         return(retjson);
     }
@@ -525,7 +783,7 @@ cJSON *get_listunspent(char *refcoin,char *acname)
 cJSON *get_getinfo(char *refcoin,char *acname)
 {
     cJSON *retjson; char *retstr,str[65];
-    if ( (retjson= get_komodocli(refcoin,&retstr,acname,"getinfo","","","","","")) != 0 )
+    if ( (retjson= get_komodocli(refcoin,&retstr,acname,"getinfo","","","","","","","")) != 0 )
     {
         return(retjson);
     }
@@ -540,7 +798,7 @@ cJSON *get_getinfo(char *refcoin,char *acname)
 cJSON *z_listunspent(char *refcoin,char *acname)
 {
     cJSON *retjson; char *retstr,str[65];
-    if ( (retjson= get_komodocli(refcoin,&retstr,acname,"z_listunspent","","","","","")) != 0 )
+    if ( (retjson= get_komodocli(refcoin,&retstr,acname,"z_listunspent","","","","","","","")) != 0 )
     {
         return(retjson);
     }
@@ -555,7 +813,7 @@ cJSON *z_listunspent(char *refcoin,char *acname)
 cJSON *z_listoperationids(char *refcoin,char *acname)
 {
     cJSON *retjson; char *retstr,str[65];
-    if ( (retjson= get_komodocli(refcoin,&retstr,acname,"z_listoperationids","","","","","")) != 0 )
+    if ( (retjson= get_komodocli(refcoin,&retstr,acname,"z_listoperationids","","","","","","","")) != 0 )
     {
         return(retjson);
     }
@@ -571,7 +829,7 @@ cJSON *z_getoperationstatus(char *refcoin,char *acname,char *opid)
 {
     cJSON *retjson; char *retstr,str[65],params[512];
     sprintf(params,"'[\"%s\"]'",opid);
-    if ( (retjson= get_komodocli(refcoin,&retstr,acname,"z_getoperationstatus",params,"","","","")) != 0 )
+    if ( (retjson= get_komodocli(refcoin,&retstr,acname,"z_getoperationstatus",params,"","","","","","")) != 0 )
     {
         //printf("got status (%s)\n",jprint(retjson,0));
         return(retjson);
@@ -588,7 +846,7 @@ cJSON *z_getoperationresult(char *refcoin,char *acname,char *opid)
 {
     cJSON *retjson; char *retstr,str[65],params[512];
     sprintf(params,"'[\"%s\"]'",opid);
-    if ( (retjson= get_komodocli(refcoin,&retstr,acname,"z_getoperationresult",params,"","","","")) != 0 )
+    if ( (retjson= get_komodocli(refcoin,&retstr,acname,"z_getoperationresult",params,"","","","","","")) != 0 )
     {
         return(retjson);
     }
@@ -603,7 +861,7 @@ cJSON *z_getoperationresult(char *refcoin,char *acname,char *opid)
 int32_t validateaddress(char *refcoin,char *acname,char *depositaddr, char* compare)
 {
     cJSON *retjson; char *retstr; int32_t res=0;
-    if ( (retjson= get_komodocli(refcoin,&retstr,acname,"validateaddress",depositaddr,"","","","")) != 0 )
+    if ( (retjson= get_komodocli(refcoin,&retstr,acname,"validateaddress",depositaddr,"","","","","","")) != 0 )
     {
         if (is_cJSON_True(jobj(retjson,compare)) != 0 ) res=1;
         free_json(retjson);
@@ -619,7 +877,7 @@ int32_t validateaddress(char *refcoin,char *acname,char *depositaddr, char* comp
 int32_t z_validateaddress(char *refcoin,char *acname,char *depositaddr, char *compare)
 {
     cJSON *retjson; char *retstr; int32_t res=0;
-    if ( (retjson= get_komodocli(refcoin,&retstr,acname,"z_validateaddress",depositaddr,"","","","")) != 0 )
+    if ( (retjson= get_komodocli(refcoin,&retstr,acname,"z_validateaddress",depositaddr,"","","","","","")) != 0 )
     {
         if (is_cJSON_True(jobj(retjson,compare)) != 0 )
             res=1;
@@ -633,10 +891,30 @@ int32_t z_validateaddress(char *refcoin,char *acname,char *depositaddr, char *co
     return (res);
 }
 
+int64_t get_getbalance(char *refcoin,char *acname)
+{
+    cJSON *retjson; char *retstr,cmpstr[64]; int64_t amount=0;
+    if ( (retjson= get_komodocli(refcoin,&retstr,acname,"getbalance","","","","","","","")) != 0 )
+    {
+        fprintf(stderr,"get_getbalance.(%s) %s returned json!\n",refcoin,acname);
+        free_json(retjson);
+    }
+    else if ( retstr != 0 )
+    {
+        amount = atof(retstr) * SATOSHIDEN;
+        sprintf(cmpstr,"%.8f",dstr(amount));
+        if ( strcmp(retstr,cmpstr) != 0 )
+            amount++;
+        //printf("retstr %s -> %.8f\n",retstr,dstr(amount));
+        free(retstr);
+    }
+    return (amount);
+}
+
 int64_t z_getbalance(char *refcoin,char *acname,char *coinaddr)
 {
     cJSON *retjson; char *retstr,cmpstr[64]; int64_t amount=0;
-    if ( (retjson= get_komodocli(refcoin,&retstr,acname,"z_getbalance",coinaddr,"","","","")) != 0 )
+    if ( (retjson= get_komodocli(refcoin,&retstr,acname,"z_getbalance",coinaddr,"","","","","","")) != 0 )
     {
         fprintf(stderr,"z_getbalance.(%s) %s returned json!\n",refcoin,acname);
         free_json(retjson);
@@ -657,7 +935,7 @@ int32_t z_exportkey(char *privkey,char *refcoin,char *acname,char *zaddr)
 {
     cJSON *retjson; char *retstr,cmpstr[64]; int64_t amount=0;
     privkey[0] = 0;
-    if ( (retjson= get_komodocli(refcoin,&retstr,acname,"z_exportkey",zaddr,"","","","")) != 0 )
+    if ( (retjson= get_komodocli(refcoin,&retstr,acname,"z_exportkey",zaddr,"","","","","","")) != 0 )
     {
         fprintf(stderr,"z_exportkey.(%s) %s returned json!\n",refcoin,acname);
         free_json(retjson);
@@ -676,7 +954,7 @@ int32_t z_exportkey(char *privkey,char *refcoin,char *acname,char *zaddr)
 int32_t getnewaddress(char *coinaddr,char *refcoin,char *acname)
 {
     cJSON *retjson; char *retstr; int64_t amount=0; int32_t retval = -1;
-    if ( (retjson= get_komodocli(refcoin,&retstr,acname,"getnewaddress","","","","","")) != 0 )
+    if ( (retjson= get_komodocli(refcoin,&retstr,acname,"getnewaddress","","","","","","","")) != 0 )
     {
         fprintf(stderr,"getnewaddress.(%s) %s returned json!\n",refcoin,acname);
         free_json(retjson);
@@ -693,7 +971,7 @@ int32_t getnewaddress(char *coinaddr,char *refcoin,char *acname)
 int32_t z_getnewaddress(char *coinaddr,char *refcoin,char *acname,char *typestr)
 {
     cJSON *retjson; char *retstr; int64_t amount=0; int32_t retval = -1;
-    if ( (retjson= get_komodocli(refcoin,&retstr,acname,"z_getnewaddress",typestr,"","","","")) != 0 )
+    if ( (retjson= get_komodocli(refcoin,&retstr,acname,"z_getnewaddress",typestr,"","","","","","")) != 0 )
     {
         fprintf(stderr,"z_getnewaddress.(%s) %s returned json!\n",refcoin,acname);
         free_json(retjson);
@@ -765,7 +1043,7 @@ int64_t find_sprout_amount(char *coinstr,char *zcaddr)
 void importaddress(char *refcoin,char *acname,char *depositaddr)
 {
     cJSON *retjson; char *retstr;
-    if ( (retjson= get_komodocli(refcoin,&retstr,acname,"importaddress",depositaddr,"","true","","")) != 0 )
+    if ( (retjson= get_komodocli(refcoin,&retstr,acname,"importaddress",depositaddr,"","true","","","","")) != 0 )
     {
         printf("importaddress.(%s)\n",jprint(retjson,0));
         free_json(retjson);
@@ -777,13 +1055,13 @@ void importaddress(char *refcoin,char *acname,char *depositaddr)
     }
 }
 
-int32_t z_sendmany(char *opidstr,char *coinstr,char *acname,char *srcaddr,char *destaddr,int64_t amount)
+int32_t z_sendmany(char *opidstr,char *coinstr,char *acname,char *srcaddr,char *destaddr,int64_t amount,char *memostr)
 {
     cJSON *retjson; char *retstr,params[1024],addr[128]; int32_t retval = -1;
-    sprintf(params,"'[{\"address\":\"%s\",\"amount\":%.8f}]'",destaddr,dstr(amount));
+    sprintf(params,"'[{\"address\":\"%s\",\"amount\":%.8f,\"memo\":\"%s\"}]'",destaddr,dstr(amount),memostr);
     sprintf(addr,"\"%s\"",srcaddr);
-    printf("z_sendmany from.(%s) -> %s\n",srcaddr,params);
-    if ( (retjson= get_komodocli(coinstr,&retstr,acname,"z_sendmany",addr,params,"","","")) != 0 )
+    printf("z_sendmany.(%s %s) from.(%s) -> %s\n",coinstr,acname,srcaddr,params);
+    if ( (retjson= get_komodocli(coinstr,&retstr,acname,"z_sendmany",addr,params,"","","","","")) != 0 )
     {
         printf("unexpected json z_sendmany.(%s)\n",jprint(retjson,0));
         free_json(retjson);
@@ -802,7 +1080,7 @@ int32_t z_mergetoaddress(char *opidstr,char *coinstr,char *acname,char *destaddr
 {
     cJSON *retjson; char *retstr,addr[128],*opstr; int32_t retval = -1;
     sprintf(addr,"[\\\"ANY_SPROUT\\\"]");
-    if ( (retjson= get_komodocli(coinstr,&retstr,acname,"z_mergetoaddress",addr,destaddr,"","","")) != 0 )
+    if ( (retjson= get_komodocli(coinstr,&retstr,acname,"z_mergetoaddress",addr,destaddr,"","","","","")) != 0 )
     {
         if ( (opstr= jstr(retjson,"opid")) != 0 )
             strcpy(opidstr,opstr);
@@ -991,8 +1269,8 @@ int32_t txid_in_vins(char *refcoin,bits256 txid,bits256 cmptxid)
         if ( (vins= jarray(&numvins,txjson,"vin")) != 0 )
         {
             for (v=0; v<numvins; v++)
-            {
-                vin = jitem(vins,v);
+	    {
+	        vin = jitem(vins,v);
                 vintxid = jbits256(vin,"txid");
                 vinvout = jint(vin,"vout");
                 if ( memcmp(&vintxid,&cmptxid,sizeof(vintxid)) == 0 && vinvout == 0 )
@@ -1008,7 +1286,7 @@ int32_t txid_in_vins(char *refcoin,bits256 txid,bits256 cmptxid)
 int32_t dpow_pubkey()
 {
     char *pstr,*retstr,*str; cJSON *retjson; int32_t retval = -1;
-    if ( (retjson= get_komodocli((char *)"",&retstr,DEXP2P_CHAIN,"DEX_stats","","","","","")) != 0 )
+    if ( (retjson= get_komodocli((char *)"",&retstr,DEXP2P_CHAIN,"DEX_stats","","","","","","","")) != 0 )
     {
         if ( (pstr= jstr(retjson,"publishable_pubkey")) != 0 && strlen(pstr) == 66 )
         {
@@ -1017,6 +1295,10 @@ int32_t dpow_pubkey()
                 strcpy(DPOW_secpkeystr,str);
             if ( (str= jstr(retjson,"handle")) != 0 )
                 strcpy(DPOW_handle,str);
+            if ( (str= jstr(retjson,"recvaddr")) != 0 )
+                strcpy(DPOW_recvaddr,str);
+            if ( (str= jstr(retjson,"recvZaddr")) != 0 )
+                strcpy(DPOW_recvZaddr,str);
             retval = 0;
         }
         if ( retval != 0 )
@@ -1028,18 +1310,111 @@ int32_t dpow_pubkey()
     return(retval);
 }
 
-cJSON *dpow_broadcast(int32_t priority,char *hexstr,char *tagA,char *tagB)
+cJSON *dpow_get(uint32_t shorthash)
 {
     cJSON *retjson; char *retstr,numstr[32];
-    sprintf(numstr,"%u",priority);
-    if ( (retjson= get_komodocli((char *)"",&retstr,DEXP2P_CHAIN,"DEX_broadcast",hexstr,numstr,tagA,tagB,DPOW_pubkeystr)) != 0 )
+    sprintf(numstr,"%u",shorthash);
+    if ( (retjson= get_komodocli((char *)"",&retstr,DEXP2P_CHAIN,"DEX_get",numstr,"","","","","","")) != 0 )
     {
-        //printf("DEX_broadcast.(%s)\n",jprint(retjson,0));
+        //printf("DEX_get.(%s)\n",jprint(retjson,0));
+        if ( juint(retjson,"cancelled") != 0 )
+        {
+            free_json(retjson);
+            retjson = 0;
+        }
         return(retjson);
     }
     else if ( retstr != 0 )
     {
-        fprintf(stderr,"dpow_broadcast.(%s/%s) %s error.(%s)\n",tagA,tagB,hexstr,retstr);
+        fprintf(stderr,"dpow_get.(%u) error.(%s)\n",shorthash,retstr);
+        free(retstr);
+    }
+    return(0);
+}
+
+cJSON *dpow_cancel(uint32_t shorthash)
+{
+    cJSON *retjson; char *retstr,numstr[32];
+    sprintf(numstr,"%u",shorthash);
+    if ( (retjson= get_komodocli((char *)"",&retstr,DEXP2P_CHAIN,"DEX_cancel",numstr,"","","","","","")) != 0 )
+    {
+         //printf("DEX_cancel.(%s)\n",jprint(retjson,0));
+         return(retjson);
+    }
+    else if ( retstr != 0 )
+    {
+        fprintf(stderr,"dpow_cancel.(%u) error.(%s)\n",shorthash,retstr);
+        free(retstr);
+    }
+    return(0);
+}
+
+cJSON *dpow_notarize(char *coin,int32_t height)
+{
+    cJSON *retjson; char *retstr,numstr[32];
+    sprintf(numstr,"%u",height);
+    if ( (retjson= get_komodocli((char *)"",&retstr,DEXP2P_CHAIN,"DEX_notarize",coin,numstr,"","","","","")) != 0 )
+    {
+        //printf("DEX_notarize.(%s)\n",jprint(retjson,0));
+        return(retjson);
+    }
+    else if ( retstr != 0 )
+    {
+        fprintf(stderr,"dpow_notarize.(%s.%d) error.(%s)\n",coin,height,retstr);
+        free(retstr);
+    }
+    return(0);
+}
+
+cJSON *dpow_broadcast(int32_t priority,char *hexstr,char *tagA,char *tagB,char *pubkey,char *volA,char *volB)
+{
+    cJSON *retjson; char *retstr,numstr[32];
+    sprintf(numstr,"%u",priority);
+    //fprintf(stderr,"broadcast (%s) (%s) (%s) (%s) (%s) [%s %s]\n",hexstr,numstr,tagA,tagB,pubkey,volA,volB);
+    if ( (retjson= get_komodocli((char *)"",&retstr,DEXP2P_CHAIN,"DEX_broadcast",hexstr,numstr,tagA,tagB,pubkey,volA,volB)) != 0 )
+    {
+        //fprintf(stderr,"DEX_broadcast.(%s)\n",jprint(retjson,0));
+        return(retjson);
+    }
+    else if ( retstr != 0 )
+    {
+        fprintf(stderr,"dpow_broadcast.(%s/%s) [%s %s] %s error.(%s)\n",tagA,tagB,volA,volB,hexstr,retstr);
+        free(retstr);
+    }
+    return(0);
+}
+
+cJSON *dpow_publish(int32_t priority,char *filename)
+{
+    cJSON *retjson; char *retstr,numstr[32];
+    sprintf(numstr,"%u",priority);
+    //fprintf(stderr,"broadcast (%s) (%s) (%s) (%s) (%s) [%s %s]\n",hexstr,numstr,tagA,tagB,pubkey,volA,volB);
+    if ( (retjson= get_komodocli((char *)"",&retstr,DEXP2P_CHAIN,"DEX_publish",filename,numstr,"0","","","","")) != 0 )
+    {
+        //fprintf(stderr,"DEX_broadcast.(%s)\n",jprint(retjson,0));
+        return(retjson);
+    }
+    else if ( retstr != 0 )
+    {
+        fprintf(stderr,"dpow_publish.(%s) %d error.(%s)\n",filename,priority,retstr);
+        free(retstr);
+    }
+    return(0);
+}
+
+cJSON *dpow_subscribe(int32_t priority,char *filename,char *publisher)
+{
+    cJSON *retjson; char *retstr,numstr[32];
+    sprintf(numstr,"%u",priority);
+    //fprintf(stderr,"broadcast (%s) (%s) (%s) (%s) (%s) [%s %s]\n",hexstr,numstr,tagA,tagB,pubkey,volA,volB);
+    if ( (retjson= get_komodocli((char *)"",&retstr,DEXP2P_CHAIN,"DEX_subscribe",filename,numstr,"0",publisher,"","","")) != 0 )
+    {
+        //fprintf(stderr,"DEX_broadcast.(%s)\n",jprint(retjson,0));
+        return(retjson);
+    }
+    else if ( retstr != 0 )
+    {
+        fprintf(stderr,"dpow_subscribe.(%s) %d error.(%s)\n",filename,priority,retstr);
         free(retstr);
     }
     return(0);
@@ -1050,7 +1425,7 @@ cJSON *dpow_ntzdata(char *coin,int32_t priority,int32_t height,bits256 blockhash
     char hexstr[256],heightstr[32];
     bits256_str(hexstr,blockhash);
     sprintf(heightstr,"%u",height);
-    return(dpow_broadcast(priority,hexstr,coin,heightstr));
+    return(dpow_broadcast(priority,hexstr,coin,heightstr,DPOW_pubkeystr,"",""));
 }
 
 bits256 dpow_ntzhash(char *coin,int32_t *prevntzheightp,uint32_t *prevntztimep)
@@ -1059,9 +1434,9 @@ bits256 dpow_ntzhash(char *coin,int32_t *prevntzheightp,uint32_t *prevntztimep)
     memset(&ntzhash,0,sizeof(ntzhash));
     *prevntzheightp = 0;
     *prevntztimep = 0;
-    if ( (retjson= get_komodocli((char *)"",&retstr,DEXP2P_CHAIN,"DEX_list","0","0",coin,"notarizations",DPOW_pubkeystr)) != 0 )
+    if ( (retjson= get_komodocli((char *)"",&retstr,DEXP2P_CHAIN,"DEX_list","0","0",coin,"notarizations",DPOW_pubkeystr,"","")) != 0 )
     {
-        if ( (array= jarray(&n,retjson,"matches")) > 0 )
+        if ( (array= jarray(&n,retjson,"matches")) != 0 )
         {
             item = jitem(array,0);
             if ( (pstr= jstr(item,"decrypted")) != 0 && strlen(pstr) == 2*(32 + 2*4) )
@@ -1079,12 +1454,59 @@ bits256 dpow_ntzhash(char *coin,int32_t *prevntzheightp,uint32_t *prevntztimep)
     return(ntzhash);
 }
 
-void dpow_pubkeyregister(int32_t priority)
+int32_t dpow_getmessage(char *payload,int32_t maxsize,char *tagA,char *tagB,char *pubkeystr)
+{
+    cJSON *retjson,*item,*array; char *retstr,*pstr; int32_t i,n,retval = 0;
+    if ( (retjson= get_komodocli((char *)"",&retstr,DEXP2P_CHAIN,"DEX_list","0","0",tagA,tagB,pubkeystr,"","")) != 0 )
+    {
+        if ( (array= jarray(&n,retjson,"matches")) != 0 )
+        {
+            for (i=0; i<n; i++)
+            {
+                item = jitem(array,i);
+                if ( (pstr= jstr(item,"decrypted")) != 0 && strlen(pstr) < maxsize )
+                {
+                    retval = 1;
+                    strcpy(payload,pstr);
+                    break;
+                }
+            }
+            //fprintf(stderr,"getmessage(%s, %s, %s) -> n.%d retval.%d\n",tagA,tagB,pubkeystr,n,retval);
+        }
+        free_json(retjson);
+    }
+    return(retval);
+}
+
+int32_t dpow_hasmessage(char *payload,char *tagA,char *tagB,char *pubkeystr)
+{
+    cJSON *retjson,*item,*array; char *retstr,*pstr; int32_t i,n,retval = 0;
+    if ( (retjson= get_komodocli((char *)"",&retstr,DEXP2P_CHAIN,"DEX_list","0","0",tagA,tagB,pubkeystr,"","")) != 0 )
+    {
+        if ( (array= jarray(&n,retjson,"matches")) != 0 )
+        {
+            for (i=0; i<n; i++)
+            {
+                item = jitem(array,i);
+                if ( (pstr= jstr(item,"decrypted")) != 0 && strcmp(payload,pstr) == 0 )
+                {
+                    retval = 1;
+                    //fprintf(stderr,"already have %s/%s/%s\n",tagA,tagB,pubkeystr);
+                    break;
+                }
+            }
+        }
+        free_json(retjson);
+    }
+    return(retval);
+}
+
+int32_t dpow_pubkeyregister(int32_t priority)
 {
     cJSON *retjson,*array,*item; char *retstr,*pstr=0; int32_t i,n=0,len;
-    if ( (retjson= get_komodocli((char *)"",&retstr,DEXP2P_CHAIN,"DEX_list","0","0",(char *)"handles",DPOW_handle,DPOW_pubkeystr)) != 0 )
+    if ( (retjson= get_komodocli((char *)"",&retstr,DEXP2P_CHAIN,"DEX_list","0","0",(char *)"handles",DPOW_handle,DPOW_pubkeystr,"","")) != 0 )
     {
-        if ( (array= jarray(&n,retjson,"matches")) > 0 )
+        if ( (array= jarray(&n,retjson,"matches")) != 0 )
         {
             item = jitem(array,0);
             if ( (pstr= jstr(item,"decrypted")) != 0 )
@@ -1095,6 +1517,163 @@ void dpow_pubkeyregister(int32_t priority)
         free_json(retjson);
     }
     if ( pstr == 0 )
-        dpow_broadcast(priority,DPOW_secpkeystr,(char *)"handles",DPOW_handle);
+    {
+        dpow_broadcast(priority,DPOW_secpkeystr,(char *)"handles",DPOW_handle,DPOW_pubkeystr,"","");
+        return(1);
+    }
+    return(0);
 }
+
+int32_t dpow_tokenregister(char *existing,int32_t priority,char *token_name,char *tokenid)
+{
+    cJSON *retjson,*array,*item; char *retstr,*pstr=0; int32_t i,n=0,len;
+    existing[0] = 0;
+    if ( (retjson= get_komodocli((char *)"",&retstr,DEXP2P_CHAIN,"DEX_list","0","0",(char *)"tokens",token_name,DPOW_pubkeystr,"","")) != 0 )
+    {
+        if ( (array= jarray(&n,retjson,"matches")) != 0 )
+        {
+            item = jitem(array,0);
+            if ( juint(item,"cancelled") == 0 && (pstr= jstr(item,"decrypted")) != 0 )
+            {
+                strcpy(existing,pstr);
+                if ( tokenid != 0 && strcmp(pstr,tokenid) != 0 )
+                {
+                    fprintf(stderr,"found %s.tokenid (%s) != %s\n",token_name,pstr,tokenid);
+                    pstr = 0;
+                }
+            }
+        }
+        free_json(retjson);
+    }
+    if ( pstr == 0 && tokenid != 0 )
+    {
+        fprintf(stderr,"broadcast tokens %s/%s\n",token_name,tokenid);
+        dpow_broadcast(priority,tokenid,(char *)"tokens",token_name,DPOW_pubkeystr,"","");
+        return(1);
+    }
+    return(0);
+}
+
+/*bits256 komodo_DEX_filehash(FILE *fp,uint64_t offset0,uint64_t rlen,char *fname)
+{
+    bits256 filehash; uint8_t *data = (uint8_t *)calloc(1,rlen);
+    fseek(fp,offset0,SEEK_SET);
+    memset(filehash.bytes,0,sizeof(filehash));
+    if ( fread(data,1,rlen,fp) == rlen )
+        vcalc_sha256(0,filehash.bytes,data,rlen);
+    else fprintf(stderr," reading %lld bytes from %s.%llu\n",(long long)rlen,fname,(long long)offset0);
+    free(data);
+    return(filehash);
+}*/
+
+int32_t dpow_fileregister(char *existing,int32_t priority,char *fname,char *coin,int64_t price)
+{
+    FILE *fp; cJSON *retjson,*array,*item; bits256 existinghash,filehash; char tagA[16],pricestr[32],str[65],*retstr,*pstr=0; int32_t i,n=0,len;
+    existing[0] = 0;
+    sprintf(pricestr,"%.8f",dstr(price));
+    //fprintf(stderr,"filereg (%s) (%s) (%s)\n",fname,coin,pricestr);
+    memset(&filehash,0,sizeof(filehash));
+    if ( (fp= fopen(fname,"rb")) != 0 ) // better to use hash of file
+    {
+        fseek(fp,0,SEEK_END);
+        filehash.ulongs[0] = (uint64_t)ftell(fp);
+        fclose(fp);
+    } else return(-1);
+    sprintf(tagA,"'#%s'",fname);
+    if ( (retjson= get_komodocli((char *)"",&retstr,DEXP2P_CHAIN,"DEX_list","0","0",tagA,coin,DPOW_pubkeystr,"","")) != 0 )
+    {
+        if ( (array= jarray(&n,retjson,"matches")) != 0 )
+        {
+            item = jitem(array,0);
+            if ( juint(item,"cancelled") == 0 && (pstr= jstr(item,"decrypted")) != 0 )
+            {
+                strcpy(existing,pstr);
+                if ( is_hexstr(existing,0) == sizeof(existinghash)*2 )
+                {
+                    decode_hex(existinghash.bytes,sizeof(existinghash),existing);
+                    if ( memcmp(&filehash,&existinghash,sizeof(filehash)) != 0 )
+                    {
+                        fprintf(stderr,"found mismatched %s vs %s: %s (%s %s)\n",existing,bits256_str(str,filehash),fname,coin,pricestr);
+                        pstr = 0;
+                    } //else fprintf(stderr,"found matching %s\n",jprint(item,0));
+                }
+            }
+        }
+        free_json(retjson);
+    }
+    if ( pstr == 0 )
+    {
+        fprintf(stderr,"broadcast %s %s (%s %s)\n",bits256_str(str,filehash),fname,coin,pricestr);
+        dpow_broadcast(priority,bits256_str(str,filehash),tagA,coin,DPOW_pubkeystr,"1",pricestr);
+        return(1);
+    }
+    return(0);
+}
+
+bits256 dpow_blockhash(char *coin,int32_t height)
+{
+    cJSON *retjson,*array,*item; char *retstr,*pstr=0,numstr[32]; int32_t i,n=0,len; bits256 hash;
+    memset(hash.bytes,0,sizeof(hash));
+    sprintf(numstr,"%d",height);
+    if ( (retjson= get_komodocli((char *)"",&retstr,DEXP2P_CHAIN,"DEX_list","0","0",coin,numstr,DPOW_pubkeystr,"","")) != 0 )
+    {
+        if ( (array= jarray(&n,retjson,"matches")) != 0 )
+        {
+            item = jitem(array,0);
+            if ( (pstr= jstr(item,"decrypted")) != 0 )
+            {
+                //fprintf(stderr,"found blockhash.(%s)\n",pstr);
+                if ( strlen(pstr) == 64 )
+                    decode_hex(hash.bytes,sizeof(hash),pstr);
+            }
+        }
+        free_json(retjson);
+    }
+    return(hash);
+}
+
+struct inboxinfo
+{
+    uint32_t shorthash;
+    char *jsonstr,senderpub[67];
+};
+
+struct inboxinfo **dpow_inboxcheck(int32_t *nump,uint32_t *stopatp,char *tagB)
+{
+    cJSON *retjson,*array,*item; struct inboxinfo **ptrs=0; char *senderpub,*retstr,*ptr,*pstr=0,stopstr[32]; int32_t i,j,n,m=0,len;
+    sprintf(stopstr,"%u",*stopatp);
+    *nump = 0;
+    if ( (retjson= get_komodocli((char *)"",&retstr,DEXP2P_CHAIN,"DEX_list",stopstr,"0",(char *)"inbox",tagB,DPOW_pubkeystr,"","")) != 0 )
+    {
+        if ( (array= jarray(&n,retjson,"matches")) != 0 && n > 0 )
+        {
+            ptrs = calloc(n,sizeof(*ptrs));
+            for (i=0; i<n; i++)
+            {
+                item = jitem(array,i);
+                if ( (senderpub= jstr(item,"senderpub")) != 0 && is_hexstr(senderpub,0) == 66 )
+                {
+                    if ( m == 0 )
+                        *stopatp = juint(item,"id");
+                    if ( (pstr= jstr(item,"decrypted")) != 0 )
+                    {
+                        ptr = clonestr(pstr);
+                        for (j=0; ptr[j]!=0; j++)
+                            if ( ptr[j] == '\'' )
+                                ptr[j] = '"';
+                        ptrs[m] = calloc(1,sizeof(struct inboxinfo));
+                        ptrs[m]->shorthash = juint(item,"id");
+                        ptrs[m]->jsonstr = ptr;
+                        strcpy(ptrs[m]->senderpub,senderpub);
+                        m++;
+                    }
+                }
+            }
+            *nump = m;
+        }
+        free_json(retjson);
+    }
+    return(ptrs);
+}
+
 
