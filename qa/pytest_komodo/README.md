@@ -14,6 +14,7 @@ On Linux and MacOS:
 ```bash
 pip3 install setuptools wheel slick-bitcoinrpc pytest wget jsonschema
 ```
+
 On Windows:
 ```cmd
 pip3 install setuptools wheel python-bitcoinrpc pytest wget jsonschema
