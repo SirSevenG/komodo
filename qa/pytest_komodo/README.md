@@ -5,6 +5,7 @@ Using pytest as testing framework and slickrpc as rpc proxy. No more python2 sup
 To start just set test nodes RPC credentials in `nodesconfig.json`.
 `chainconfig.json` contains daemon start cli params, change hardcoded parameters to use with your chain, default parmas are valid for test bootstrap `http://159.69.45.70/bootstrap.tar.gz`
 
+
 `is_fresh_chain=False` param allows to run tests on existing chains (it skips some tests which expecting first CC usage on chain)
 
 So yes - you can run these tests on existing chains, just RPC creds (and wallets with some balance) needed.
