@@ -118,11 +118,10 @@ class TestDiceCCBase:
         rpc1 = test_params.get('node1').get('rpc')
         try:
             fundtxid = rpc1.dicelist()[0]
-            self.diceinfo_maincheck(rpc1, fundtxid, diceinfo_schema)
         except IndexError:
             print('\nNo Dice CC available on chain')
             fundtxid = self.new_casino(rpc1).get('fundingtxid')
-            self.diceinfo_maincheck(rpc1, fundtxid, diceinfo_schema)
+        self.diceinfo_maincheck(rpc1, fundtxid, diceinfo_schema)
 
     @staticmethod
     def diceaddfunds_maincheck(proxy, amount, fundtxid, schema):
@@ -148,10 +147,9 @@ class TestDiceCCBase:
         amount = '15'
         try:
             fundtxid = rpc1.dicelist()[0]
-            self.diceaddfunds_maincheck(rpc1, amount, fundtxid, diceaddfunds_schema)
         except IndexError:
             fundtxid = self.new_casino(rpc1).get('fundingtxid')
-            self.diceaddfunds_maincheck(rpc1, amount, fundtxid, diceaddfunds_schema)
+        self.diceaddfunds_maincheck(rpc1, amount, fundtxid, diceaddfunds_schema)
 
     @staticmethod
     def dicebet_maincheck(proxy, casino, schema):
@@ -331,9 +329,7 @@ class TestDiceCC:
 
         try:
             fundtxid = rpc2.dicelist()[0]
-            print(fundtxid)
-            self.badbets_check(rpc2, fundtxid)
         except IndexError:
             casino = TestDiceCCBase.new_casino(rpc1)
             fundtxid = casino.get('fundingtxid')
-            self.badbets_check(rpc2, fundtxid)
+        self.badbets_check(rpc2, fundtxid)

@@ -4,15 +4,13 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 import pytest
-import json
-from basic.pytest_util import validate_template, mine_and_waitconfirms, \
-                              randomstring, check_synced, wait_blocks
-from util import assert_success, assert_error, mine_and_waitconfirms, send_and_mine,\
-    rpc_connect, wait_some_blocks, generate_random_string, komodo_teardown
+import time
+from basic.pytest_util import validate_template, mine_and_waitconfirms, validate_raddr_pattern, \
+                              randomstring, randomhex
 
 
 @pytest.mark.usefixtures("proxy_connection")
-class TestRewards:
+class TestRewardsCC:
 
     @staticmethod
     def new_rewardsplan(proxy, schema=None):
@@ -48,7 +46,7 @@ class TestRewards:
         rpc = test_params.get('node1').get('rpc')
         self.new_rewardsplan(rpc, schema=createfunding_schema)
 
-    def test_reardsaddress(self, test_params):
+    def test_rewardsaddress(self, test_params):
         rewardsaddress_schema = {
             'type': 'object',
             'properties': {
@@ -112,11 +110,10 @@ class TestRewards:
         rpc1 = test_params.get('node1').get('rpc')
         try:
             fundtxid = rpc1.rewardslist()[0]
-            self.rewardsinfo_maincheck(rpc1, fundtxid, rewardsinfo_schema)
         except IndexError:
             print('\nNo Rewards CC available on chain')
             fundtxid = self.new_rewardsplan(rpc1).get('fundingtxid')
-            self.rewardsinfo_maincheck(rpc1, fundtxid, rewardsinfo_schema)
+        self.rewardsinfo_maincheck(rpc1, fundtxid, rewardsinfo_schema)
 
     @staticmethod
     def rewardsaddfunding_maincheck(proxy, fundtxid, schema):
@@ -142,11 +139,10 @@ class TestRewards:
         rpc1 = test_params.get('node1').get('rpc')
         try:
             fundtxid = rpc1.rewardslist()[0]
-            self.rewardsaddfunding_maincheck(rpc1, fundtxid, addfunding_schema)
         except IndexError:
             print('\nNo Rewards CC available on chain')
             fundtxid = self.new_rewardsplan(rpc1).get('fundingtxid')
-            self.rewardsaddfunding_maincheck(rpc1, fundtxid, addfunding_schema)
+        self.rewardsaddfunding_maincheck(rpc1, fundtxid, addfunding_schema)
 
     @staticmethod
     def un_lock_maincheck(proxy, fundtxid, schema):
@@ -157,11 +153,12 @@ class TestRewards:
         assert res.get('result') == 'success'
         locktxid = proxy.sendrawtransaction(res.get('hex'))
         mine_and_waitconfirms(locktxid, proxy)
+        print('\nWaiting some time to gain reward for locked funds')
+        time.sleep(10)
         res = proxy.rewardsunlock(name, fundtxid, locktxid)
+        print(res)
         validate_template(res, schema)
-        assert res.get('result') == 'success'
-        unlocktxid = proxy.sendrawtransaction(res.get('hex'))
-        mine_and_waitconfirms(unlocktxid, proxy)
+        assert res.get('result') == 'error'  # reward is less than txfee atm
 
     def test_lock_unlock(self, test_params):
         lock_unlock_schema = {
@@ -177,130 +174,82 @@ class TestRewards:
         rpc1 = test_params.get('node1').get('rpc')
         try:
             fundtxid = rpc1.rewardslist()[0]
-            self.un_lock_maincheck(rpc1, fundtxid, lock_unlock_schema)
         except IndexError:
             print('\nNo Rewards CC available on chain')
             fundtxid = self.new_rewardsplan(rpc1).get('fundingtxid')
-            self.un_lock_maincheck(rpc1, fundtxid, lock_unlock_schema)
+        self.un_lock_maincheck(rpc1, fundtxid, lock_unlock_schema)
 
 
 @pytest.mark.usefixtures("proxy_connection")
-def test_rewards(test_params):
+class TestRewardsCCExtras:
 
-    # test params inits
-    rpc = test_params.get('node1').get('rpc')
-    rpc1 = test_params.get('node2').get('rpc')
+    def test_rewardsaddress(self, test_params):
+        rpc1 = test_params.get('node1').get('rpc')
+        pubkey = test_params.get('node1').get('pubkey')
 
-    pubkey = test_params.get('node1').get('pubkey')
-    pubkey1 = test_params.get('node2').get('pubkey')
+        res = rpc1.rewardsaddress()
+        for key in res.keys():
+            if key.find('ddress') > 0:
+                assert validate_raddr_pattern(res.get(key))
 
-    is_fresh_chain = test_params.get("is_fresh_chain")
+        res = rpc1.rewardsaddress(pubkey)
+        for key in res.keys():
+            if key.find('ddress') > 0:
+                assert validate_raddr_pattern(res.get(key))
 
-    result = rpc.rewardsaddress()
-    for x in result.keys():
-        if x.find('ddress') > 0:
-            assert result[x][0] == 'R'
+    @staticmethod
+    def bad_calls(proxy, fundtxid):
+        name = proxy.rewardsinfo(fundtxid).get('name')
+        invalidfunding = randomhex()
+        # looking up non-existent reward should return error
+        res = proxy.rewardsinfo(invalidfunding)
+        assert res.get('result') == 'error'
 
-    result = rpc.rewardsaddress(pubkey)
-    for x in result.keys():
-        if x.find('ddress') > 0:
-            assert result[x][0] == 'R'
+        # creating rewards plan with name > 8 chars, should return error
+        res = proxy.rewardscreatefunding("STUFFSTUFF", "7777", "25", "0", "10", "10")
+        assert res.get('result') == 'error'
 
-    # no rewards yet
-    if is_fresh_chain:
-        result = rpc.rewardslist()
-        assert result == []
+        # creating rewards plan with 0 funding
+        res = proxy.rewardscreatefunding("STUFF", "0", "25", "0", "10", "10")
+        assert res.get('result') == 'error'
 
-    # looking up non-existent reward should return error
-    result = rpc.rewardsinfo("none")
-    assert_error(result)
+        # creating rewards plan with 0 maxdays
+        res = proxy.rewardscreatefunding("STUFF", "7777", "25", "0", "10", "0")
+        assert res.get('result') == 'error'
 
-    # creating rewards plan with name > 8 chars, should return error
-    result = rpc.rewardscreatefunding("STUFFSTUFF", "7777", "25", "0", "10", "10")
-    assert_error(result)
+        # creating rewards plan with > 25% APR
+        res = proxy.rewardscreatefunding("STUFF", "7777", "30", "0", "10", "10")
+        assert res.get('result') == 'error'
 
-    # creating rewards plan with 0 funding
-    result = rpc.rewardscreatefunding("STUFF", "0", "25", "0", "10", "10")
-    assert_error(result)
+        # creating reward plan with already existing name, should return error
+        res = proxy.rewardscreatefunding(name, "777", "25", "0", "10", "10")
+        assert res.get('result') == 'error'
 
-    # creating rewards plan with 0 maxdays
-    result = rpc.rewardscreatefunding("STUFF", "7777", "25", "0", "10", "0")
-    assert_error(result)
+        # add funding amount must be positive
+        res = proxy.rewardsaddfunding(name, fundtxid, "-1")
+        assert res.get('result') == 'error'
 
-    # creating rewards plan with > 25% APR
-    result = rpc.rewardscreatefunding("STUFF", "7777", "30", "0", "10", "10")
-    assert_error(result)
+        # add funding amount must be positive
+        res = proxy.rewardsaddfunding(name, fundtxid, "0")
+        assert res.get('result') == 'error'
 
-    # creating valid rewards plan
-    plan_name = generate_random_string(6)
-    result = rpc.rewardscreatefunding(plan_name, "7777", "25", "0", "10", "10")
-    assert result['hex'], 'got raw xtn'
-    fundingtxid = send_and_mine(result['hex'], rpc)
-    assert fundingtxid, 'got txid'
-    result = rpc.rewardsinfo(fundingtxid)
-    assert_success(result)
-    assert result['name'] == plan_name
-    assert result['APR'] == "25.00000000"
-    assert result['minseconds'] == 0
-    assert result['maxseconds'] == 864000
-    assert result['funding'] == "7777.00000000"
-    assert result['mindeposit'] == "10.00000000"
-    assert result['fundingtxid'] == fundingtxid
+        # trying to lock funds, locking funds amount must be positive
+        res = proxy.rewardslock(name, fundtxid, "-5")
+        assert res.get('result') == 'error'
 
-    # checking if new plan in rewardslist
-    result = rpc.rewardslist()
-    assert fundingtxid in result
+        # trying to lock funds, locking funds amount must be positive
+        res = proxy.rewardslock(name, fundtxid, "0")
+        assert res.get('result') == 'error'
 
-    # creating reward plan with already existing name, should return error
-    result = rpc.rewardscreatefunding(plan_name, "7777", "25", "0", "10", "10")
-    assert_error(result)
+        # trying to lock less than the min amount is an error
+        res = proxy.rewardslock(name, fundtxid, "7")
+        assert res.get('result') == 'error'
 
-    # add funding amount must be positive
-    result = rpc.rewardsaddfunding(plan_name, fundingtxid, "-1")
-    assert_error(result)
-
-    # add funding amount must be positive
-    result = rpc.rewardsaddfunding(plan_name, fundingtxid, "0")
-    assert_error(result)
-
-    # adding valid funding
-    result = rpc.rewardsaddfunding(plan_name, fundingtxid, "555")
-    addfundingtxid = send_and_mine(result['hex'], rpc)
-    assert addfundingtxid, 'got funding txid'
-
-    # checking if funding added to rewardsplan
-    result = rpc.rewardsinfo(fundingtxid)
-    assert result['funding'] == "8332.00000000"
-
-    # trying to lock funds, locking funds amount must be positive
-    result = rpc.rewardslock(plan_name, fundingtxid, "-5")
-    assert_error(result)
-
-    # trying to lock funds, locking funds amount must be positive
-    result = rpc.rewardslock(plan_name, fundingtxid, "0")
-    assert_error(result)
-
-    # trying to lock less than the min amount is an error
-    result = rpc.rewardslock(plan_name, fundingtxid, "7")
-    assert_error(result)
-
-    # locking funds in rewards plan
-    result = rpc.rewardslock(plan_name, fundingtxid, "10")
-    assert_success(result)
-    locktxid = result['hex']
-    assert locktxid, "got lock txid"
-
-    # locktxid has not been broadcast yet
-    result = rpc.rewardsunlock(plan_name, fundingtxid, locktxid)
-    assert_error(result)
-
-    # broadcast xtn
-    txid = rpc.sendrawtransaction(locktxid)
-    assert txid, 'got txid from sendrawtransaction'
-
-    # confirm the xtn above
-    wait_some_blocks(rpc, 1)
-
-    # will not unlock since reward amount is less than tx fee
-    result = rpc.rewardsunlock(plan_name, fundingtxid, locktxid)
-    assert_error(result)
+    def test_bad_calls(self, test_params):
+        rpc = test_params.get('node1').get('rpc')
+        try:
+            fundtxid = rpc.rewardslist()[0]
+        except IndexError:
+            print('\nNo Rewards CC available on chain')
+            fundtxid = TestRewardsCC.new_rewardsplan(rpc).get('fundingtxid')
+        self.bad_calls(rpc, fundtxid)
