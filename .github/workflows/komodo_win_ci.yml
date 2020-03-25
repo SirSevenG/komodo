@@ -14,10 +14,9 @@ jobs:
     - name: Install deps(mingw)
       env:
         DEBIAN_FRONTEND: noninteractive
-      if: runner.os == 'Linux'
       run: |
+        sudo apt-get update  # prevents repo404 errors on apt-remove below
         sudo apt-get remove php5.6-fpm php7.0-fpm php7.1-fpm php7.2-fpm php7.3-fpm php7.3-common php7.4-fpm msodbcsql17
-        sudo apt-get update
         sudo ACCEPT_EULA=Y apt-get upgrade -y
         sudo apt-get update
         sudo apt-get install build-essential \
@@ -220,36 +219,36 @@ jobs:
           cd qa\pytest_komodo
           start_ci.bat cc_modules\test_channels.py
 
-#  windows-test-dexp2p:
-#
-#    name: Test (Win/DEXP2P)
-#    runs-on: windows-latest
-#    needs: windows-build
-#
-#    steps:
-#      - uses: actions/checkout@v2
-#
-#      - name: Download komodo_win.zip
-#        uses: actions/download-artifact@v1
-#        with:
-#          name: komodod_win
-#
-#      - name: Install deps (DEXP2P)
-#        shell: cmd
-#        run: |
-#          move komodod_win\komodod_win.zip
-#          7z e komodod_win.zip
-#          move komodod.exe src\
-#          python.exe -m pip install --upgrade setuptools
-#          python.exe -m pip install --upgrade pip
-#          python.exe -m pip install pycurl pytest wget jsonschema
-#          python.exe -m pip install slick-bitcoinrpc
-#          zcutil\fetch-params.bat
-#
-#      - name: DEXP2P Test (Linux)
-#        shell: cmd
-#        run: |
-#          cd qa\pytest_komodo
-#          md %APPDATA%\dexp2p
-#          md %HOMEDRIVE%\tmp\dexp2p
-#          start_set_dex.bat
+  windows-test-dexp2p:
+
+    name: Test (Win/DEXP2P)
+    runs-on: windows-latest
+    needs: windows-build
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Download komodo_win.zip
+        uses: actions/download-artifact@v1
+        with:
+          name: komodod_win
+
+      - name: Install deps (DEXP2P)
+        shell: cmd
+        run: |
+          move komodod_win\komodod_win.zip
+          7z e komodod_win.zip
+          move komodod.exe src\
+          python.exe -m pip install --upgrade setuptools
+          python.exe -m pip install --upgrade pip
+          python.exe -m pip install pycurl pytest wget jsonschema
+          python.exe -m pip install slick-bitcoinrpc
+          zcutil\fetch-params.bat
+
+      - name: DEXP2P Test (Linux)
+        shell: cmd
+        run: |
+          cd qa\pytest_komodo
+          md %APPDATA%\dexp2p
+          md %HOMEDRIVE%\tmp\dexp2p
+          start_set_dex.bat
