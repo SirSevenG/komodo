@@ -20,7 +20,6 @@ jobs:
           brew install binutils
           brew install protobuf
           brew install coreutils
-          brew install wget
           python3 -m pip install --upgrade pip
           python3 -m pip install setuptools wheel slick-bitcoinrpc pytest wget
           ./zcutil/fetch-params.sh
