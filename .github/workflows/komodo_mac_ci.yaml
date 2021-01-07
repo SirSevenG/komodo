@@ -22,8 +22,8 @@ jobs:
           brew install protobuf
           brew install coreutils
           brew install wget
-          brew install python3
-          pip3 install setuptools wheel slick-bitcoinrpc pytest wget
+          python3 -m pip install --upgrade pip
+          python3 -m pip install setuptools wheel slick-bitcoinrpc pytest wget
           ./zcutil/fetch-params.sh
 
       - name: Build (macOS)
