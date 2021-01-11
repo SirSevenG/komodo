@@ -13,7 +13,7 @@ jobs:
 
       - name: Install deps (macOS)
         run: |
-          xcode-select --install
+          softwareupdate --install -a
           brew install autoconf autogen automake
           brew update
           brew install binutils
