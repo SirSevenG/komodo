@@ -23,7 +23,7 @@ jobs:
           brew install protobuf
           brew install coreutils
           python3 -m pip install --upgrade pip --user
-          python3 -m pip install setuptools wheel slick-bitcoinrpc pytest wget --user
+          python3 -m pip install setuptools wheel wget --user
           ./zcutil/fetch-params.sh
 
 
