@@ -14,16 +14,18 @@ jobs:
       - name: Install deps (macOS)
         run: |
           softwareupdate --install -a
-          brew install autoconf autogen automake
           brew update
+          brew rm gcc@8 --force
+          brew tap discoteq/discoteq; brew install flock
+          brew install gcc@8
+          brew install autoconf autogen automake
           brew install binutils
           brew install protobuf
           brew install coreutils
           python3 -m pip install --upgrade pip
           python3 -m pip install setuptools wheel slick-bitcoinrpc pytest wget
           ./zcutil/fetch-params.sh
-#          # brew tap discoteq/discoteq; brew install flock
-#          # brew install gcc@8
+
 
       - name: Build (macOS)
         run: |
