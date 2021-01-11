@@ -15,15 +15,15 @@ jobs:
         run: |
           softwareupdate --install -a
           brew update
-          brew uninstall --ignore-dependencies php glib gcc gcc@8 gcc@9 python@3.9 pipx
+          brew uninstall php glib gcc gcc@8 gcc@9 python@3.9 pipx
           brew install gcc@8
           brew tap discoteq/discoteq; brew install flock
           brew install autoconf autogen automake
           brew install binutils
           brew install protobuf
           brew install coreutils
-          python3 -m pip install --upgrade pip
-          python3 -m pip install setuptools wheel slick-bitcoinrpc pytest wget
+          python3 -m pip install --upgrade pip --user
+          python3 -m pip install setuptools wheel slick-bitcoinrpc pytest wget --user
           ./zcutil/fetch-params.sh
 
 
