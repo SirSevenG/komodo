@@ -30,12 +30,11 @@ jobs:
           brew install coreutils
           pip install --upgrade pip
           pip install setuptools wheel wget
-          ./zcutil/fetch-params.sh
 
       - name: Build (macOS)
         run: |
           # flag for some CC tests transactions - so DO NOT USE THIS CI ARTIFACTS IN PRODUCTION!!!
-          ./zcutil/build-mac-dtest.sh -j4
+          ./zcutil/build-mac-dtest.sh -j$(nproc)
           tar -czvf komodo-macos.tar.gz src/komodod src/komodo-cli
 
       - name: Upload komodo-macos.tar.gz as artifact
