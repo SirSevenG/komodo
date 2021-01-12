@@ -92,8 +92,10 @@ jobs:
           move komodod_win\komodod_win.zip
           7z e komodod_win.zip
           move komodod.exe src\
+          vcpkg install curl
           python.exe -m pip install --upgrade setuptools
           python.exe -m pip install --upgrade pip
+          python.exe -m pip install wheel
           python.exe -m pip install pycurl pytest wget jsonschema
           python.exe -m pip install slick-bitcoinrpc
           zcutil\fetch-params.bat
@@ -122,8 +124,10 @@ jobs:
           move komodod_win\komodod_win.zip
           7z e komodod_win.zip
           move komodod.exe src\
+          vcpkg install curl
           python.exe -m pip install --upgrade setuptools
           python.exe -m pip install --upgrade pip
+          python.exe -m pip install wheel
           python.exe -m pip install pycurl pytest wget jsonschema
           python.exe -m pip install slick-bitcoinrpc
           zcutil\fetch-params.bat
@@ -152,8 +156,10 @@ jobs:
           move komodod_win\komodod_win.zip
           7z e komodod_win.zip
           move komodod.exe src\
+          vcpkg install curl
           python.exe -m pip install --upgrade setuptools
           python.exe -m pip install --upgrade pip
+          python.exe -m pip install wheel
           python.exe -m pip install pycurl pytest wget jsonschema
           python.exe -m pip install slick-bitcoinrpc
           zcutil\fetch-params.bat
@@ -182,8 +188,10 @@ jobs:
           move komodod_win\komodod_win.zip
           7z e komodod_win.zip
           move komodod.exe src\
+          vcpkg install curl
           python.exe -m pip install --upgrade setuptools
           python.exe -m pip install --upgrade pip
+          python.exe -m pip install wheel
           python.exe -m pip install pycurl pytest wget jsonschema
           python.exe -m pip install slick-bitcoinrpc
           zcutil\fetch-params.bat
@@ -212,8 +220,10 @@ jobs:
           move komodod_win\komodod_win.zip
           7z e komodod_win.zip
           move komodod.exe src\
+          vcpkg install curl
           python.exe -m pip install --upgrade setuptools
           python.exe -m pip install --upgrade pip
+          python.exe -m pip install wheel
           python.exe -m pip install pycurl pytest wget jsonschema
           python.exe -m pip install slick-bitcoinrpc
           zcutil\fetch-params.bat
