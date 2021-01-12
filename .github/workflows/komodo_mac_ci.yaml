@@ -16,6 +16,7 @@ jobs:
           softwareupdate --install -a
           brew update
           brew uninstall php glib gcc gcc@8 gcc@9 python@3.9 pipx
+          brew upgrade
           brew install gcc@8 gcc
           brew install boost
           brew tap discoteq/discoteq; brew install flock
@@ -23,10 +24,9 @@ jobs:
           brew install binutils
           brew install protobuf
           brew install coreutils
-          python3 -m pip install --upgrade pip --user
-          python3 -m pip install setuptools wheel wget --user
+          pip3 install --upgrade pip
+          pip3 install setuptools wheel wget
           ./zcutil/fetch-params.sh
-
 
       - name: Build (macOS)
         run: |
