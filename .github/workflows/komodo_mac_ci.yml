@@ -28,8 +28,8 @@ jobs:
           brew install binutils
           brew install protobuf
           brew install coreutils
-          pip3 install --upgrade pip
-          pip3 install setuptools wheel wget
+          pip install --upgrade pip
+          pip install setuptools wheel wget
           ./zcutil/fetch-params.sh
 
       - name: Build (macOS)
