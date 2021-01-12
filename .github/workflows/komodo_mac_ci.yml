@@ -17,17 +17,19 @@ jobs:
 
       - name: Install deps (macOS)
         run: |
+          softwareupdate --install -a
           brew update
+          brew uninstall php glib gcc gcc@8 gcc@9 python@3.9 pipx
           brew upgrade
+          brew install gcc@8 gcc
+          brew install boost
           brew tap discoteq/discoteq; brew install flock
           brew install autoconf autogen automake
-          brew install gcc@8
           brew install binutils
           brew install protobuf
           brew install coreutils
-          brew install wget
-          brew install python3
-          pip3 install setuptools wheel slick-bitcoinrpc pytest wget
+          pip3 install --upgrade pip
+          pip3 install setuptools wheel wget
           ./zcutil/fetch-params.sh
 
       - name: Build (macOS)
