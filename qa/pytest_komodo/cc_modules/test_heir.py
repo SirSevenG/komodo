@@ -69,8 +69,8 @@ def test_heir(test_params):
     # assert result["IsHeirSpendingAllowed"] == "false"
 
     # waiting for 11 seconds to be sure that needed time passed for heir claiming
-    time.sleep(11)
-    wait_some_blocks(rpc, 1)
+    time.sleep(12)
+    wait_some_blocks(rpc, 2)
     result = rpc.heirinfo(heir_fund_txid)
     assert result["lifetime"] == "1000.00000000"
     assert result["IsHeirSpendingAllowed"] == "true"
