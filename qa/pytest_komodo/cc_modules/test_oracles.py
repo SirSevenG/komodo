@@ -156,12 +156,8 @@ class TestOraclesCCcalls:
         # Subscrive to new oracle
         oraclesinfo = rpc.oraclesinfo(oracle.get('oracle_id'))
         publisher = oraclesinfo.get('registered')[0].get('publisher')
-        print('\noraclesinfo\n', oraclesinfo, '\n\n')
-        print('\npublisher\n', publisher, '\n\n')
-        print('\nexpected_id\n', oracle.get('oracle_id'), '\n\n')
         res = rpc.oraclessubscribe(oracle.get('oracle_id'), publisher, sub_amount)
         validate_template(res, general_hex_schema)
-        print('\n\n', res, '\n\n')
         txid = rpc.sendrawtransaction(res.get('hex'))
         mine_and_waitconfirms(txid, rpc)
 
@@ -174,11 +170,7 @@ class TestOraclesCCcalls:
         # Check data
         oraclesinfo = rpc.oraclesinfo(oracle.get('oracle_id'))
         baton = oraclesinfo.get('registered')[0].get('batontxid')
-        print('\noraclesinfo\n', oraclesinfo, '\n\n')
-        print('\nbatontxid\n', baton, '\n\n')
-        print('\nexpected_id\n', oracle.get('oracle_id'), '\n\n')
         res = rpc.oraclessample(oracle.get('oracle_id'), baton)
-        print(res)
         validate_template(res, sample_schema)
         assert res.get('txid') == baton
 
@@ -200,11 +192,113 @@ class TestOraclesCC:
             if key.find('ddress') > 0:
                 assert validate_raddr_pattern(res.get(key))
 
-#    @staticmethod
-#    def bad_calls(proxy, token, pubkey):
-#
-#    def test_bad_calls(self, test_params):
-#        rpc = test_params.get('node1').get('rpc')
-#        pubkey = test_params.get('node1').get('pubkey')
-#         oracle = self.new_oracle(rpc)
-#        self.bad_calls(rpc, token, pubkey)
+    @staticmethod
+    def bad_calls(proxy, oracle):
+        valid_formats = ["s", "S", "d", "D", "c", "C", "t", "T", "i", "I", "l", "L", "h"]
+
+        for vformat in valid_formats:
+            # trying to register with negative datafee
+            res = proxy.oraclesregister(oracle.get('oracle_id'), "-100")
+            assert res.get('error')
+
+            # trying to register with zero datafee
+            res = proxy.oraclesregister(oracle.get('oracle_id'), "0")
+            assert res.get('error')
+
+            # trying to register with datafee less than txfee
+            res = proxy.oraclesregister(oracle.get('oracle_id'), "500")
+            assert res.get('error')
+
+            # trying to register valid (unfunded)
+            res = proxy.oraclesregister(oracle.get('oracle_id'), "1000000")
+            assert res.get('error')
+
+            # trying to register with invalid datafee
+            res = proxy.oraclesregister(oracle.get('oracle_id'), "asdasd")
+            assert res.get('error')
+
+        # looking up non-existent oracle should return error.
+        res = proxy.oraclesinfo("none")
+        assert res.get('error')
+
+        # attempt to create oracle with not valid data type should return error
+        res = proxy.oraclescreate("Test", "Test", "Test")
+        assert res.get('error')
+
+        # attempt to create oracle with name > 32 symbols should return error
+        too_long_name = randomstring(33)
+        res = proxy.oraclescreate(too_long_name, "Test", "s")
+        assert res.get('error')
+
+        # attempt to create oracle with description > 4096 symbols should return error
+        too_long_description = randomstring(4100)
+        res = proxy.oraclescreate("Test", too_long_description, "s")
+        assert res.get('error')
+
+    def test_bad_calls(self, test_params):
+        rpc = test_params.get('node1').get('rpc')
+        oracle = TestOraclesCCcalls.new_oracle(rpc)
+        self.bad_calls(rpc, oracle)
+
+    def test_oracles_data(self, test_params):
+        oracles_data = {
+            's': '05416e746f6e',
+            'S': '000161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161',
+            'd': '0101',
+            'D': '010001',
+            'c': 'ff',
+            'C': 'ff',
+            't': 'ffff',
+            'T': 'ffff',
+            'i': 'ffffffff',
+            'I': 'ffffffff',
+            'l': '00000000ffffffff',
+            'L': '00000000ffffffff',
+            'h': 'ffffffff00000000ffffffff00000000ffffffff00000000ffffffff00000000',
+        }
+
+        oracles_response = {
+            's_un': 'Anton',
+            'S_un': 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+            'd_un': '01',
+            'D_un': '01',
+            'c_un': '-1',
+            'C_un': '255',
+            't_un': '-1',
+            'T_un': '65535',
+            'i_un': '-1',
+            'I_un': '4294967295',
+            'l_un': '-4294967296',
+            'L_un': '18446744069414584320',
+            'h_un': '00000000ffffffff00000000ffffffff00000000ffffffff00000000ffffffff'
+        }
+
+        rpc = test_params.get('node1').get('rpc')
+
+        for o_type in oracles_data.keys():
+            oracle = TestOraclesCCcalls.new_oracle(rpc, o_type=o_type)
+
+            res = rpc.oraclesfund(oracle.get('oracle_id'))
+            txid = rpc.sendrawtransaction(res.get('hex'))
+            mine_and_waitconfirms(txid, rpc)
+
+            res = rpc.oraclesregister(oracle.get('oracle_id'), '10000000')
+            txid = rpc.sendrawtransaction(res.get('hex'))
+            mine_and_waitconfirms(txid, rpc)
+
+            oraclesinfo = rpc.oraclesinfo(oracle.get('oracle_id'))
+            publisher = oraclesinfo.get('registered')[0].get('publisher')
+            res = rpc.oraclessubscribe(oracle.get('oracle_id'), publisher, '0.1')
+            txid = rpc.sendrawtransaction(res.get('hex'))
+            mine_and_waitconfirms(txid, rpc)
+
+            res = rpc.oraclesdata(oracle.get('oracle_id'), oracles_data.get(o_type))
+            assert res.get('result') == 'success'
+            o_data = rpc.sendrawtransaction(res.get("hex"))
+            mine_and_waitconfirms(o_data, rpc)
+
+            oraclesinfo = rpc.oraclesinfo(oracle.get('oracle_id'))
+            baton = oraclesinfo.get('registered')[0].get('batontxid')
+
+            res = rpc.oraclessample(oracle.get('oracle_id'), baton)
+            assert (res.get('data')[0] == oracles_response.get(str(o_type) + '_un'))
