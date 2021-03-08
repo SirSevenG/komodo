@@ -2,6 +2,7 @@ import pytest
 import json
 import os
 import time
+from lib.pytest_util import OraclesCC
 # Using different proxy to bypass libcurl issues on Windows
 try:
     from slickrpc import Proxy
@@ -55,3 +56,9 @@ def test_params(proxy_connection):
         test_params.update({node: node_params})
         test_params[node].update({'rpc': rpc})
     return test_params
+
+
+@pytest.fixture(scope='session')
+def oracle_instance(test_params):
+    oracle = OraclesCC(test_params)
+    return oracle

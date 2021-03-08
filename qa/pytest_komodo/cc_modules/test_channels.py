@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2020 SuperNET developers
+# Copyright (c) 2021 SuperNET developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or https://www.opensource.org/licenses/mit-license.php.
 
@@ -196,16 +196,17 @@ class TestChannelsCCBase:
         txid = rpc1.sendrawtransaction(res.get('hex'))
         mine_and_waitconfirms(txid, rpc1)
         res = rpc1.channelsclose(newchannel.get('open_txid'))
-        assert isinstance(res, str)  # channelsclose returns only hex on success
+        # assert isinstance(res, str)  # channelsclose returns only hex on success
+        assert res.get('result') == 'success'  # updated to proper json response
         # validate_template(res, channelsclose_schema)
-        close_txid = rpc1.sendrawtransaction(res)  # res.get('hex')
+        close_txid = rpc1.sendrawtransaction(res.get('hex'))  # updated to handle proper response
         mine_and_waitconfirms(close_txid, rpc1)
 
         # execute refund
         res = rpc1.channelsrefund(newchannel.get('open_txid'), close_txid)
-        assert isinstance(res, str)  # same to above
+        assert res.get('result') == 'success'  # same to above
         # validate_template(res, channelsrefund_schema)
-        refund_txid = rpc1.sendrawtransaction(res)  # res.get('hex')
+        refund_txid = rpc1.sendrawtransaction(res.get('hex'))  # updated
         mine_and_waitconfirms(refund_txid, rpc1)
 
 
@@ -263,8 +264,9 @@ class TestChannelsCC:
 
         # executing channel close
         res = rpc1.channelsclose(channel.get('open_txid'))
-        assert isinstance(res, str)
-        close_txid = rpc1.sendrawtransaction(res)
+        # assert isinstance(res, str)
+        assert res.get('result') == 'success'  # updated to proper json response
+        close_txid = rpc1.sendrawtransaction(res.get('hex'))  # updated
         mine_and_waitconfirms(close_txid, rpc1)
 
         # now in channelinfo closed flag should appear
@@ -273,8 +275,9 @@ class TestChannelsCC:
 
         # executing channel refund
         res = rpc1.channelsrefund(channel.get('open_txid'), close_txid)
-        assert isinstance(res, str)
-        refund_txid = rpc1.sendrawtransaction(res)
+        # assert isinstance(res, str)
+        assert res.get('result') == 'success'  # updated to proper json response
+        refund_txid = rpc1.sendrawtransaction(res.get('hex'))  # updated
         mine_and_waitconfirms(refund_txid, rpc1)
 
         # checking if it refunded to opener address
