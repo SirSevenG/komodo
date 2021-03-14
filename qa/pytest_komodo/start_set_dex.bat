@@ -11,7 +11,7 @@ set TEST_WIF2=UqMLYDNVtYLPKZ2CcqeBU1FcYNHkknVZaMuQRqqZWXyPmSuJw3kr
 set TEST_PUBKEY2=02e9b141e1c251a942f77df10fa4de00f53f8ab2a6d5341bbaf842c95e674e92e9
 set CHAIN_MODE=DEX2
 set IS_BOOTSTRAP_NEEDED=True
-set BOOTSTRAP_URL=https://sirseven.me/share/bootstrap3.tar.gz
+set BOOTSTRAP_URL=https://sirseven.me/share/bootstrap4.tar.gz
 
 python.exe chainstart.py
 

@@ -6,7 +6,7 @@
 import pytest
 import sys
 sys.path.append('../')
-from basic.pytest_util import validate_template, mine_and_waitconfirms, randomstring,\
+from lib.pytest_util import validate_template, mine_and_waitconfirms, randomstring,\
      randomhex, wait_blocks, validate_raddr_pattern, check_synced
 from decimal import *
 
