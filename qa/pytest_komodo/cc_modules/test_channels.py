@@ -7,7 +7,7 @@ import pytest
 import time
 import sys
 sys.path.append('../')
-from basic.pytest_util import validate_template, mine_and_waitconfirms, validate_raddr_pattern, validate_tx_pattern
+from lib.pytest_util import validate_template, mine_and_waitconfirms, validate_raddr_pattern, validate_tx_pattern
 
 
 @pytest.mark.usefixtures("proxy_connection")

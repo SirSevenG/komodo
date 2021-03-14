@@ -8,7 +8,7 @@ import time
 import sys
 import re
 sys.path.append('../')
-from basic.pytest_util import validate_template, mine_and_waitconfirms, randomstring, check_synced, wait_blocks
+from lib.pytest_util import validate_template, mine_and_waitconfirms, randomstring, check_synced, wait_blocks
 
 
 @pytest.mark.usefixtures("proxy_connection")

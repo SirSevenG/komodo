@@ -5,7 +5,7 @@
 
 import pytest
 import time
-from basic.pytest_util import validate_template, mine_and_waitconfirms, validate_raddr_pattern, \
+from lib.pytest_util import validate_template, mine_and_waitconfirms, validate_raddr_pattern, \
                               randomstring, randomhex
 
 

@@ -6,7 +6,7 @@
 import pytest
 import time
 from decimal import *
-from pytest_util import validate_template, check_synced, mine_and_waitconfirms
+from lib.pytest_util import validate_template, check_synced, mine_and_waitconfirms
 
 
 @pytest.mark.usefixtures("proxy_connection")
