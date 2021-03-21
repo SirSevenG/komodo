@@ -2,11 +2,49 @@ import pytest
 import json
 import os
 import time
+from lib.pytest_util import randomstring, validate_template, mine_and_waitconfirms
 # Using different proxy to bypass libcurl issues on Windows
 try:
     from slickrpc import Proxy
 except ImportError:
     from bitcoinrpc.authproxy import AuthServiceProxy as Proxy
+
+
+class CCInstance:
+    def __init__(self, test_params: dict):
+        """Base CC Instance class to wrap test_params data"""
+        self.rpc = [test_params.get(node).get('rpc') for node in test_params.keys()]
+        self.pubkey = [test_params.get(node).get('pubkey') for node in test_params.keys()]
+        self.address = [test_params.get(node).get('rpc') for node in test_params.keys()]
+        self.instance = None
+
+
+class OraclesCC(CCInstance):
+    @staticmethod
+    def new_oracle(proxy, schema=None, description="test oracle", o_type=None):
+        name = randomstring(8)
+        if not o_type:
+            o_type = "s"
+            res = proxy.oraclescreate(name, description, o_type)
+        elif isinstance(o_type, str):
+            res = proxy.oraclescreate(name, description, o_type)
+        elif isinstance(o_type, list):
+            for single_o_type in o_type:
+                res = proxy.oraclescreate(name, description, single_o_type)
+        else:
+            raise TypeError("Invalid oracles format: ", o_type)
+        if schema:
+            validate_template(res, schema)
+        assert res.get('result') == 'success'
+        txid = proxy.sendrawtransaction(res.get('hex'))
+        mine_and_waitconfirms(txid, proxy)
+        oracle = {
+            'format': txid,
+            'name': name,
+            'description': description,
+            'oracle_id': txid
+        }
+        return oracle
 
 
 @pytest.fixture(scope='session')
@@ -55,3 +93,9 @@ def test_params(proxy_connection):
         test_params.update({node: node_params})
         test_params[node].update({'rpc': rpc})
     return test_params
+
+
+@pytest.fixture(scope='session')
+def oracle_instance(test_params):
+    oracle = OraclesCC(test_params)
+    return oracle
