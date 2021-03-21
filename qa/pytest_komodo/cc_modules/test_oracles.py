@@ -234,7 +234,7 @@ class TestOracleInstance:
             'h_un': '00000000ffffffff00000000ffffffff00000000ffffffff00000000ffffffff'
         }
 
-        oracles = oracle_instance.new_oracle(oracle_instance.rpc[0], o_type=oracles_data.keys())
+        oracles = oracle_instance.new_oracle(oracle_instance.rpc[0], o_type=list(oracles_data.keys()))
 
         txid = ""
         for oracle in oracles:

@@ -95,7 +95,7 @@ jobs:
           python.exe -m pip install --upgrade pip
           python.exe -m pip install wheel
           python.exe -m pip install pycurl==7.43.0.5
-          python.exe -m pip install pytest wget jsonschema
+          python.exe -m pip install pytest wget jsonschema requests
           python.exe -m pip install slick-bitcoinrpc
           zcutil\fetch-params.bat
       - name: Base RPC Test (Windows)
@@ -128,7 +128,7 @@ jobs:
           python.exe -m pip install --upgrade pip
           python.exe -m pip install wheel
           python.exe -m pip install pycurl==7.43.0.5
-          python.exe -m pip install pytest wget jsonschema
+          python.exe -m pip install pytest wget jsonschema requests
           python.exe -m pip install slick-bitcoinrpc
           zcutil\fetch-params.bat
       - name: CC Dice Faucet Tokens Rewards (Windows)
@@ -161,7 +161,7 @@ jobs:
           python.exe -m pip install --upgrade pip
           python.exe -m pip install wheel
           python.exe -m pip install pycurl==7.43.0.5
-          python.exe -m pip install pytest wget jsonschema
+          python.exe -m pip install pytest wget jsonschema requests
           python.exe -m pip install slick-bitcoinrpc
           zcutil\fetch-params.bat
       - name: CC Oracles (Windows)
@@ -194,14 +194,14 @@ jobs:
           python.exe -m pip install --upgrade pip
           python.exe -m pip install wheel
           python.exe -m pip install pycurl==7.43.0.5
-          python.exe -m pip install pytest wget jsonschema
+          python.exe -m pip install pytest wget jsonschema requests
           python.exe -m pip install slick-bitcoinrpc
           zcutil\fetch-params.bat
-#       - name: CC Heir (Windows)
-#         shell: cmd
-#         run: |
-#           cd qa\pytest_komodo
-#           start_ci.bat cc_modules\test_heir.py
+      - name: CC Heir (Windows)
+        shell: cmd
+        run: |
+          cd qa\pytest_komodo
+          start_ci.bat cc_modules\test_heir.py
   windows-test-channels-cc:
 
     name: Test (Win/ChannelsCC)
@@ -227,7 +227,7 @@ jobs:
           python.exe -m pip install --upgrade pip
           python.exe -m pip install wheel
           python.exe -m pip install pycurl==7.43.0.5
-          python.exe -m pip install pytest wget jsonschema
+          python.exe -m pip install pytest wget jsonschema requests
           python.exe -m pip install slick-bitcoinrpc
           zcutil\fetch-params.bat
       - name: ChannelsCC (Windows)
