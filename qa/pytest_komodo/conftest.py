@@ -20,8 +20,12 @@ class CCInstance:
 
 
 class OraclesCC(CCInstance):
-    @staticmethod
-    def new_oracle(proxy, schema=None, description="test oracle", o_type=None):
+    def __init__(self, test_params: dict):
+
+        super().__init__(test_params)
+        self.base_oracle = None
+
+    def new_oracle(self, proxy, schema=None, description="test oracle", o_type=None):
         name = randomstring(8)
         if not o_type:
             o_type = "s"
@@ -44,6 +48,8 @@ class OraclesCC(CCInstance):
             'description': description,
             'oracle_id': txid
         }
+        if not self.base_oracle:
+            self.base_oracle = oracle
         return oracle
 
 

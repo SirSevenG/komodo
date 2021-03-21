@@ -10,7 +10,7 @@ from lib.pytest_util import validate_template, mine_and_waitconfirms, randomstri
 
 
 @pytest.mark.usefixtures("proxy_connection", "test_params")
-class TestOraclesCC:
+class TestOracleInstance:
 
     def test_oraclescreate_list_info(self, oracle_instance):
         create_schema = {
@@ -70,11 +70,11 @@ class TestOraclesCC:
             'type': 'object',
             'properties': {
                 "result": {'type': 'string'},
-                "OraclesCCAddress": {'type': 'string'},
-                "OraclesCCBalance": {'type': 'number'},
+                "oracle_instanceAddress": {'type': 'string'},
+                "oracle_instanceBalance": {'type': 'number'},
                 "OraclesNormalAddress": {'type': 'string'},
                 "OraclesNormalBalance": {'type': 'number'},
-                "OraclesCCTokensAddress": {'type': 'string'},
+                "oracle_instanceTokensAddress": {'type': 'string'},
                 "PubkeyCCaddress(Oracles)": {'type': 'string'},
                 "PubkeyCCbalance(Oracles)": {'type': 'number'},
                 "myCCAddress(Oracles)": {'type': 'string'},
@@ -151,7 +151,7 @@ class TestOraclesCC:
         # Publish new data
         res = oracle_instance.rpc[0].oraclesdata(oracle_instance.base_oracle.get('oracle_id'), '0a74657374737472696e67')  # teststring
         validate_template(res, general_hex_schema)
-        txid = oracle_instance.rpc[0].oracle(res.get('hex'))
+        txid = oracle_instance.rpc[0].sendrawtransaction(res.get('hex'))
         mine_and_waitconfirms(txid, oracle_instance.rpc[0])
 
         # Check data
@@ -201,67 +201,67 @@ class TestOraclesCC:
         res = oracle.rpc[0].oraclescreate("Test", too_long_description, "s")
         assert res.get('error')
 
-#    def test_oracles_data(self):
-#        oracles_data = {
-#            's': '05416e746f6e',
-#            'S': '000161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161',
-#            'd': '0101',
-#            'D': '010001',
-#            'c': 'ff',
-#            'C': 'ff',
-#            't': 'ffff',
-#            'T': 'ffff',
-#            'i': 'ffffffff',
-#            'I': 'ffffffff',
-#            'l': '00000000ffffffff',
-#            'L': '00000000ffffffff',
-#            'h': 'ffffffff00000000ffffffff00000000ffffffff00000000ffffffff00000000',
-#        }
-#
-#        oracles_response = {
-#            's_un': 'Anton',
-#            'S_un': 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
-#            'd_un': '01',
-#            'D_un': '01',
-#            'c_un': '-1',
-#            'C_un': '255',
-#            't_un': '-1',
-#            'T_un': '65535',
-#            'i_un': '-1',
-#            'I_un': '4294967295',
-#            'l_un': '-4294967296',
-#            'L_un': '18446744069414584320',
-#            'h_un': '00000000ffffffff00000000ffffffff00000000ffffffff00000000ffffffff'
-#        }
-#
-#        oracles = (OraclesCC.new_oracle(OraclesCC.rpc1, o_type=o_type) for o_type in oracles_data.keys())
-#
-#        for oracle in oracles:
-#            res = OraclesCC.rpc1.oraclesfund(oracle.get('oracle_id'))
-#            txid = (OraclesCC.rpc1.sendrawtransaction(res.get('hex')))
-#        mine_and_waitconfirms(txid, OraclesCC.rpc1)
-#
-#        for oracle in oracles:
-#            res = OraclesCC.rpc1.oraclesregister(oracle.get('oracle_id'), '10000000')
-#            txid = (OraclesCC.rpc1.sendrawtransaction(res.get('hex')))
-#        mine_and_waitconfirms(txid, OraclesCC.rpc1)
-#
-#        for oracle in oracles:
-#            oraclesinfo = OraclesCC.rpc1.oraclesinfo(oracle.get('oracle_id'))
-#            publisher = oraclesinfo.get('registered')[0].get('publisher')
-#            res = OraclesCC.rpc1.oraclessubscribe(oracle.get('oracle_id'), publisher, '0.1')
-#            txid = (OraclesCC.rpc1.sendrawtransaction(res.get('hex')))
-#        mine_and_waitconfirms(txid, OraclesCC.rpc1)
-#
-#        for oracle, o_type in zip(oracles, oracles_data.keys()):
-#            res = OraclesCC.rpc1.oraclesdata(oracle.get('oracle_id'), oracles_data.get(o_type))
-#            assert res.get('result') == 'success'
-#            o_data = OraclesCC.rpc1.sendrawtransaction(res.get("hex"))
-#        mine_and_waitconfirms(o_data, OraclesCC.rpc1)
-#
-#        for oracle, o_type in zip(oracles, oracles_data.keys()):
-#            oraclesinfo = OraclesCC.rpc1.oraclesinfo(oracle.get('oracle_id'))
-#            baton = oraclesinfo.get('registered')[0].get('batontxid')
-#
-#            res = OraclesCC.rpc1.oraclessample(oracle.get('oracle_id'), baton)
-#            assert (res.get('data')[0] == oracles_response.get(str(o_type) + '_un'))
+    def test_oracles_data(self, oracle_instance):
+        oracles_data = {
+            's': '05416e746f6e',
+            'S': '000161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161',
+            'd': '0101',
+            'D': '010001',
+            'c': 'ff',
+            'C': 'ff',
+            't': 'ffff',
+            'T': 'ffff',
+            'i': 'ffffffff',
+            'I': 'ffffffff',
+            'l': '00000000ffffffff',
+            'L': '00000000ffffffff',
+            'h': 'ffffffff00000000ffffffff00000000ffffffff00000000ffffffff00000000',
+        }
+
+        oracles_response = {
+            's_un': 'Anton',
+            'S_un': 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+            'd_un': '01',
+            'D_un': '01',
+            'c_un': '-1',
+            'C_un': '255',
+            't_un': '-1',
+            'T_un': '65535',
+            'i_un': '-1',
+            'I_un': '4294967295',
+            'l_un': '-4294967296',
+            'L_un': '18446744069414584320',
+            'h_un': '00000000ffffffff00000000ffffffff00000000ffffffff00000000ffffffff'
+        }
+
+        oracles = (oracle_instance.new_oracle(oracle_instance.rpc[0], o_type=o_type) for o_type in oracles_data.keys())
+
+        for oracle in oracles:
+            res = oracle_instance.rpc[0].oraclesfund(oracle.get('oracle_id'))
+            txid = oracle_instance.rpc[0].sendrawtransaction(res.get('hex'))
+        mine_and_waitconfirms(txid, oracle_instance.rpc[0])
+
+        for oracle in oracles:
+            res = oracle_instance.rpc[0].oraclesregister(oracle.get('oracle_id'), '10000000')
+            txid = oracle_instance.rpc[0].sendrawtransaction(res.get('hex'))
+        mine_and_waitconfirms(txid, oracle_instance.rpc[0])
+
+        for oracle in oracles:
+            oraclesinfo = oracle_instance.rpc[0].oraclesinfo(oracle.get('oracle_id'))
+            publisher = oraclesinfo.get('registered')[0].get('publisher')
+            res = oracle_instance.rpc[0].oraclessubscribe(oracle.get('oracle_id'), publisher, '0.1')
+            txid = oracle_instance.rpc[0].sendrawtransaction(res.get('hex'))
+        mine_and_waitconfirms(txid, oracle_instance.rpc[0])
+
+        for oracle, o_type in zip(oracles, oracles_data.keys()):
+            res = oracle_instance.rpc[0].oraclesdata(oracle.get('oracle_id'), oracles_data.get(o_type))
+            assert res.get('result') == 'success'
+            o_data = oracle_instance.rpc[0].sendrawtransaction(res.get("hex"))
+        mine_and_waitconfirms(o_data, oracle_instance.rpc[0])
+
+        for oracle, o_type in zip(oracles, oracles_data.keys()):
+            oraclesinfo = oracle_instance.rpc[0].oraclesinfo(oracle.get('oracle_id'))
+            baton = oraclesinfo.get('registered')[0].get('batontxid')
+
+            res = oracle_instance.rpc[0].oraclessample(oracle.get('oracle_id'), baton)
+            assert (res.get('data')[0] == oracles_response.get(str(o_type) + '_un'))
