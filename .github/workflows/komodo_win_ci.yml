@@ -32,7 +32,6 @@ jobs:
                              libncurses-dev \
                              unzip  \
                              git \
-                             python \
                              zlib1g-dev \
                              wget \
                              bsdmainutils \
