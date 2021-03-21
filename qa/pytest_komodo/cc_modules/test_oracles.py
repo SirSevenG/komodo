@@ -85,6 +85,9 @@ class TestOracleInstance:
             'required': ['result']
         }
 
+        if not oracle_instance.base_oracle:
+            oracle_instance.new_oracle(oracle_instance.rpc[1])
+
         res = oracle_instance.rpc[0].oraclesaddress(oracle_instance.pubkey[0])
         validate_template(res, oraclesaddress_schema)
 
@@ -128,6 +131,9 @@ class TestOracleInstance:
         amount = '10000000'
         sub_amount = '0.1'
 
+        if not oracle_instance.base_oracle:
+            oracle_instance.new_oracle(oracle_instance.rpc[1])
+
         # Fund fresh oracle
         res = oracle_instance.rpc[0].oraclesfund(oracle_instance.base_oracle.get('oracle_id'))
         validate_template(res, general_hex_schema)
@@ -162,6 +168,9 @@ class TestOracleInstance:
         assert res.get('txid') == baton
 
     def test_bad_calls(self, oracle_instance):
+        if not oracle_instance.base_oracle:
+            oracle_instance.new_oracle(oracle_instance.rpc[1])
+
         oracle = oracle_instance
         # trying to register with negative datafee
         res = oracle.rpc[0].oraclesregister(oracle.base_oracle.get('oracle_id'), "-100")

@@ -64,6 +64,107 @@ class OraclesCC(CCInstance):
         return oracle
 
 
+class TokenCC(CCInstance):
+    def __init__(self, test_params: dict):
+        super().__init__(test_params)
+        self.base_token = None
+
+    def new_token(self, proxy, schema=None):
+        name = randomstring(8)
+        amount = '0.10000000'
+        res = proxy.tokencreate(name, amount, "test token 1")
+        if schema:
+            validate_template(res, schema)
+        assert res.get('result') == 'success'
+        txid = proxy.sendrawtransaction(res.get('hex'))
+        mine_and_waitconfirms(txid, proxy)
+        token = {
+            'tokenid': txid,
+            'name': name
+        }
+        if not self.base_token:
+            self.base_token = token
+        return token
+
+
+class DiceCC(CCInstance):
+    def __init__(self, test_params: dict):
+        super().__init__(test_params)
+        self.open_casino = None
+
+    def new_casino(self, proxy, schema=None):
+        rpc1 = proxy
+        name = randomstring(4)
+        funds = '777'
+        minbet = '1'
+        maxbet = '77'
+        maxodds = '10'
+        timeoutblocks = '5'
+        res = rpc1.dicefund(name, funds, minbet, maxbet, maxodds, timeoutblocks)
+        if schema:
+            validate_template(res, schema)
+        assert res.get('result') == 'success'
+        txid = rpc1.sendrawtransaction(res.get('hex'))
+        mine_and_waitconfirms(txid, rpc1)
+        casino = {
+            'fundingtxid': txid,
+            'name': name,
+            'minbet': minbet,
+            'maxbet': maxbet,
+            'maxodds': maxodds
+        }
+        if not self.open_casino:
+            self.open_casino = casino
+        return casino
+
+    @staticmethod
+    def diceinfo_maincheck(proxy, fundtxid, schema):
+        res = proxy.diceinfo(fundtxid)
+        validate_template(res, schema)
+        assert res.get('result') == 'success'
+
+    @staticmethod
+    def diceaddfunds_maincheck(proxy, amount, fundtxid, schema):
+        name = proxy.diceinfo(fundtxid).get('name')
+        res = proxy.diceaddfunds(name, fundtxid, amount)
+        validate_template(res, schema)
+        assert res.get('result') == 'success'
+        addtxid = proxy.sendrawtransaction(res.get('hex'))
+        mine_and_waitconfirms(addtxid, proxy)
+
+    @staticmethod
+    def dicebet_maincheck(proxy, casino, schema):
+        res = proxy.dicebet(casino.get('name'), casino.get('fundingtxid'), casino.get('minbet'), casino.get('maxodds'))
+        validate_template(res, schema)
+        assert res.get('result') == 'success'
+        bettxid = proxy.sendrawtransaction(res.get('hex'))
+        mine_and_waitconfirms(bettxid, proxy)
+        return bettxid
+
+    @staticmethod
+    def dicestatus_maincheck(proxy, casino, bettx, schema):
+        res = proxy.dicestatus(casino.get('name'), casino.get('fundingtxid'), bettx)
+        validate_template(res, schema)
+        assert res.get('result') == 'success'
+
+    @staticmethod
+    def dicefinsish_maincheck(proxy, casino, bettx, schema):
+        res = proxy.dicefinish(casino.get('name'), casino.get('fundingtxid'), bettx)
+        validate_template(res, schema)
+        assert res.get('result') == 'success'
+
+    @staticmethod
+    def create_entropy(proxy, casino):
+        amount = '1'
+        for i in range(100):
+            res = proxy.diceaddfunds(casino.get('name'), casino.get('fundingtxid'), amount)
+            fhex = res.get('hex')
+            proxy.sendrawtransaction(fhex)
+        checkhex = proxy.diceaddfunds(casino.get('name'), casino.get('fundingtxid'), amount).get('hex')
+        tx = proxy.sendrawtransaction(checkhex)
+        mine_and_waitconfirms(tx, proxy)
+
+
 @pytest.fixture(scope='session')
 def proxy_connection():
     proxy_connected = []
@@ -116,3 +217,15 @@ def test_params(proxy_connection):
 def oracle_instance(test_params):
     oracle = OraclesCC(test_params)
     return oracle
+
+
+@pytest.fixture(scope='session')
+def token_instance(test_params):
+    token = TokenCC(test_params)
+    return token
+
+
+@pytest.fixture(scope='session')
+def dice_casino(test_params):
+    dice = DiceCC(test_params)
+    return dice
