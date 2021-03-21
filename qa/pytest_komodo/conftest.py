@@ -33,8 +33,19 @@ class OraclesCC(CCInstance):
         elif isinstance(o_type, str):
             res = proxy.oraclescreate(name, description, o_type)
         elif isinstance(o_type, list):
+            txid = ""
+            oracles = []
             for single_o_type in o_type:
                 res = proxy.oraclescreate(name, description, single_o_type)
+                txid = proxy.sendrawtransaction(res.get('hex'))
+                oracles.append({
+                                'format': single_o_type,
+                                'name': name,
+                                'description': description,
+                                'oracle_id': txid
+                               })
+            mine_and_waitconfirms(txid, proxy)
+            return oracles
         else:
             raise TypeError("Invalid oracles format: ", o_type)
         if schema:
@@ -43,7 +54,7 @@ class OraclesCC(CCInstance):
         txid = proxy.sendrawtransaction(res.get('hex'))
         mine_and_waitconfirms(txid, proxy)
         oracle = {
-            'format': txid,
+            'format': o_type,
             'name': name,
             'description': description,
             'oracle_id': txid
