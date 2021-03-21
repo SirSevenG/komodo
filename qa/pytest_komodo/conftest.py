@@ -15,7 +15,7 @@ class CCInstance:
         """Base CC Instance class to wrap test_params data"""
         self.rpc = [test_params.get(node).get('rpc') for node in test_params.keys()]
         self.pubkey = [test_params.get(node).get('pubkey') for node in test_params.keys()]
-        self.address = [test_params.get(node).get('rpc') for node in test_params.keys()]
+        self.address = [test_params.get(node).get('address') for node in test_params.keys()]
         self.instance = None
 
 

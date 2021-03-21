@@ -5,7 +5,7 @@
 
 import pytest
 from slickrpc.exc import RpcException as RPCError
-from basic.pytest_util import validate_template, mine_and_waitconfirms, randomstring, randomhex, validate_raddr_pattern
+from lib.pytest_util import validate_template, mine_and_waitconfirms, randomstring, randomhex, validate_raddr_pattern
 
 
 @pytest.mark.usefixtures("proxy_connection")

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Copyright (c) 2021 SuperNET developers
 # Distributed under the MIT software license, see the accompanying
-# file COPYING or http://www.opensource.org/licenses/mit-license.php.
+# file COPYING or https://www.opensource.org/licenses/mit-license.php.
 
 import pytest
 from slickrpc.exc import RpcException as RPCError
@@ -56,12 +56,12 @@ class TestOraclesCC:
         }
 
         # test oracle creation
-        oracle_instance.new_oracle(oracle_instance.rpc2, schema=create_schema)
+        oracle_instance.new_oracle(oracle_instance.rpc[1], schema=create_schema)
 
-        res = oracle_instance.rpc1.oracleslist()
+        res = oracle_instance.rpc[0].oracleslist()
         validate_template(res, list_schema)
 
-        res = oracle_instance.rpc1.oraclesinfo(oracle_instance.base_oracle.get('oracle_id'))
+        res = oracle_instance.rpc[0].oraclesinfo(oracle_instance.base_oracle.get('oracle_id'))
         validate_template(res, info_schema)
 
     def test_oraclesaddress(self, oracle_instance):
@@ -85,15 +85,15 @@ class TestOraclesCC:
             'required': ['result']
         }
 
-        res = oracle_instance.rpc1.oraclesaddress(oracle_instance.pubkey1)
+        res = oracle_instance.rpc[0].oraclesaddress(oracle_instance.pubkey[0])
         validate_template(res, oraclesaddress_schema)
 
-        res = oracle_instance.rpc1.oraclesaddress(oracle_instance.pubkey1)
+        res = oracle_instance.rpc[0].oraclesaddress(oracle_instance.pubkey[0])
         for key in res.keys():
             if key.find('ddress') > 0:
                 assert validate_raddr_pattern(res.get(key))
 
-        res = oracle_instance.rpc1.oraclesaddress()
+        res = oracle_instance.rpc[0].oraclesaddress()
         for key in res.keys():
             if key.find('ddress') > 0:
                 assert validate_raddr_pattern(res.get(key))
@@ -129,76 +129,76 @@ class TestOraclesCC:
         sub_amount = '0.1'
 
         # Fund fresh oracle
-        res = oracle_instance.rpc1.oraclesfund(oracle_instance.base_oracle.get('oracle_id'))
+        res = oracle_instance.rpc[0].oraclesfund(oracle_instance.base_oracle.get('oracle_id'))
         validate_template(res, general_hex_schema)
-        txid = oracle_instance.rpc1.sendrawtransaction(res.get('hex'))
-        mine_and_waitconfirms(txid, oracle_instance.rpc1)
+        txid = oracle_instance.rpc[0].sendrawtransaction(res.get('hex'))
+        mine_and_waitconfirms(txid, oracle_instance.rpc[0])
 
         # Register as publisher
-        res = oracle_instance.rpc1.oraclesregister(oracle_instance.base_oracle.get('oracle_id'), amount)
+        res = oracle_instance.rpc[0].oraclesregister(oracle_instance.base_oracle.get('oracle_id'), amount)
         validate_template(res, general_hex_schema)
-        txid = oracle_instance.rpc1.sendrawtransaction(res.get('hex'))
-        mine_and_waitconfirms(txid, oracle_instance.rpc1)
+        txid = oracle_instance.rpc[0].sendrawtransaction(res.get('hex'))
+        mine_and_waitconfirms(txid, oracle_instance.rpc[0])
 
         # Subscrive to new oracle
-        oraclesinfo = oracle_instance.rpc1.oraclesinfo(oracle_instance.base_oracle.get('oracle_id'))
+        oraclesinfo = oracle_instance.rpc[0].oraclesinfo(oracle_instance.base_oracle.get('oracle_id'))
         publisher = oraclesinfo.get('registered')[0].get('publisher')
-        res = oracle_instance.rpc1.oraclessubscribe(oracle_instance.base_oracle.get('oracle_id'), publisher, sub_amount)
+        res = oracle_instance.rpc[0].oraclessubscribe(oracle_instance.base_oracle.get('oracle_id'), publisher, sub_amount)
         validate_template(res, general_hex_schema)
-        txid = oracle_instance.rpc1.sendrawtransaction(res.get('hex'))
-        mine_and_waitconfirms(txid, oracle_instance.rpc1)
+        txid = oracle_instance.rpc[0].sendrawtransaction(res.get('hex'))
+        mine_and_waitconfirms(txid, oracle_instance.rpc[0])
 
         # Publish new data
-        res = oracle_instance.rpc1.oraclesdata(oracle_instance.base_oracle.get('oracle_id'), '0a74657374737472696e67')  # teststring
+        res = oracle_instance.rpc[0].oraclesdata(oracle_instance.base_oracle.get('oracle_id'), '0a74657374737472696e67')  # teststring
         validate_template(res, general_hex_schema)
-        txid = oracle_instance.rpc1.oracle(res.get('hex'))
-        mine_and_waitconfirms(txid, oracle_instance.rpc1)
+        txid = oracle_instance.rpc[0].oracle(res.get('hex'))
+        mine_and_waitconfirms(txid, oracle_instance.rpc[0])
 
         # Check data
-        oraclesinfo = oracle_instance.rpc1.oraclesinfo(oracle_instance.base_oracle.get('oracle_id'))
+        oraclesinfo = oracle_instance.rpc[0].oraclesinfo(oracle_instance.base_oracle.get('oracle_id'))
         baton = oraclesinfo.get('registered')[0].get('batontxid')
-        res = oracle_instance.rpc1.oraclessample(oracle_instance.base_oracle.get('oracle_id'), baton)
+        res = oracle_instance.rpc[0].oraclessample(oracle_instance.base_oracle.get('oracle_id'), baton)
         validate_template(res, sample_schema)
         assert res.get('txid') == baton
 
     def test_bad_calls(self, oracle_instance):
         oracle = oracle_instance
         # trying to register with negative datafee
-        res = oracle.rpc1.oraclesregister(oracle.base_oracle.get('oracle_id'), "-100")
+        res = oracle.rpc[0].oraclesregister(oracle.base_oracle.get('oracle_id'), "-100")
         assert res.get('error')
 
         # trying to register with zero datafee
-        res = oracle.rpc1.oraclesregister(oracle.base_oracle.get('oracle_id'), "0")
+        res = oracle.rpc[0].oraclesregister(oracle.base_oracle.get('oracle_id'), "0")
         assert res.get('error')
 
         # trying to register with datafee less than txfee
-        res = oracle.rpc1.oraclesregister(oracle.base_oracle.get('oracle_id'), "500")
+        res = oracle.rpc[0].oraclesregister(oracle.base_oracle.get('oracle_id'), "500")
         assert res.get('error')
 
         # trying to register valid (unfunded)
-        res = oracle.rpc1.oraclesregister(oracle.base_oracle.get('oracle_id'), "1000000")
+        res = oracle.rpc[0].oraclesregister(oracle.base_oracle.get('oracle_id'), "1000000")
         assert res.get('error')
 
         # trying to register with invalid datafee
-        res = oracle.rpc1.oraclesregister(oracle.base_oracle.get('oracle_id'), "asdasd")
+        res = oracle.rpc[0].oraclesregister(oracle.base_oracle.get('oracle_id'), "asdasd")
         assert res.get('error')
 
         # looking up non-existent oracle should return error.
-        res = oracle.rpc1.oraclesinfo("none")
+        res = oracle.rpc[0].oraclesinfo("none")
         assert res.get('error')
 
         # attempt to create oracle with not valid data type should return error
-        res = oracle.rpc1.oraclescreate("Test", "Test", "Test")
+        res = oracle.rpc[0].oraclescreate("Test", "Test", "Test")
         assert res.get('error')
 
         # attempt to create oracle with name > 32 symbols should return error
         too_long_name = randomstring(33)
-        res = oracle.rpc1.oraclescreate(too_long_name, "Test", "s")
+        res = oracle.rpc[0].oraclescreate(too_long_name, "Test", "s")
         assert res.get('error')
 
         # attempt to create oracle with description > 4096 symbols should return error
         too_long_description = randomstring(4100)
-        res = oracle.rpc1.oraclescreate("Test", too_long_description, "s")
+        res = oracle.rpc[0].oraclescreate("Test", too_long_description, "s")
         assert res.get('error')
 
 #    def test_oracles_data(self):
