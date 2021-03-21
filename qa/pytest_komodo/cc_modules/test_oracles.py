@@ -236,6 +236,7 @@ class TestOracleInstance:
 
         oracles = (oracle_instance.new_oracle(oracle_instance.rpc[0], o_type=o_type) for o_type in oracles_data.keys())
 
+        txid = ""
         for oracle in oracles:
             res = oracle_instance.rpc[0].oraclesfund(oracle.get('oracle_id'))
             txid = oracle_instance.rpc[0].sendrawtransaction(res.get('hex'))
@@ -253,6 +254,7 @@ class TestOracleInstance:
             txid = oracle_instance.rpc[0].sendrawtransaction(res.get('hex'))
         mine_and_waitconfirms(txid, oracle_instance.rpc[0])
 
+        o_data = ""
         for oracle, o_type in zip(oracles, oracles_data.keys()):
             res = oracle_instance.rpc[0].oraclesdata(oracle.get('oracle_id'), oracles_data.get(o_type))
             assert res.get('result') == 'success'
