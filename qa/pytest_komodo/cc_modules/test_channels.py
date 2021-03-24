@@ -108,10 +108,9 @@ class TestChannelsCCBase:
 
         rpc1 = channel_instance.rpc[0]
         pubkey2 = channel_instance.pubkey[1]
-        open_txid = channel_instance.channelslist_get(rpc1)
-        if not open_txid:
-            open_txid = channel_instance.new_channel(rpc1, pubkey2, '10', '100000').get('open_txid')
-        res = rpc1.channelsinfo(open_txid)
+        if not channel_instance.base_channel:
+            channel_instance.new_channel(rpc1, pubkey2)
+        res = rpc1.channelsinfo(channel_instance.base_channel.get('open_txid'))
         validate_template(res, channelsinfo_schema)
 
     def test_channelspayment(self, channel_instance):
@@ -127,13 +126,12 @@ class TestChannelsCCBase:
 
         rpc1 = channel_instance.rpc[0]
         pubkey2 = channel_instance.pubkey[1]
-        open_txid = channel_instance.channelslist_get(rpc1)
-        if not open_txid:
-            open_txid = channel_instance.new_channel(rpc1, pubkey2, '10', '100000').get('open_txid')
+        if not channel_instance.base_channel:
+            channel_instance.new_channel(rpc1, pubkey2)
             minpayment = '100000'
         else:
-            minpayment = rpc1.channelsinfo(open_txid).get("Denomination (satoshi)")
-        res = rpc1.channelspayment(open_txid, minpayment)
+            minpayment = rpc1.channelsinfo(channel_instance.base_channel.get('open_txid')).get("Denomination (satoshi)")
+        res = rpc1.channelspayment(channel_instance.base_channel.get('open_txid'), minpayment)
         validate_template(res, channelspayment_schema)
         txid = rpc1.sendrawtransaction(res.get('hex'))
         mine_and_waitconfirms(txid, rpc1)
@@ -187,9 +185,10 @@ class TestChannelsCC:
         rpc1 = channel_instance.rpc[0]
         rpc2 = channel_instance.rpc[1]
         pubkey2 = channel_instance.pubkey[1]
-        payments = '10'
-        pay_amount = '100000'
-        channel = channel_instance.new_channel(rpc1, pubkey2, payments, pay_amount)
+        addr1 = channel_instance.address[0]
+        if not channel_instance.base_channel:
+            channel_instance.new_channel(rpc1, pubkey2)
+        channel = channel_instance.base_channel
 
         # trying to make wrong denomination channel payment
         res = rpc1.channelspayment(channel.get('open_txid'), '199000')
@@ -290,9 +289,9 @@ class TestChannelsCC:
         rpc1 = channel_instance.rpc[0]
         rpc2 = channel_instance.rpc[1]
         pubkey2 = channel_instance.pubkey[1]
-        payments = '10'
-        pay_amount = '100000'
-        channel = TestChannelsCCBase.new_channel(rpc1, pubkey2, payments, pay_amount)
+        if not channel_instance.base_channel:
+            channel_instance.new_channel(rpc1, pubkey2)
+        channel = channel_instance.base_channel
 
         # disconnecting first node from network
         rpc1.setban("127.0.0.0/24", 'add')

@@ -15,14 +15,72 @@ class CCInstance:
         self.instance = None
 
 
+class RewardsCC(CCInstance):
+    def __init__(self, test_params: dict):
+        super().__init__(test_params)
+        self.base_plan = None
+
+    def new_rewardsplan(self, proxy, schema=None):
+        name = randomstring(4)
+        amount = '250'
+        apr = '25'
+        mindays = '0'
+        maxdays = '10'
+        mindeposit = '10'
+        res = proxy.rewardscreatefunding(name, amount, apr, mindays, maxdays, mindeposit)
+        if schema:
+            validate_template(res, schema)
+        assert res.get('result') == 'success'
+        txid = proxy.sendrawtransaction(res.get('hex'))
+        mine_and_waitconfirms(txid, proxy)
+        rewardsplan = {
+            'fundingtxid': txid,
+            'name': name
+        }
+        if not self.base_plan:
+            self.base_plan = rewardsplan
+        return rewardsplan
+
+    @staticmethod
+    def rewardsinfo_maincheck(proxy, fundtxid, schema):
+        res = proxy.rewardsinfo(fundtxid)
+        validate_template(res, schema)
+        assert res.get('result') == 'success'
+
+    @staticmethod
+    def rewardsaddfunding_maincheck(proxy, fundtxid, schema):
+        name = proxy.rewardsinfo(fundtxid).get('name')
+        amount = proxy.rewardsinfo(fundtxid).get('mindeposit')  # not related to mindeposit here, just to get amount
+        res = proxy.rewardsaddfunding(name, fundtxid, amount)
+        validate_template(res, schema)
+        assert res.get('result') == 'success'
+        txid = proxy.sendrawtransaction(res.get('hex'))
+        mine_and_waitconfirms(txid, proxy)
+
+    @staticmethod
+    def un_lock_maincheck(proxy, fundtxid, schema):
+        name = proxy.rewardsinfo(fundtxid).get('name')
+        amount = proxy.rewardsinfo(fundtxid).get('mindeposit')
+        res = proxy.rewardslock(name, fundtxid, amount)
+        validate_template(res, schema)
+        assert res.get('result') == 'success'
+        locktxid = proxy.sendrawtransaction(res.get('hex'))
+        mine_and_waitconfirms(locktxid, proxy)
+        print('\nWaiting some time to gain reward for locked funds')
+        time.sleep(10)
+        res = proxy.rewardsunlock(name, fundtxid, locktxid)
+        print(res)
+        validate_template(res, schema)
+        assert res.get('result') == 'error'  # reward is less than txfee atm
+
+
 class ChannelsCC(CCInstance):
     def __init__(self, test_params: dict):
-
         super().__init__(test_params)
         self.base_channel = None
 
-    def new_channel(self, proxy: object, destpubkey: str, numpayments: str,
-                    paysize: str, schema=None, tokenid=None) -> dict:
+    def new_channel(self, proxy: object, destpubkey: str, numpayments='10',
+                    paysize='100000', schema=None, tokenid=None) -> dict:
         if tokenid:
             res = proxy.channelsopen(destpubkey, numpayments, paysize, tokenid)
         else:
@@ -57,7 +115,6 @@ class ChannelsCC(CCInstance):
 
 class OraclesCC(CCInstance):
     def __init__(self, test_params: dict):
-
         super().__init__(test_params)
         self.base_oracle = None
 
@@ -271,3 +328,9 @@ def dice_casino(test_params):
 def channel_instance(test_params):
     channel = ChannelsCC(test_params)
     return channel
+
+
+@pytest.fixture(scope='session')
+def rewards_plan(test_params):
+    rewards_plan = RewardsCC(test_params)
+    return rewards_plan
