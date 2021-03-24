@@ -2,12 +2,8 @@ import pytest
 import json
 import os
 import time
-from lib.pytest_util import randomstring, validate_template, mine_and_waitconfirms
-# Using different proxy to bypass libcurl issues on Windows
-try:
-    from slickrpc import Proxy
-except ImportError:
-    from bitcoinrpc.authproxy import AuthServiceProxy as Proxy
+from lib.pytest_util import randomstring, validate_template, mine_and_waitconfirms, validate_tx_pattern
+from slickrpc import Proxy
 
 
 class CCInstance:
@@ -17,6 +13,46 @@ class CCInstance:
         self.pubkey = [test_params.get(node).get('pubkey') for node in test_params.keys()]
         self.address = [test_params.get(node).get('address') for node in test_params.keys()]
         self.instance = None
+
+
+class ChannelsCC(CCInstance):
+    def __init__(self, test_params: dict):
+
+        super().__init__(test_params)
+        self.base_channel = None
+
+    def new_channel(self, proxy: object, destpubkey: str, numpayments: str,
+                    paysize: str, schema=None, tokenid=None) -> dict:
+        if tokenid:
+            res = proxy.channelsopen(destpubkey, numpayments, paysize, tokenid)
+        else:
+            res = proxy.channelsopen(destpubkey, numpayments, paysize)
+        if schema:
+            validate_template(res, schema)
+        open_txid = proxy.sendrawtransaction(res.get('hex'))
+        mine_and_waitconfirms(open_txid, proxy)
+        channel = {
+            'open_txid': open_txid,
+            'number_of_payments': numpayments,
+        }
+        if tokenid:
+            channel.update({'tokenid': tokenid})
+        if not self.base_channel:
+            self.base_channel = channel
+        return channel
+
+    @staticmethod
+    def channelslist_get(proxy: object, schema=None) -> str:
+        res = proxy.channelslist()
+        open_txid = None
+        if schema:
+            validate_template(res, schema)
+        # check dict items returned to find first available channel
+        for key in res.keys():
+            if validate_tx_pattern(key):
+                open_txid = key
+                break
+        return open_txid
 
 
 class OraclesCC(CCInstance):
@@ -229,3 +265,9 @@ def token_instance(test_params):
 def dice_casino(test_params):
     dice = DiceCC(test_params)
     return dice
+
+
+@pytest.fixture(scope='session')
+def channel_instance(test_params):
+    channel = ChannelsCC(test_params)
+    return channel

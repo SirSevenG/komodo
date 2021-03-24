@@ -8,10 +8,10 @@ import time
 from lib.pytest_util import validate_template, mine_and_waitconfirms, validate_raddr_pattern, validate_tx_pattern
 
 
-@pytest.mark.usefixtures("proxy_connection")
+@pytest.mark.usefixtures("proxy_connection", "test_params")
 class TestChannelsCCBase:
 
-    def test_channelsaddress(self, test_params):
+    def test_channelsaddress(self, channel_instance):
         channelsaddress_schema = {
             'type': 'object',
             'properties': {
@@ -32,34 +32,20 @@ class TestChannelsCCBase:
             },
             'required': ['result']
         }
-        rpc1 = test_params.get('node1').get('rpc')
-        pubkey2 = test_params.get('node2').get('pubkey')
+
+        rpc1 = channel_instance.rpc[0]
+        pubkey2 = channel_instance.pubkey[1]
 
         res = rpc1.channelsaddress(pubkey2)
         validate_template(res, channelsaddress_schema)
         for key in res.keys():
             if key.find('ddress') > 0:
                 assert validate_raddr_pattern(res.get(key))
+        for key in res.keys(pubkey2):
+            if key.find('ddress') > 0:
+                assert validate_raddr_pattern(res.get(key))
 
-    @staticmethod
-    def new_channel(proxy: object, destpubkey: str, numpayments: str, paysize: str, schema=None, tokenid=None) -> dict:
-        if tokenid:
-            res = proxy.channelsopen(destpubkey, numpayments, paysize, tokenid)
-        else:
-            res = proxy.channelsopen(destpubkey, numpayments, paysize)
-        if schema:
-            validate_template(res, schema)
-        open_txid = proxy.sendrawtransaction(res.get('hex'))
-        mine_and_waitconfirms(open_txid, proxy)
-        channel = {
-            'open_txid': open_txid,
-            'number_of_payments': numpayments,
-        }
-        if tokenid:
-            channel.update({'tokenid': tokenid})
-        return channel
-
-    def test_channelsopen(self, test_params):
+    def test_channelsopen(self, channel_instance):
         channelsopen_schema = {
             'type': 'object',
             'properties': {
@@ -70,24 +56,11 @@ class TestChannelsCCBase:
             'required': ['result']
         }
 
-        rpc1 = test_params.get('node1').get('rpc')
-        pubkey2 = test_params.get('node2').get('pubkey')
-        self.new_channel(rpc1, pubkey2, '10', '100000', schema=channelsopen_schema)
+        rpc1 = channel_instance.rpc[0]
+        pubkey2 = channel_instance.pubkey[1]
+        channel_instance.new_channel(rpc1, pubkey2, '10', '100000', schema=channelsopen_schema)
 
-    @staticmethod
-    def channelslist_get(proxy: object, schema=None) -> str:
-        res = proxy.channelslist()
-        open_txid = None
-        if schema:
-            validate_template(res, schema)
-        # check dict items returned to find first available channel
-        for key in res.keys():
-            if validate_tx_pattern(key):
-                open_txid = key
-                break
-        return open_txid
-
-    def test_channelslist(self, test_params):
+    def test_channelslist(self, channel_instance):
         channelsinfo_schema = {
             'type': 'object',
             'properties': {
@@ -99,10 +72,10 @@ class TestChannelsCCBase:
             'required': ['result']
         }
 
-        rpc1 = test_params.get('node1').get('rpc')
-        self.channelslist_get(rpc1, channelsinfo_schema)
+        rpc1 = channel_instance.rpc[0]
+        channel_instance.channelslist_get(rpc1, channelsinfo_schema)
 
-    def test_channelsinfo(self, test_params):
+    def test_channelsinfo(self, channel_instance):
         channelsinfo_schema = {
             'type': 'object',
             'properties': {
@@ -132,15 +105,16 @@ class TestChannelsCCBase:
             },
             'required': ['result']
         }
-        rpc1 = test_params.get('node1').get('rpc')
-        pubkey2 = test_params.get('node2').get('pubkey')
-        open_txid = self.channelslist_get(rpc1)
+
+        rpc1 = channel_instance.rpc[0]
+        pubkey2 = channel_instance.pubkey[1]
+        open_txid = channel_instance.channelslist_get(rpc1)
         if not open_txid:
-            open_txid = self.new_channel(rpc1, pubkey2, '10', '100000').get('open_txid')
+            open_txid = channel_instance.new_channel(rpc1, pubkey2, '10', '100000').get('open_txid')
         res = rpc1.channelsinfo(open_txid)
         validate_template(res, channelsinfo_schema)
 
-    def test_channelspayment(self, test_params):
+    def test_channelspayment(self, channel_instance):
         channelspayment_schema = {
             'type': 'object',
             'properties': {
@@ -151,11 +125,11 @@ class TestChannelsCCBase:
             'required': ['result']
         }
 
-        rpc1 = test_params.get('node1').get('rpc')
-        pubkey2 = test_params.get('node2').get('pubkey')
-        open_txid = self.channelslist_get(rpc1)
+        rpc1 = channel_instance.rpc[0]
+        pubkey2 = channel_instance.pubkey[1]
+        open_txid = channel_instance.channelslist_get(rpc1)
         if not open_txid:
-            open_txid = self.new_channel(rpc1, pubkey2, '10', '100000').get('open_txid')
+            open_txid = channel_instance.new_channel(rpc1, pubkey2, '10', '100000').get('open_txid')
             minpayment = '100000'
         else:
             minpayment = rpc1.channelsinfo(open_txid).get("Denomination (satoshi)")
@@ -164,7 +138,7 @@ class TestChannelsCCBase:
         txid = rpc1.sendrawtransaction(res.get('hex'))
         mine_and_waitconfirms(txid, rpc1)
 
-    def test_channels_closenrefund(self, test_params):
+    def test_channels_closenrefund(self, channel_instance):
         channelsclose_schema = {
             'type': 'object',
             'properties': {
@@ -184,10 +158,10 @@ class TestChannelsCCBase:
             'required': ['result']
         }
 
-        rpc1 = test_params.get('node1').get('rpc')
-        pubkey2 = test_params.get('node2').get('pubkey')
+        rpc1 = channel_instance.rpc[0]
+        pubkey2 = channel_instance.pubkey[1]
         minpayment = '100000'
-        newchannel = self.new_channel(rpc1, pubkey2, '2', minpayment)
+        newchannel = channel_instance.new_channel(rpc1, pubkey2, '2', minpayment)
 
         # send 1 payment and close channel
         res = rpc1.channelspayment(newchannel.get('open_txid'), minpayment)
@@ -207,16 +181,15 @@ class TestChannelsCCBase:
         mine_and_waitconfirms(refund_txid, rpc1)
 
 
-@pytest.mark.usefixtures("proxy_connection")
+@pytest.mark.usefixtures("proxy_connection", "test_params")
 class TestChannelsCC:
-    def test_channels_flow(self, test_params):
-        rpc1 = test_params.get('node1').get('rpc')
-        rpc2 = test_params.get('node2').get('rpc')
-        pubkey2 = test_params.get('node2').get('pubkey')
-        addr1 = test_params.get('node1').get('address')
+    def test_channels_flow(self, channel_instance):
+        rpc1 = channel_instance.rpc[0]
+        rpc2 = channel_instance.rpc[1]
+        pubkey2 = channel_instance.pubkey[1]
         payments = '10'
         pay_amount = '100000'
-        channel = TestChannelsCCBase.new_channel(rpc1, pubkey2, payments, pay_amount)
+        channel = channel_instance.new_channel(rpc1, pubkey2, payments, pay_amount)
 
         # trying to make wrong denomination channel payment
         res = rpc1.channelspayment(channel.get('open_txid'), '199000')
@@ -288,12 +261,12 @@ class TestChannelsCC:
                 pass
         assert 800000 in values  # 10 - 2 payments, worth of 100000 satoshi each
 
-    def test_channel_drain(self, test_params):
-        rpc1 = test_params.get('node1').get('rpc')
-        pubkey2 = test_params.get('node2').get('pubkey')
+    def test_channel_drain(self, channel_instance):
+        rpc1 = channel_instance.rpc[0]
+        pubkey2 = channel_instance.pubkey[1]
         payments = '3'
         pay_amount = '100000'
-        channel = TestChannelsCCBase.new_channel(rpc1, pubkey2, payments, pay_amount)
+        channel = channel_instance.new_channel(rpc1, pubkey2, payments, pay_amount)
 
         # draining channel (3 payment by 100000 satoshies in total to fit full capacity)
         for i in range(3):
@@ -311,12 +284,12 @@ class TestChannelsCC:
         assert res.get('result') == 'error'
         assert "error adding CC inputs" in res.get('error')
 
-    def test_secret_reveal(self, test_params):
+    def test_secret_reveal(self, channel_instance):
         # creating new channel to test the case when node B initiate payment when node A revealed secret in offline
         # 10 payments, 100000 sat denomination channel opening with second node pubkey
-        rpc1 = test_params.get('node1').get('rpc')
-        rpc2 = test_params.get('node2').get('rpc')
-        pubkey2 = test_params.get('node2').get('pubkey')
+        rpc1 = channel_instance.rpc[0]
+        rpc2 = channel_instance.rpc[1]
+        pubkey2 = channel_instance.pubkey[1]
         payments = '10'
         pay_amount = '100000'
         channel = TestChannelsCCBase.new_channel(rpc1, pubkey2, payments, pay_amount)
