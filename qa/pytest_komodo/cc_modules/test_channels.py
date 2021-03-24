@@ -38,10 +38,12 @@ class TestChannelsCCBase:
 
         res = rpc1.channelsaddress(pubkey2)
         validate_template(res, channelsaddress_schema)
+        res = rpc1.channelsaddress()
         for key in res.keys():
             if key.find('ddress') > 0:
                 assert validate_raddr_pattern(res.get(key))
-        for key in res.keys(pubkey2):
+        res = rpc1.channelsaddress(pubkey2)
+        for key in res.keys():
             if key.find('ddress') > 0:
                 assert validate_raddr_pattern(res.get(key))
 
@@ -186,9 +188,7 @@ class TestChannelsCC:
         rpc2 = channel_instance.rpc[1]
         pubkey2 = channel_instance.pubkey[1]
         addr1 = channel_instance.address[0]
-        if not channel_instance.base_channel:
-            channel_instance.new_channel(rpc1, pubkey2)
-        channel = channel_instance.base_channel
+        channel = channel_instance.new_channel(rpc1, pubkey2)
 
         # trying to make wrong denomination channel payment
         res = rpc1.channelspayment(channel.get('open_txid'), '199000')
@@ -289,9 +289,7 @@ class TestChannelsCC:
         rpc1 = channel_instance.rpc[0]
         rpc2 = channel_instance.rpc[1]
         pubkey2 = channel_instance.pubkey[1]
-        if not channel_instance.base_channel:
-            channel_instance.new_channel(rpc1, pubkey2)
-        channel = channel_instance.base_channel
+        channel = channel_instance.new_channel(rpc1, pubkey2)
 
         # disconnecting first node from network
         rpc1.setban("127.0.0.0/24", 'add')

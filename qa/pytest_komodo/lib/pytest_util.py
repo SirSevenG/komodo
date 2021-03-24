@@ -6,14 +6,9 @@ import string
 import hashlib
 import re
 import requests
-try:
-    from slickrpc import Proxy
-    from slickrpc.exc import RpcException as RPCError
-    from pycurl import error as HttpError
-except ImportError:  # fallback to bitcoinrpc
-    from bitcoinrpc.authproxy import AuthServiceProxy as Proxy
-    from bitcoinrpc.authproxy import JSONRPCException as RPCError
-    from http.client import HTTPException as HttpError
+from slickrpc import Proxy
+from slickrpc.exc import RpcException as RPCError
+from pycurl import error as HttpError
 
 
 def create_proxy(node_params_dictionary):
