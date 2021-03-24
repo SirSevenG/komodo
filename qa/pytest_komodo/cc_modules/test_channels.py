@@ -38,11 +38,6 @@ class TestChannelsCCBase:
 
         res = rpc1.channelsaddress(pubkey2)
         validate_template(res, channelsaddress_schema)
-        res = rpc1.channelsaddress()
-        for key in res.keys():
-            if key.find('ddress') > 0:
-                assert validate_raddr_pattern(res.get(key))
-        res = rpc1.channelsaddress(pubkey2)
         for key in res.keys():
             if key.find('ddress') > 0:
                 assert validate_raddr_pattern(res.get(key))
