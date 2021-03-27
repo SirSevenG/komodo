@@ -89,7 +89,7 @@ class TestTokenCCcalls:
         }
 
         if not token_instance.base_token:
-            token_instance.new_oracle(token_instance.rpc[1])
+            token_instance.new_token(token_instance.rpc[1])
 
         res = token_instance.rpc[0].assetsaddress(token_instance.pubkey[0])
         validate_template(res, assetaddress_schema)
@@ -119,7 +119,7 @@ class TestTokenCCcalls:
         }
 
         if not token_instance.base_token:
-            token_instance.new_oracle(token_instance.rpc[1])
+            token_instance.new_token(token_instance.rpc[1])
 
         amount = 150
         res = token_instance.rpc[0].tokentransfer(token_instance.base_token.get('tokenid'),
@@ -157,7 +157,7 @@ class TestTokenCCcalls:
                     'origtokenaddress': {'type': 'string'},
                     'tokenid': {'type': 'string'},
                     'totalrequired': {'type': ['string', 'integer']},
-                    'price': {'type': 'string'}
+                    'price': {'type': 'number'}
                 }
             }
         }
@@ -167,7 +167,7 @@ class TestTokenCCcalls:
         pubkey2 = token_instance.pubkey[1]
 
         if not token_instance.base_token:
-            token_instance.new_oracle(token_instance.rpc[1])
+            token_instance.new_token(token_instance.rpc[1])
         amount1 = 150
         amount2 = 100
         price = 0.1
@@ -234,7 +234,7 @@ class TestTokenCC:
 
     def test_bad_calls(self, token_instance):
         if not token_instance.base_token:
-            token_instance.new_oracle(token_instance.rpc[1])
+            token_instance.new_token(token_instance.rpc[1])
 
         rpc = token_instance.rpc[0]
         pubkey = token_instance.pubkey[0]
@@ -243,9 +243,9 @@ class TestTokenCC:
         tokenid = token_instance.base_token.get('tokenid')
 
         # trying to create token with negative supply
-        # with pytest.raises(RPCError):
-        res = rpc.tokencreate("NUKE", "-1987420", "no bueno supply")
-        assert res.get('error')
+        with pytest.raises(RPCError):
+            res = rpc.tokencreate("NUKE", "-1987420", "no bueno supply")
+            assert res.get('error')
         # creating token with name more than 32 chars
         res = rpc.tokencreate("NUKE123456789012345678901234567890", "1987420", "name too long")
         assert res.get('error')
@@ -269,9 +269,9 @@ class TestTokenCC:
         res = rpc.tokenbid("0", tokenid, "1")
         assert res.get('error')
         # invalid price bid
-        # with pytest.raises(RPCError):
-        res = rpc.tokenbid("1", tokenid, "-1")
-        assert res.get('error')
+        with pytest.raises(RPCError):
+           res = rpc.tokenbid("1", tokenid, "-1")
+           assert res.get('error')
         # invalid price bid
         res = rpc.tokenbid("1", tokenid, "0")
         assert res.get('error')
@@ -285,9 +285,9 @@ class TestTokenCC:
         res = rpc.tokenask("0", tokenid, "1")
         assert res.get('error')
         # invalid price ask
-        # with pytest.raises(RPCError):
-        res = rpc.tokenask("1", tokenid, "-1")
-        assert res.get('error')
+        with pytest.raises(RPCError):
+            res = rpc.tokenask("1", tokenid, "-1")
+            assert res.get('error')
         # invalid price ask
         res = rpc.tokenask("1", tokenid, "0")
         assert res.get('error')

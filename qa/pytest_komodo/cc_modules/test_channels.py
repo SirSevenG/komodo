@@ -134,16 +134,7 @@ class TestChannelsCCBase:
         mine_and_waitconfirms(txid, rpc1)
 
     def test_channels_closenrefund(self, channel_instance):
-        channelsclose_schema = {
-            'type': 'object',
-            'properties': {
-                'result': {'type': 'string'},
-                'error': {'type': 'string'},
-                'hex': {'type': 'string'}
-            },
-            'required': ['result']
-        }
-        channelsrefund_schema = {
+        channels_refund_close_schema = {
             'type': 'object',
             'properties': {
                 'result': {'type': 'string'},
@@ -163,16 +154,14 @@ class TestChannelsCCBase:
         txid = rpc1.sendrawtransaction(res.get('hex'))
         mine_and_waitconfirms(txid, rpc1)
         res = rpc1.channelsclose(newchannel.get('open_txid'))
-        assert isinstance(res, str)  # channelsclose returns only hex on success
-        # validate_template(res, channelsclose_schema)
-        close_txid = rpc1.sendrawtransaction(res)
+        validate_template(res, channels_refund_close_schema)
+        close_txid = rpc1.sendrawtransaction(res.get('hex'))
         mine_and_waitconfirms(close_txid, rpc1)
 
         # execute refund
         res = rpc1.channelsrefund(newchannel.get('open_txid'), close_txid)
-        assert isinstance(res, str)  # same to above
-        # validate_template(res, channelsrefund_schema)
-        refund_txid = rpc1.sendrawtransaction(res)
+        validate_template(res, channels_refund_close_schema)
+        refund_txid = rpc1.sendrawtransaction(res.get('hex'))
         mine_and_waitconfirms(refund_txid, rpc1)
 
 
@@ -228,8 +217,8 @@ class TestChannelsCC:
 
         # executing channel close
         res = rpc1.channelsclose(channel.get('open_txid'))
-        assert isinstance(res, str)
-        close_txid = rpc1.sendrawtransaction(res)
+        assert res.get('result') == 'success'
+        close_txid = rpc1.sendrawtransaction(res.get('hex'))
         mine_and_waitconfirms(close_txid, rpc1)
 
         # now in channelinfo closed flag should appear
@@ -238,8 +227,8 @@ class TestChannelsCC:
 
         # executing channel refund
         res = rpc1.channelsrefund(channel.get('open_txid'), close_txid)
-        assert isinstance(res, str)
-        refund_txid = rpc1.sendrawtransaction(res)
+        assert res.get('result') == 'success'
+        refund_txid = rpc1.sendrawtransaction(res.get('hex'))
         mine_and_waitconfirms(refund_txid, rpc1)
 
         # checking if it refunded to opener address
