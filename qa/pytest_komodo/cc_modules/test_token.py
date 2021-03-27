@@ -89,7 +89,7 @@ class TestTokenCCcalls:
         }
 
         if not token_instance.base_token:
-            token_instance.new_oracle(token_instance.rpc[1])
+            token_instance.new_token(token_instance.rpc[1])
 
         res = token_instance.rpc[0].assetsaddress(token_instance.pubkey[0])
         validate_template(res, assetaddress_schema)
@@ -119,7 +119,7 @@ class TestTokenCCcalls:
         }
 
         if not token_instance.base_token:
-            token_instance.new_oracle(token_instance.rpc[1])
+            token_instance.new_token(token_instance.rpc[1])
 
         amount = 150
         res = token_instance.rpc[0].tokentransfer(token_instance.base_token.get('tokenid'),
@@ -167,7 +167,7 @@ class TestTokenCCcalls:
         pubkey2 = token_instance.pubkey[1]
 
         if not token_instance.base_token:
-            token_instance.new_oracle(token_instance.rpc[1])
+            token_instance.new_token(token_instance.rpc[1])
         amount1 = 150
         amount2 = 100
         price = 0.1
@@ -234,7 +234,7 @@ class TestTokenCC:
 
     def test_bad_calls(self, token_instance):
         if not token_instance.base_token:
-            token_instance.new_oracle(token_instance.rpc[1])
+            token_instance.new_token(token_instance.rpc[1])
 
         rpc = token_instance.rpc[0]
         pubkey = token_instance.pubkey[0]
