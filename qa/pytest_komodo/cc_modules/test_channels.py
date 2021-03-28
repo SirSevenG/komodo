@@ -278,9 +278,14 @@ class TestChannelsCC:
         # disconnecting first node from network
         rpc1.setban("127.0.0.0/24", 'add')
         rpc2.setban("127.0.0.0/24", 'add')
-        time.sleep(10)  # timewait for bans to take place
-        assert rpc1.getinfo()['connections'] == 0
-        assert rpc2.getinfo()['connections'] == 0
+        # timewait for bans to take place
+        timeout = 40
+        t_iter = 0
+        while rpc1.getinfo()['connections'] != 0 or rpc2.getinfo()['connections'] != 0:
+            time.sleep(1)
+            t_iter += 1
+            if t_iter >= timeout:
+                raise TimeoutError("Setban timeout: ", str(t_iter), "s")
 
         # sending one payment to mempool to reveal the secret but not mine it
         payment_hex = rpc1.channelspayment(channel.get('open_txid'), '100000')
