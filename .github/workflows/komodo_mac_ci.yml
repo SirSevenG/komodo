@@ -22,7 +22,7 @@ jobs:
           brew uninstall php glib gcc gcc@8 gcc@9 python@3.9 pipx
           brew upgrade
           brew install gcc@8 gcc
-          brew install boost libgmp
+          brew install boost gmp
           brew tap discoteq/discoteq; brew install flock
           brew install autoconf autogen automake
           brew install binutils
