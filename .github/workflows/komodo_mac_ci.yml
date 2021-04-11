@@ -24,7 +24,7 @@ jobs:
           brew tap discoteq/discoteq; brew install flock
           brew install autoconf autogen automake
           brew install boost gmp
-          brew update && brew install gcc@8
+          brew update && brew install gcc@8 gcc@6
           brew install binutils
           brew install protobuf
           brew install coreutils
