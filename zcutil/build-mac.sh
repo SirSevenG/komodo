@@ -51,6 +51,8 @@ echo $PWD
 cd $WD
 
 ./autogen.sh
+echo "CHECK GMP LOCATION"
+find ~/ -name "libgmp-6.1.1*"
 echo "STEP 1 PASSED"
 echo "{$PREFIX}"
 ls -la $PREFIX/include
