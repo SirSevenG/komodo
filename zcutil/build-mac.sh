@@ -53,7 +53,9 @@ cd $WD
 ./autogen.sh
 echo "STEP 1 PASSED"
 echo "{$PREFIX}"
-ls -la $PREFIX/includesudo ls -la /usr/local/Cellar/gcc@8
+ls -la $PREFIX/include
+ls -la /Users/runner/work/komodo/komodo/depends/x86_64-apple-darwin19.6.0
+ls -la /usr/local/Cellar/gcc@8
 ls -la /usr/local/Cellar/gcc@8/8.4.0_2/
 ls -la /usr/local/Cellar/gcc@8/8.4.0_2/include/
 ls -la /usr/local/Cellar/gcc@8/8.4.0_2/include/c++/
