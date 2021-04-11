@@ -27,7 +27,6 @@ jobs:
           brew install binutils
           brew install protobuf
           brew install coreutils
-          brew install wget
           find /usr /opt -name "gmp.h"
           find /usr /opt -name "libgmp*"
 
