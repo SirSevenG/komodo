@@ -53,12 +53,15 @@ cd $WD
 ./autogen.sh
 echo "STEP 1 PASSED"
 echo "{$PREFIX}"
-ls -la $PREFIX/include
-ls -la /usr/local/Cellar/gcc\@8/8.4.0_2/
-ls -la /usr/local/Cellar/gcc\@8/8.4.0_2/include/c++/8.4.0_2/
+ls -la $PREFIX/includesudo ls -la /usr/local/Cellar/gcc@8
+ls -la /usr/local/Cellar/gcc@8/8.4.0_2/
+ls -la /usr/local/Cellar/gcc@8/8.4.0_2/include/
+ls -la /usr/local/Cellar/gcc@8/8.4.0_2/include/c++/
+ls -la /usr/local/Cellar/gcc@8/8.4.0_2/include/c++/8.4.0/
+ls -la /usr/local/Cellar/gcc@8/8.4.0_2/include/c++/8.4.0/x86_64-apple-darwin19
 echo "CHECK 1"
 CPPFLAGS="-I$PREFIX/include -arch x86_64" LDFLAGS="-L$PREFIX/lib -arch x86_64 -Wl,-no_pie" \
-CXXFLAGS='-arch x86_64 -I/usr/local/Cellar/gcc\@8/8.4.0_2/include/c++/8.4.0_2/ -I$PREFIX/include -fwrapv -fno-strict-aliasing -Wno-builtin-declaration-mismatch -Werror -g -Wl,-undefined -Wl,dynamic_lookup' \
+CXXFLAGS='-arch x86_64 -I/usr/local/Cellar/gcc\@8/8.4.0_2/include/c++/8.4.0/ -I$PREFIX/include -fwrapv -fno-strict-aliasing -Wno-builtin-declaration-mismatch -Werror -g -Wl,-undefined -Wl,dynamic_lookup' \
 ./configure --prefix="${PREFIX}" --with-gui=no "$HARDENING_ARG" "$LCOV_ARG"
 
 echo "STEP 2 PASSED"
