@@ -28,12 +28,8 @@ jobs:
           brew install binutils
           brew install protobuf
           brew install coreutils
-          sudo ls -la /usr/local/Cellar/gcc@8
-          sudo ls -la /usr/local/Cellar/gcc@8/8.4.0_2/
-          sudo ls -la /usr/local/Cellar/gcc@8/8.4.0_2/include/
-          sudo ls -la /usr/local/Cellar/gcc@8/8.4.0_2/include/c++/
-          sudo ls -la /usr/local/Cellar/gcc@8/8.4.0_2/include/c++/8.4.0/
-          sudo ls -la /usr/local/Cellar/gcc@8/8.4.0_2/include/c++/8.4.0/x86_64-apple-darwin19
+          sudo ls -la /usr/local/Cellar
+          sudo ls -la /usr/local/Cellar/gcc@8/
           sudo find /usr /opt -name "gmp.h"
           sudo find /usr /opt -name "libgmp*"
 
