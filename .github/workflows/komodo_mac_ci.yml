@@ -31,7 +31,7 @@ jobs:
           sudo ls -la /usr/local/Cellar/gcc@8/8.4.0_2/
           sudo ls -la /usr/local/Cellar/gcc@8/8.4.0_2/include/
           sudo ls -la /usr/local/Cellar/gcc@8/8.4.0_2/include/c++/
-          sudo ls -la /usr/local/Cellar/gcc@8/8.4.0_2/include/c++/8.4.0_2/
+          sudo ls -la /usr/local/Cellar/gcc@8/8.4.0_2/include/c++/8.4.0/
           sudo find /usr /opt -name "gmp.h"
           sudo find /usr /opt -name "libgmp*"
 
