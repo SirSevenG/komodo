@@ -32,14 +32,15 @@ jobs:
           sudo ls -la /usr/local/Cellar/gcc@8/8.4.0_2/include/
           sudo ls -la /usr/local/Cellar/gcc@8/8.4.0_2/include/c++/
           sudo ls -la /usr/local/Cellar/gcc@8/8.4.0_2/include/c++/8.4.0/
+          sudo ls -la /usr/local/Cellar/gcc@8/8.4.0_2/include/c++/8.4.0/x86_64-apple-darwin19
           sudo find /usr /opt -name "gmp.h"
           sudo find /usr /opt -name "libgmp*"
 
       - name: Build (macOS)
         run: |
           # flag for some CC tests transactions - so DO NOT USE THIS CI ARTIFACTS IN PRODUCTION!!!
-          # ./zcutil/build-mac.sh -j$(nproc)
-          # tar -czvf komodo-macos.tar.gz src/komodod src/komodo-cli
+          ./zcutil/build-mac.sh -j$(nproc)
+          tar -czvf komodo-macos.tar.gz src/komodod src/komodo-cli
 
       - name: Upload komodo-macos.tar.gz as artifact
         uses: actions/upload-artifact@v1
