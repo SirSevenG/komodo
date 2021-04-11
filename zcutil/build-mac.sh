@@ -56,13 +56,9 @@ find ~/ -name "libgmp-6.1.1*"
 echo "STEP 1 PASSED"
 echo "{$PREFIX}"
 ls -la $PREFIX/include
-ls -la /Users/runner/work/komodo/komodo/depends/x86_64-apple-darwin19.6.0
-ls -la /usr/local/Cellar/gcc@8
-ls -la /usr/local/Cellar/gcc@8/8.4.0_2/
-ls -la /usr/local/Cellar/gcc@8/8.4.0_2/include/
-ls -la /usr/local/Cellar/gcc@8/8.4.0_2/include/c++/
-ls -la /usr/local/Cellar/gcc@8/8.4.0_2/include/c++/8.4.0/
-ls -la /usr/local/Cellar/gcc@8/8.4.0_2/include/c++/8.4.0/x86_64-apple-darwin19
+ls -la /Users/runner/work/komodo/komodo/depends/x86_64-apple-darwin19.6.0/libgmp/
+mkdir /usr/local/Cellar/gmp/6.1.1
+tar xvzf /Users/runner/work/komodo/komodo/depends/x86_64-apple-darwin19.6.0/libgmp/libgmp-6.1.1-* -C /usr/local/Cellar/gmp/6.1.1/
 echo "CHECK 1"
 CPPFLAGS="-I$PREFIX/include -arch x86_64" LDFLAGS="-L$PREFIX/lib -arch x86_64 -Wl,-no_pie" \
 CXXFLAGS='-arch x86_64 -I/usr/local/Cellar/gcc\@8/8.4.0_2/include/c++/8.4.0/ -I$PREFIX/include -I$PREFIX/lib -fwrapv -fno-strict-aliasing -Wno-builtin-declaration-mismatch -Werror -g -Wl,-undefined -Wl,dynamic_lookup' \
