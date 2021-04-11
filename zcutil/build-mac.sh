@@ -57,7 +57,6 @@ echo "STEP 1 PASSED"
 echo "{$PREFIX}"
 # sudo ln -s /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/* /usr/local/include/
 ls -la $PREFIX/include
-ls -la /Users/runner/work/komodo/komodo/depends/x86_64-apple-darwin19.6.0/libgmp/
 #mkdir /usr/local/Cellar/gmp/6.1.1
 #tar xvzf /Users/runner/work/komodo/komodo/depends/x86_64-apple-darwin19.6.0/libgmp/libgmp-6.1.1-* -C /usr/local/Cellar/gmp/6.1.1/
 echo "CHECK 1"
