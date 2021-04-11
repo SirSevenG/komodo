@@ -27,8 +27,8 @@ jobs:
           brew install binutils
           brew install protobuf
           brew install coreutils
-          find /usr /opt -name "gmp.h"
-          find /usr /opt -name "libgmp*"
+          sudo find /usr /opt -name "gmp.h"
+          sudo find /usr /opt -name "libgmp*"
 
       - name: Build (macOS)
         run: |
