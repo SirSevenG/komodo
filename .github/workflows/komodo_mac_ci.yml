@@ -18,6 +18,7 @@ jobs:
       - name: Install deps (macOS)
         run: |
           softwareupdate --install -a
+          sudo find / -name "libgmp*"
           brew update
           brew upgrade
           brew tap discoteq/discoteq; brew install flock
