@@ -17,7 +17,6 @@ jobs:
 
       - name: Install deps (macOS)
         run: |
-          sudo ls -la /usr/local/Cellar/gcc@8/8.4.0_2/include/c++/8.4.0_2/
           softwareupdate --install -a
           brew update
           brew upgrade
