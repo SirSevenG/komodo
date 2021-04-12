@@ -60,9 +60,9 @@ ls -la $PREFIX/include
 #mkdir /usr/local/Cellar/gmp/6.1.1
 #tar xvzf /Users/runner/work/komodo/komodo/depends/x86_64-apple-darwin19.6.0/libgmp/libgmp-6.1.1-* -C /usr/local/Cellar/gmp/6.1.1/
 echo "CHECK 1"
-CPPFLAGS="-I$PREFIX/include -arch x86_64" LDFLAGS="-L$PREFIX/lib -arch x86_64 -Wl,-no_pie" \
-CXXFLAGS='-arch x86_64 -I/usr/local/Cellar/gcc\@8/8.4.0_2/include/c++/8.4.0 -I/usr/local/Cellar -I$PREFIX/include  -fwrapv -fno-strict-aliasing -Wno-builtin-declaration-mismatch -Werror -g -Wl,-undefined -Wl,dynamic_lookup' \
-./configure --prefix="${PREFIX}" --with-gui=no "$HARDENING_ARG" "$LCOV_ARG"
+#CPPFLAGS="-I$PREFIX/include -arch x86_64" LDFLAGS="-L$PREFIX/lib -arch x86_64 -Wl,-no_pie" \
+#CXXFLAGS='-arch x86_64 -I/usr/local/Cellar/gcc\@8/8.4.0_2/include/c++/8.4.0 -I/usr/local/Cellar -I$PREFIX/include  -fwrapv -fno-strict-aliasing -Wno-builtin-declaration-mismatch -Werror -g -Wl,-undefined -Wl,dynamic_lookup' \
+#./configure --prefix="${PREFIX}" --with-gui=no "$HARDENING_ARG" "$LCOV_ARG"
 
 echo "STEP 2 PASSED"
-make "$@" V=1 NO_GTEST=1 STATIC=1
+#make "$@" V=1 NO_GTEST=1 STATIC=1
