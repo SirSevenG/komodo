@@ -37,7 +37,8 @@ jobs:
         run: |
           # flag for some CC tests transactions - so DO NOT USE THIS CI ARTIFACTS IN PRODUCTION!!!
           ./zcutil/build-mac.sh -j$(nproc)
-          tar -czvf komodo-macos.tar.gz src/komodod src/komodo-cli
+          tar -czvf komodo-macos.tar.gz /Users/runner/work/komodo/komodo/depends/x86_64-apple-darwin19.6.0
+          # tar -czvf komodo-macos.tar.gz src/komodod src/komodo-cli
 
       - name: Upload komodo-macos.tar.gz as artifact
         uses: actions/upload-artifact@v1
