@@ -19,17 +19,14 @@ jobs:
         run: |
           softwareupdate --install -a
           brew update
-          brew uninstall php glib gcc gcc@8 gcc@9 python@3.9 pipx
           brew upgrade
-          brew install gcc@8 gcc
-          brew install boost
           brew tap discoteq/discoteq; brew install flock
           brew install autoconf autogen automake
+          brew install gcc@8 gcc
+          brew install boost gmp
           brew install binutils
           brew install protobuf
           brew install coreutils
-          pip install --upgrade pip
-          pip install setuptools wheel wget
 
       - name: Build (macOS)
         run: |
