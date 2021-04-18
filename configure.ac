@@ -741,19 +741,19 @@ fi
 
 # These packages don't provide pkgconfig config files across all
 # platforms, so we use older autoconf detection mechanisms:
-if test x$TARGET_OS = xdarwin; then
-AC_CHECK_HEADER([gmp.h],,AC_MSG_ERROR(libgmp headers missing))
-AC_SEARCH_LIBS([[__gmpn_sub_n]],[gmp],GMP_LIBS=-lgmp, [AC_MSG_ERROR(libgmp missing)])
-
-AC_CHECK_HEADER([gmpxx.h],,AC_MSG_ERROR(libgmpxx headers missing))
-AC_SEARCH_LIBS([main],[gmpxx],GMPXX_LIBS=-lgmpxx, [AC_MSG_ERROR(libgmpxx missing)])
-fi
-
+#if test x$TARGET_OS = xdarwin; then
 #AC_CHECK_HEADER([gmp.h],,AC_MSG_ERROR(libgmp headers missing))
-#AC_CHECK_LIB([gmp],[[__gmpn_sub_n]],GMP_LIBS=-lgmp, [AC_MSG_ERROR(libgmp missing)])
+#AC_SEARCH_LIBS([[__gmpn_sub_n]],[gmp],GMP_LIBS=-lgmp, [AC_MSG_ERROR(libgmp missing)])
 
 #AC_CHECK_HEADER([gmpxx.h],,AC_MSG_ERROR(libgmpxx headers missing))
-#AC_CHECK_LIB([gmpxx],[main],GMPXX_LIBS=-lgmpxx, [AC_MSG_ERROR(libgmpxx missing)])
+#AC_SEARCH_LIBS([main],[gmpxx],GMPXX_LIBS=-lgmpxx, [AC_MSG_ERROR(libgmpxx missing)])
+#fi
+
+AC_CHECK_HEADER([gmp.h],,AC_MSG_ERROR(libgmp headers missing))
+AC_CHECK_LIB([gmp],[[__gmpn_sub_n]],GMP_LIBS=-lgmp, [AC_MSG_ERROR(libgmp missing)])
+
+AC_CHECK_HEADER([gmpxx.h],,AC_MSG_ERROR(libgmpxx headers missing))
+AC_CHECK_LIB([gmpxx],[main],GMPXX_LIBS=-lgmpxx, [AC_MSG_ERROR(libgmpxx missing)])
 
 # libsnark header layout is broken unless cpp's -I is passed with the
 # libsnark directory, so for now we use this hideous workaround:
