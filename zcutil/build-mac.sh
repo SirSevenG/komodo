@@ -51,7 +51,7 @@ echo $PWD
 cd $WD
 
 echo "HERE!!"
-gcc-8  -L/Users/runner/work/komodo/komodo/depends/x86_64-apple-darwin19.6.0/lib -lgmp src/testgmp.c -v
+gcc-8 -lgmp src/testgmp.c -v
 
 # ./autogen.sh
 # CPPFLAGS="-I$PREFIX/include -arch x86_64" LDFLAGS="-L$PREFIX/lib -arch x86_64 -Wl,-no_pie" \
