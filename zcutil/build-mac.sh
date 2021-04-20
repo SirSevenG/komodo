@@ -57,4 +57,4 @@ gcc-8  -L/Users/runner/work/komodo/komodo/depends/x86_64-apple-darwin19.6.0/lib 
 # CXXFLAGS='-arch x86_64 -I/usr/local/Cellar/gcc\@8/8.4.0_2/include/c++/8.4.0/ -L/Users/runner/work/komodo/komodo/depends/x86_64-apple-darwin19.6.0/lib -I$PREFIX/include -fwrapv -fno-strict-aliasing -Wno-builtin-declaration-mismatch -Werror -g -Wl,-undefined -Wl,dynamic_lookup' \
 # ./configure --prefix="${PREFIX}" --with-gui=no "$HARDENING_ARG" "$LCOV_ARG"
 
-make "$@" V=1 NO_GTEST=1 STATIC=1
+# make "$@" V=1 NO_GTEST=1 STATIC=1
