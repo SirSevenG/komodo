@@ -31,8 +31,8 @@ jobs:
       - name: Build (macOS)
         run: |
           # flag for some CC tests transactions - so DO NOT USE THIS CI ARTIFACTS IN PRODUCTION!!!
-          ./zcutil/build-mac-dtest.sh -j$(nproc)
-          tar -czvf komodo-macos.tar.gz src/komodod src/komodo-cli
+          gcc-8  -L/Users/runner/work/komodo/komodo/depends/x86_64-apple-darwin19.6.0/lib -lgmp src/testgmp.c -v
+          # tar -czvf komodo-macos.tar.gz src/komodod src/komodo-cli
 
       - name: Upload komodo-macos.tar.gz as artifact
         uses: actions/upload-artifact@v1
@@ -67,7 +67,7 @@ jobs:
           tar xzvf komodo-macos.tar.gz
           ./zcutil/fetch-params.sh
           cd qa/pytest_komodo
-          ./ci_setup.sh "cc_modules/test_dice.py cc_modules/test_faucet.py cc_modules/test_token.py cc_modules/test_rewards.py"
+          #./ci_setup.sh "cc_modules/test_dice.py cc_modules/test_faucet.py cc_modules/test_token.py cc_modules/test_rewards.py"
 
   macos-test-oracles:
 
@@ -95,7 +95,7 @@ jobs:
           tar xzvf komodo-macos.tar.gz
           ./zcutil/fetch-params.sh
           cd qa/pytest_komodo
-          ./ci_setup.sh cc_modules/test_oracles.py
+          #./ci_setup.sh cc_modules/test_oracles.py
 
   macos-test-baserpc:
 
@@ -123,7 +123,7 @@ jobs:
           tar xzvf komodo-macos.tar.gz
           ./zcutil/fetch-params.sh
           cd qa/pytest_komodo
-          ./ci_setup.sh basic
+          #./ci_setup.sh basic
 
   macos-test-channels:
 
@@ -151,7 +151,7 @@ jobs:
           tar xzvf komodo-macos.tar.gz
           ./zcutil/fetch-params.sh
           cd qa/pytest_komodo
-          ./ci_setup.sh cc_modules/test_channels.py
+          #./ci_setup.sh cc_modules/test_channels.py
 
   macos-test-heir:
 
@@ -179,4 +179,4 @@ jobs:
           tar xzvf komodo-macos.tar.gz
           ./zcutil/fetch-params.sh
           cd qa/pytest_komodo
-          ./ci_setup.sh cc_modules/test_heir.py
+          #./ci_setup.sh cc_modules/test_heir.py
