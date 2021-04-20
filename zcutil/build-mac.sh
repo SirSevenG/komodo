@@ -50,6 +50,7 @@ echo $PWD
 ./makecustom
 cd $WD
 
+echo "HERE!!"
 gcc-8  -L/Users/runner/work/komodo/komodo/depends/x86_64-apple-darwin19.6.0/lib -lgmp src/testgmp.c -v
 
 # ./autogen.sh
