@@ -50,6 +50,11 @@ echo $PWD
 ./makecustom
 cd $WD
 
+PREFIX="$(pwd)/depends/x86_64-apple-darwin19.6.0"
+CPPFLAGS="-I$PREFIX/include -arch x86_64" LDFLAGS="-L$PREFIX/lib -arch x86_64 -Wl,-no_pie" \
+CXXFLAGS='-arch x86_64 -I/usr/local/Cellar/gcc\@8/8.3.0/include/c++/8.3.0/ -I$PREFIX/include -fwrapv -fno-strict-aliasing -Wno-builtin-declaration-mismatch -Werror -g -Wl,-undefined -Wl,dynamic_lookup' \
+./configure --prefix="${PREFIX}"
+
 gcc-8  -L/Users/runner/work/komodo/komodo/depends/x86_64-apple-darwin19.6.0/lib -lgmp src/testgmp.c -v
 
 # ./autogen.sh
