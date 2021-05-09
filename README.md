@@ -13,7 +13,6 @@
 ---
 ![Komodo Logo](https://i.imgur.com/E8LtkAa.png "Komodo Logo")
 
-
 ## Komodo
 
 This is the official Komodo sourcecode repository based on https://github.com/jl777/komodo. 
